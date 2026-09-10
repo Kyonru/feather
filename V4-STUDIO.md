@@ -251,6 +251,45 @@ step and a quiet heading.
 
 *What keeps its border:* form controls, and any element whose edge tells you where to click.
 
+**Applied 2026-09-10.** The complaint that started this — *"the shader graph have strong border on
+every container"* — turned out to have a cause underneath the taste question, and it is worth
+recording because the taste fix alone would have hidden it:
+
+Tailwind v4 changed the default `border` colour from a light grey to **`currentColor`**. shadcn
+covers this with a base rule (`* { border-color: var(--border) }`); the showcase entry had that rule,
+but `apps/studio/src/studio.css` never did. Every `border` utility in Studio was therefore drawing in
+the *text* colour — **15.8:1** against the page, where the intended token is **1.25:1**. Shader Graph
+alone rendered **172** near-black outlines. That is not a heavy design, it is a missing line of CSS.
+
+Three things followed:
+
+1. **The base layer landed in `studio.css`**, alongside the removal of ~9 lines of dead
+   `.studio-panel` / `.studio-button` placeholder CSS that the real shell had already replaced —
+   which was independently hardcoding `#d7dbe1` borders and a `#f4f5f7` body, overriding the theme.
+   The body now takes `bg-background` from the token, so themes actually reach it.
+2. **An earlier softening was reverted.** `--color-border` had been mixed down to 55% while the real
+   cause was still unknown; with borders resolving correctly that produced 1.13:1 — too faint to
+   read as a division. The raw token is 1.25:1, which is the VS Code range *and* what Inspector
+   already uses. Sharing one value serves the "single product" complaint better than a Studio-only
+   variant.
+3. **The idiom got named.** `.surface` / `.surface-inset` / `.section-label` in `theme-tokens.css`
+   replaced 59 ad-hoc boxed containers written 8 different ways and 42 labels written 7 different
+   ways. Controls kept their borders, and so did anything carrying a state colour — those were
+   classified out by the presence of `h-\d` / `cursor-` / `focus` / `hover:` / `disabled:` or a
+   palette colour, not by hand.
+
+*Guarded by* `the three tools share one visual language` in `apps/studio/e2e/studio.spec.ts`, which
+walks all three tools and fails on any sRGB border darker than rgb(90,90,90). Verified by reverting
+the base rule and watching it report 172.
+
+**A defect this surfaced.** Tightening the spacing moved a diagnostic's fix button under the floating
+LÖVE preview — `fixed bottom-4 right-4`, so it sits over whatever occupies that corner, which in
+Shader Graph is the diagnostics list. The button was 59px inside the preview's box and could not be
+clicked at all. The preview now publishes its measured footprint as `--floating-preview-gutter` (via
+`ResizeObserver`, because it is resizable and a hardcoded value goes stale on the first drag) and
+`ShaderRightPanel` reserves it in standalone. *Guarded by* `the floating preview never covers the
+diagnostics it explains`.
+
 ### W2c — Navigation overlays; it does not occupy
 
 *(Added 2026-09-10 on the owner's direction.)*

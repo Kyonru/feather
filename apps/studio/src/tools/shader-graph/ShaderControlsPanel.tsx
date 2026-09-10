@@ -204,7 +204,7 @@ export function ShaderControlsPanel({ onFocusSelection }: { onFocusSelection?: (
     if (node.data.nodeType === 'TextureParameter') {
       const upload = textureUploads[node.id];
       return (
-        <div className="flex items-center justify-between gap-2 rounded border border-border/70 p-2">
+        <div className="surface flex items-center justify-between gap-2 p-2">
           <div className="min-w-0">
             <div className="text-[10px] font-medium text-muted-foreground">Texture File</div>
             <div className="truncate text-[10px] text-muted-foreground">
@@ -253,7 +253,7 @@ export function ShaderControlsPanel({ onFocusSelection }: { onFocusSelection?: (
   return (
     <div data-testid="shader-controls-panel" className="grid gap-3 p-3 text-xs">
       <div className="grid gap-1">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="flex items-center gap-1.5 section-label">
           <SlidersHorizontalIcon className="size-3.5" />
           Shader Controls
         </div>
@@ -280,7 +280,7 @@ export function ShaderControlsPanel({ onFocusSelection }: { onFocusSelection?: (
             const connected = edges.some((edge) => edge.source === node.id);
             const uniform = shaderParameterUniformName(node.id, node.data.uniformName);
             return (
-              <div key={node.id} className="grid gap-2 rounded border border-border/70 bg-card/60 p-2">
+              <div key={node.id} className="surface grid gap-2 p-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
@@ -322,7 +322,7 @@ export function ShaderControlsPanel({ onFocusSelection }: { onFocusSelection?: (
 
                 {renderValueEditor(node)}
 
-                <details className="group rounded border border-border/60 bg-muted/20 px-2 py-1">
+                <details className="surface-inset group border-border/60 px-2 py-1">
                   <summary className="cursor-pointer select-none text-[10px] font-medium text-muted-foreground">
                     Uniform
                   </summary>

@@ -690,10 +690,10 @@ function TextureSplineEditor({ spline, pixelated, dataUrl, aspectRatio, onChange
   }, [spline.points.length]);
 
   return (
-    <div className="grid gap-2 rounded-md border border-border/70 p-2">
+    <div className="surface grid gap-2 p-2">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="flex items-center gap-1.5 section-label">
             <MousePointer2Icon className="size-3" />
             Spline editor
           </div>
@@ -1058,10 +1058,10 @@ function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, onChange }
   const selectedLayerSizeHandle = selectedLayer ? shapePointToWorld(selectedLayer, { x: 1, y: 0.5 }) : undefined;
 
   return (
-    <div className="grid gap-2 rounded-md border border-border/70 p-2">
+    <div className="surface grid gap-2 p-2">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="flex items-center gap-1.5 section-label">
             <MousePointer2Icon className="size-3" />
             Shape editor
           </div>
@@ -1817,7 +1817,7 @@ export function TextureLabPanel({
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="flex items-center gap-1.5 section-label">
                 <SparklesIcon className="size-3.5" />
                 Texture Lab
               </div>
@@ -1839,7 +1839,7 @@ export function TextureLabPanel({
             </Button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 rounded border border-border/70 p-2">
+          <div className="surface flex flex-wrap items-center gap-3 p-2">
             <label className="flex items-center gap-2 text-xs">
               <Checkbox
                 checked={recipe.tileable}
@@ -1857,7 +1857,7 @@ export function TextureLabPanel({
           </div>
 
           {atlasEnabled && (
-            <div className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1.5 text-[10px] text-primary">
+            <div className="surface border-primary/30 bg-primary/10 px-2 py-1.5 text-[10px] text-primary">
               Editing atlas frame {selectedAtlasFrame + 1} of {atlasSettings.frameCount}. Use the right panel for frame
               layout, seeded fills, onion skin, and replacement actions.
             </div>
@@ -1902,10 +1902,10 @@ export function TextureLabPanel({
             </div>
 
             {imageMaskGenerator && (
-              <div className="grid gap-2 rounded-md border border-border/70 p-2" data-testid="texture-lab-image-mask">
+              <div className="surface grid gap-2 p-2" data-testid="texture-lab-image-mask">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <Label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Label className="flex items-center gap-1.5 section-label">
                       <ImageIcon className="size-3.5" />
                       Image source
                     </Label>
@@ -1962,16 +1962,16 @@ export function TextureLabPanel({
                   outlines.
                 </div>
                 {asyncPreviewError && (
-                  <div className="rounded border border-destructive/40 bg-destructive/10 px-2 py-1 text-[10px] text-destructive">
+                  <div className="surface border-destructive/40 bg-destructive/10 px-2 py-1 text-[10px] text-destructive">
                     {asyncPreviewError}
                   </div>
                 )}
               </div>
             )}
 
-            <div className="grid gap-2 rounded-md border border-border/70 p-2" data-testid="texture-lab-saved-recipes">
+            <div className="surface grid gap-2 p-2" data-testid="texture-lab-saved-recipes">
               <div className="flex items-center justify-between gap-2">
-                <Label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <Label className="flex items-center gap-1.5 section-label">
                   <BookmarkIcon className="size-3.5" />
                   Saved recipes
                 </Label>
@@ -2007,7 +2007,7 @@ export function TextureLabPanel({
                 </Button>
               </div>
               {savedRecipes.length === 0 ? (
-                <div className="rounded border border-dashed border-border/70 px-2 py-2 text-[10px] text-muted-foreground">
+                <div className="surface border-dashed border-border/70 px-2 py-2 text-[10px] text-muted-foreground">
                   Save recipes like blue spark, rain slash thin, or water mask noise for quick reuse.
                 </div>
               ) : (
@@ -2015,7 +2015,7 @@ export function TextureLabPanel({
                   {savedRecipes.map((savedRecipe) => (
                     <div
                       key={savedRecipe.id}
-                      className="flex min-w-0 items-center gap-1 rounded border border-border/60 p-1"
+                      className="surface flex min-w-0 items-center gap-1 border-border/60 p-1"
                     >
                       <button
                         type="button"
@@ -2136,9 +2136,9 @@ export function TextureLabPanel({
             </div>
 
             {isSpline && spline && (
-              <div className="grid gap-2 rounded-md border border-border/70 p-2">
+              <div className="surface grid gap-2 p-2">
                 <div className="flex items-center justify-between gap-2">
-                  <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Label className="section-label">
                     Path presets
                   </Label>
                   <label className="flex items-center gap-2 text-xs">
@@ -2207,11 +2207,11 @@ export function TextureLabPanel({
 
             {isShapeComposer && shape && (
               <div
-                className="grid gap-3 rounded-md border border-border/70 p-2"
+                className="surface grid gap-3 p-2"
                 data-testid="texture-lab-shape-controls"
               >
                 <div className="grid gap-2">
-                  <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Label className="section-label">
                     Shape presets
                   </Label>
                   <div className="flex flex-wrap gap-1.5">
@@ -2232,7 +2232,7 @@ export function TextureLabPanel({
 
                 <div className="grid gap-2" data-testid="texture-lab-shape-layer-stack">
                   <div className="flex items-center justify-between gap-2">
-                    <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Label className="section-label">
                       Layers
                     </Label>
                     <span className="text-[10px] text-muted-foreground">{shape.layers.length}/8</span>
@@ -2331,7 +2331,7 @@ export function TextureLabPanel({
                 </div>
 
                 {selectedShapeLayer && (
-                  <div className="grid gap-2 rounded border border-border/60 p-2">
+                  <div className="surface grid gap-2 border-border/60 p-2">
                     <div className="grid grid-cols-2 gap-2">
                       <div className="grid gap-1">
                         <Label className="text-[10px] text-muted-foreground">Fill</Label>
@@ -2568,7 +2568,7 @@ export function TextureLabPanel({
         >
           <div className="flex items-center justify-between gap-2">
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</div>
+              <div className="section-label">Preview</div>
               <div className="text-xs text-muted-foreground">
                 {atlasEnabled
                   ? `Editing frame ${selectedAtlasFrame + 1} - ${textureDimensionText}`
@@ -2594,7 +2594,7 @@ export function TextureLabPanel({
               onChange={(nextSpline) => patch({ spline: nextSpline })}
             />
           ) : (
-            <div className="rounded-md border border-border/70 bg-card p-2">
+            <div className="surface p-2">
               <div className="grid min-h-[24rem] place-items-center rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] p-4">
                 <img
                   data-testid="texture-lab-preview"
@@ -2613,7 +2613,7 @@ export function TextureLabPanel({
             <Collapsible
               open={presetsOpen}
               onOpenChange={setPresetsOpen}
-              className="rounded-md border border-border/70"
+              className="surface "
             >
               <CollapsibleTrigger asChild>
                 <button
@@ -2622,7 +2622,7 @@ export function TextureLabPanel({
                   aria-label={presetsOpen ? 'Collapse texture presets' : 'Expand texture presets'}
                 >
                   <span>
-                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span className="block section-label">
                       Presets
                     </span>
                     <span className="text-muted-foreground">{TEXTURE_LAB_GENERATORS.length} generator starters</span>
@@ -2670,7 +2670,7 @@ export function TextureLabPanel({
           >
             <div className="flex items-start justify-between gap-2">
               <div>
-                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="flex items-center gap-1.5 section-label">
                   <FilmIcon className="size-3.5" />
                   Atlas Workspace
                 </div>
@@ -2685,8 +2685,8 @@ export function TextureLabPanel({
               </Button>
             </div>
 
-            <div className="grid gap-2 rounded-md border border-border/70 p-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Sheet</div>
+            <div className="surface grid gap-2 p-2">
+              <div className="section-label">Sheet</div>
               <div className="grid min-h-28 place-items-center rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:14px_14px] bg-[position:0_0,0_7px,7px_-7px,-7px_0px] p-2">
                 {atlasPixels ? (
                   <img
@@ -2703,14 +2703,14 @@ export function TextureLabPanel({
                 )}
               </div>
               {customAtlasError && (
-                <div className="rounded border border-destructive/40 bg-destructive/10 p-2 text-[10px] text-destructive">
+                <div className="surface border-destructive/40 bg-destructive/10 p-2 text-[10px] text-destructive">
                   {customAtlasError}
                 </div>
               )}
             </div>
 
-            <div className="grid gap-2 rounded-md border border-border/70 p-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Layout</div>
+            <div className="surface grid gap-2 p-2">
+              <div className="section-label">Layout</div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="grid gap-1">
                   <Label className="text-[10px] text-muted-foreground">Playback</Label>
@@ -2788,8 +2788,8 @@ export function TextureLabPanel({
               </div>
             </div>
 
-            <div className="grid gap-2 rounded-md border border-border/70 p-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="surface grid gap-2 p-2">
+              <div className="section-label">
                 Seeded Fill
               </div>
               <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
@@ -2824,16 +2824,16 @@ export function TextureLabPanel({
               </div>
             </div>
 
-            <div className="grid gap-2 rounded-md border border-border/70 p-2">
+            <div className="surface grid gap-2 p-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="section-label">
                   Selected Frame
                 </div>
                 <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">
                   {selectedCustomFrameIsUploaded ? 'Uploaded' : 'Recipe'}
                 </span>
               </div>
-              <div className="relative grid aspect-square place-items-center overflow-hidden rounded-sm border bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:14px_14px] bg-[position:0_0,0_7px,7px_-7px,-7px_0px] p-2">
+              <div className="surface relative grid aspect-square place-items-center overflow-hidden bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:14px_14px] bg-[position:0_0,0_7px,7px_-7px,-7px_0px] p-2">
                 {customAtlasEnabled && atlasSettings.onionSkin && previousCustomFrameDataUrl && (
                   <img
                     data-testid="texture-lab-onion-past"
@@ -2869,7 +2869,7 @@ export function TextureLabPanel({
                   />
                 )}
               </div>
-              <div className="rounded border border-border/60 bg-muted/30 px-2 py-1.5 text-[10px] text-muted-foreground">
+              <div className="surface-inset border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground">
                 {selectedCustomFrame?.name ?? `Frame ${selectedAtlasFrame + 1}`}
                 {selectedCustomFrameIsEditable && (
                   <span className="ml-1">is editable with the controls on the left.</span>
@@ -2882,9 +2882,9 @@ export function TextureLabPanel({
               </div>
             </div>
 
-            <div className="grid gap-2 rounded-md border border-border/70 p-2">
+            <div className="surface grid gap-2 p-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Frames</div>
+                <div className="section-label">Frames</div>
                 <label className="flex items-center gap-2 text-[10px] text-muted-foreground">
                   <Checkbox
                     checked={atlasSettings.onionSkin}
@@ -2923,7 +2923,7 @@ export function TextureLabPanel({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/70 p-2">
+            <div className="surface flex flex-wrap items-center gap-2 p-2">
               <Button
                 type="button"
                 size="sm"

@@ -34,7 +34,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     // already inside its own region, so the outline is a line with nothing to
     // do. A value step and a quiet heading carry the grouping instead.
     <section className="grid gap-2.5 rounded-sm bg-card/60 p-3">
-      <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{title}</h2>
+      <h2 className="section-label">{title}</h2>
       {children}
     </section>
   );

@@ -70,9 +70,9 @@ export function DampingRangeEditor({ system, onChange }: Props) {
 
   return (
     <div className="grid gap-2">
-      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Damping</span>
+      <span className="section-label">Damping</span>
 
-      <svg ref={svgRef} width="100%" height={H} className="rounded border bg-card select-none">
+      <svg ref={svgRef} width="100%" height={H} className="surface select-none">
         {/* Guide lines at 25%, 50%, 75% velocity */}
         {[0.25, 0.5, 0.75].map((t) => (
           <line

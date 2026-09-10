@@ -13,7 +13,7 @@ type Props = {
 export function AccelerationEditor({ system, onChange }: Props) {
   return (
     <section className="grid gap-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acceleration And Damping</h3>
+      <h3 className="section-label">Acceleration And Damping</h3>
 
       <Tabs defaultValue="linear" className="gap-3">
         <TabsList className="grid h-8 w-full grid-cols-4 rounded-md">

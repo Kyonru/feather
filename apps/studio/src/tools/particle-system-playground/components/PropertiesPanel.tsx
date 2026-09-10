@@ -197,7 +197,7 @@ export function PropertiesPanel({ system, onChange }: Props) {
       {groups.map((group) => (
         <section key={group.title} className="grid gap-3">
           <div className="flex items-center gap-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.title}</h3>
+            <h3 className="section-label">{group.title}</h3>
             <Separator className="flex-1" />
           </div>
           {group.title === 'Direction And Speed' && <DirectionSpreadGizmo system={system} onChange={onChange} />}
@@ -227,7 +227,7 @@ export function PropertiesPanel({ system, onChange }: Props) {
 
       <section className="grid gap-3">
         <div className="flex items-center gap-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Emission Area</h3>
+          <h3 className="section-label">Emission Area</h3>
           <Separator className="flex-1" />
         </div>
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">

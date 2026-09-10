@@ -238,7 +238,7 @@ export function TemplateControlsPanel() {
     <div data-testid="shader-template-controls" className="grid gap-3 border-b bg-muted/15 p-3 text-xs">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="flex items-center gap-1.5 section-label">
             <SlidersHorizontalIcon className="size-3.5" />
             Template Controls
           </div>
@@ -260,7 +260,7 @@ export function TemplateControlsPanel() {
           const sourceNode = port.uiRole === 'texture' ? textureSourceNode(port) : null;
           const upload = sourceNode ? textureUploads[sourceNode.id] : null;
           return (
-            <div key={port.id} className="grid gap-1 rounded border border-border/70 bg-card/60 p-2">
+            <div key={port.id} className="surface grid gap-1 p-2">
               <div className="flex items-center justify-between gap-2">
                 <Label className="truncate text-[10px] font-medium text-muted-foreground">{port.label}</Label>
                 <Button

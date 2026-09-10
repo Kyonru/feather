@@ -166,7 +166,7 @@ export function LinearAccelPlane({ system, onChange }: Props) {
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+        <span className="section-label">
           Linear Acceleration
         </span>
         <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ export function LinearAccelPlane({ system, onChange }: Props) {
         ref={svgRef}
         width="100%"
         height={H}
-        className="touch-none rounded border bg-muted/10 select-none"
+        className="surface-inset touch-none select-none"
         onPointerMove={onPointerMove}
         onPointerUp={stopDrag}
         onPointerLeave={stopDrag}

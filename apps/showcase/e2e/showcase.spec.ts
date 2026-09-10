@@ -1727,3 +1727,31 @@ test('studio preferences start clean with no legacy data', async ({ page }) => {
   expect(studio?.migratedFrom).toBe(0);
   expect(studio?.particleTimelineZoom).toBe(1);
 });
+
+test('the floating preview never covers the diagnostics it explains', async ({ page }) => {
+  await page.goto('/shader-graph');
+  await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Output' }).click();
+  await expect(page.getByTestId('love-js-preview-floating')).toBeVisible();
+
+  const covered = await page.evaluate(() => {
+    const preview = document.querySelector('[data-testid="love-js-preview-floating"]');
+    const panel = document.querySelector('[data-testid="shader-right-panel"]');
+    if (!preview || !panel) return ['missing preview or panel'];
+    const p = preview.getBoundingClientRect();
+    const hidden: string[] = [];
+    for (const control of panel.querySelectorAll('button, input, [role="tab"]')) {
+      const c = control.getBoundingClientRect();
+      if (c.width === 0 || c.height === 0) continue;
+      if (c.right > p.left && c.left < p.right && c.bottom > p.top && c.top < p.bottom) {
+        hidden.push((control.textContent ?? control.tagName).trim().slice(0, 50));
+      }
+    }
+    return hidden;
+  });
+
+  // A diagnostic's "fix this" button under the floating preview cannot be
+  // clicked at all — the preview swallows the pointer. The preview publishes
+  // its footprint as --floating-preview-gutter and this panel reserves it.
+  expect(covered, 'controls sit underneath the floating preview').toEqual([]);
+});

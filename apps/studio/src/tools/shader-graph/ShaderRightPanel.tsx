@@ -1,3 +1,4 @@
+import { cn } from '@feather/ui';
 import { ScrollArea } from '@feather/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
 import { useShaderGraphStore } from '@studio/store/shader-graph';
@@ -29,7 +30,16 @@ export function ShaderRightPanel({ standalone, onPreviewParamsChange }: Props) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden" data-testid="shader-right-panel">
+    <div
+      className={cn(
+        'flex h-full min-h-0 flex-col overflow-hidden',
+        // Standalone mounts the floating LÖVE preview over this corner. Reserve
+        // its published footprint so diagnostics and their fix buttons stay
+        // reachable instead of ending up underneath it.
+        standalone && 'pb-[var(--floating-preview-gutter,0px)]',
+      )}
+      data-testid="shader-right-panel"
+    >
       <Tabs value={tab} onValueChange={handleTabChange} className="min-h-0 flex-1 gap-0 overflow-hidden">
         <div className="shrink-0 border-b px-3 py-2">
           <TabsList className="h-8 w-full rounded-md">

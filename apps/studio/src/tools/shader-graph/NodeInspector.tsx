@@ -95,7 +95,7 @@ function isParameterNode(nodeType: NodeType): boolean {
 
 function PortBadge({ port }: { port: PortDef }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded border border-border/70 bg-muted/40 px-1.5 py-0.5 font-mono text-[10px]">
+    <span className="surface-inset inline-flex items-center gap-1 px-1.5 py-0.5 font-mono text-[10px]">
       <span
         className="size-2 rounded-full"
         style={{ backgroundColor: PORT_TYPE_COLORS[port.type] }}
@@ -313,7 +313,7 @@ export function NodeInspector() {
   return (
     <div className="flex flex-col gap-3 p-3 text-xs">
       <div className="grid gap-1">
-        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Shader Name</Label>
+        <Label className="section-label">Shader Name</Label>
         <Input
           className="h-7 text-xs font-mono"
           value={shaderName}
@@ -325,7 +325,7 @@ export function NodeInspector() {
         <div className="border-t pt-3 grid gap-3">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+              <div className="section-label mb-0.5">
                 {def.category}
               </div>
               <div className="font-semibold">{selected.data.label || def.label}</div>
@@ -356,8 +356,8 @@ export function NodeInspector() {
           </div>
 
           {(selected.data.nodeType === 'SubgraphInput' || selected.data.nodeType === 'SubgraphOutput') && (
-            <div className="grid gap-2 rounded border border-border/70 p-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="surface grid gap-2 p-2">
+              <div className="section-label">
                 Public {selected.data.nodeType === 'SubgraphInput' ? 'Input' : 'Output'}
               </div>
               {(() => {
@@ -439,7 +439,7 @@ export function NodeInspector() {
           )}
 
           {selected.data.nodeType === 'CustomFunction' && (
-            <div className="grid gap-2 rounded border border-border/70 p-2">
+            <div className="surface grid gap-2 p-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-[10px] font-medium text-muted-foreground">Function</div>
@@ -608,7 +608,7 @@ export function NodeInspector() {
           )}
 
           {selected.data.nodeType === 'BooleanParameter' && (
-            <div className="flex items-center justify-between gap-2 rounded border border-border/70 p-2">
+            <div className="surface flex items-center justify-between gap-2 p-2">
               <Label className="text-[10px] text-muted-foreground">Default Enabled</Label>
               <Switch
                 checked={finiteValue(selected.data.values?.val) >= 0.5}
@@ -618,7 +618,7 @@ export function NodeInspector() {
           )}
 
           {(selected.data.nodeType === 'TextureInput' || selected.data.nodeType === 'TextureUniformColor' || selected.data.nodeType === 'TextureParameter') && (
-            <div className="grid gap-2 rounded border border-border/70 p-2">
+            <div className="surface grid gap-2 p-2">
               <div className="grid gap-1">
                 <Label className="text-[10px] text-muted-foreground">Uniform Name</Label>
                 <Input
@@ -681,7 +681,7 @@ export function NodeInspector() {
               {def.inputs.map((port) => {
                 const connected = graphEdges.some((edge) => edge.target === selected.id && edge.targetHandle === port.id);
                 return (
-                  <div key={port.id} className="grid gap-1 rounded border border-border/70 p-2">
+                  <div key={port.id} className="surface grid gap-1 p-2">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[10px] text-muted-foreground">{port.label}</span>
                       <span className="text-[10px] font-mono text-muted-foreground/60">
@@ -712,7 +712,7 @@ export function NodeInspector() {
         <div className="border-t pt-3 grid gap-3">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+              <div className="section-label mb-0.5">
                 Edge
               </div>
               <div className="font-mono text-[10px] text-muted-foreground">
@@ -754,8 +754,8 @@ export function NodeInspector() {
               maxHeight={420}
             />
 
-            <div className="grid gap-2 rounded border border-border/70 p-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="surface grid gap-2 p-2">
+              <div className="section-label">
                 Validation
               </div>
               {customDraftValidation.signature ? (

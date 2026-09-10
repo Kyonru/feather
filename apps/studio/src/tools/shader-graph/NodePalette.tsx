@@ -161,7 +161,7 @@ export function NodePalette() {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         {categoryRows.length === 0 ? (
-          <div className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
+          <div className="surface border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
             No shader nodes match this search.
           </div>
         ) : (
@@ -192,7 +192,7 @@ export function NodePalette() {
                   <button
                     type="button"
                     data-testid={`shader-node-category-toggle-${slug}`}
-                    className="flex h-8 w-full items-center gap-2 px-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex h-8 w-full items-center gap-2 px-2 text-left section-label transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     title={
                       isSearching
                         ? 'Search keeps matching categories open'
@@ -247,7 +247,7 @@ export function NodePalette() {
         <>
           <Separator />
           <div className="p-3 grid gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="section-label">
               Apply Target
             </span>
             <div className="grid gap-1">
@@ -297,7 +297,7 @@ export function NodePalette() {
       )}
       {dragPreview && (
         <div
-          className="pointer-events-none fixed z-100 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-lg"
+          className="surface pointer-events-none fixed z-100 bg-popover px-2 py-1 text-xs text-popover-foreground shadow-lg"
           style={{ left: dragPreview.x + 12, top: dragPreview.y + 12 }}
         >
           {dragPreview.label}

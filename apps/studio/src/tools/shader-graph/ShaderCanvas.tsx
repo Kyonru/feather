@@ -744,7 +744,7 @@ export function ShaderCanvas() {
         colorMode={theme}
       >
         <div
-          className="absolute left-3 top-3 z-10 flex gap-1 rounded-md border bg-card/95 p-1 shadow-sm"
+          className="surface absolute left-3 top-3 z-10 flex gap-1 p-1 shadow-sm"
           id="node-canvas-actions"
           onPointerDown={(event) => event.stopPropagation()}
         >
@@ -844,12 +844,12 @@ export function ShaderCanvas() {
       {nodePicker && (
         <div
           data-testid="shader-node-picker"
-          className="absolute z-50 w-64 rounded-md border bg-popover p-2 text-popover-foreground shadow-md"
+          className="surface absolute z-50 w-64 bg-popover p-2 text-popover-foreground shadow-md"
           style={{ left: nodePicker.x, top: nodePicker.y }}
           onClick={(event) => event.stopPropagation()}
           onContextMenu={(event) => event.preventDefault()}
         >
-          <div className="mb-2 flex items-center gap-2 rounded border bg-background px-2">
+          <div className="surface-inset mb-2 flex items-center gap-2 px-2">
             <SearchIcon className="size-3.5 text-muted-foreground" />
             <Input
               autoFocus
@@ -880,12 +880,12 @@ export function ShaderCanvas() {
       {suggestionMenu && (
         <div
           data-testid="shader-link-suggestions"
-          className="absolute z-50 w-72 rounded-md border bg-popover p-2 text-popover-foreground shadow-md"
+          className="surface absolute z-50 w-72 bg-popover p-2 text-popover-foreground shadow-md"
           style={{ left: suggestionMenu.x, top: suggestionMenu.y }}
           onClick={(event) => event.stopPropagation()}
           onContextMenu={(event) => event.preventDefault()}
         >
-          <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="mb-2 px-2 section-label">
             Suggestions for {suggestionMenu.port.nodeLabel} · {suggestionMenu.port.portLabel}
           </div>
           <div className="max-h-80 overflow-y-auto">

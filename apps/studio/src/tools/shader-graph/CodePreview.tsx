@@ -68,7 +68,7 @@ function DiagnosticPanel({
   return (
     <div className="border-b bg-muted/20 px-3 py-2 shrink-0" data-testid="shader-diagnostics">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Graph Diagnostics</span>
+        <span className="section-label">Graph Diagnostics</span>
         <div className="flex items-center gap-1">
           {errorCount > 0 && <Badge className="h-4 rounded-full bg-red-500/15 px-1.5 text-[9px] text-red-600 dark:text-red-300">{errorCount} error{errorCount === 1 ? '' : 's'}</Badge>}
           {warningCount > 0 && <Badge className="h-4 rounded-full bg-yellow-500/15 px-1.5 text-[9px] text-yellow-700 dark:text-yellow-300">{warningCount} warning{warningCount === 1 ? '' : 's'}</Badge>}
@@ -81,7 +81,7 @@ function DiagnosticPanel({
               <span className={cn('rounded border px-1 py-0.5 text-[9px] font-semibold uppercase', diagnosticStyles[diagnostic.severity])}>
                 {diagnostic.severity}
               </span>
-              {diagnostic.stage && <span className="text-[10px] uppercase text-muted-foreground">{diagnostic.stage}</span>}
+              {diagnostic.stage && <span className="section-label">{diagnostic.stage}</span>}
               <span className="min-w-0 truncate text-[10px] text-foreground">{diagnostic.message}</span>
             </>
           );
@@ -143,7 +143,7 @@ export function CodePreview() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b shrink-0">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">GLSL Output</span>
+        <span className="section-label">GLSL Output</span>
         <div className="flex items-center gap-2">
           <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', statusColor)}>{validationStatus}</Badge>
           <button
@@ -472,7 +472,7 @@ export function ShaderOutputDock({
       <div className="border-t px-3 py-2 grid gap-2">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="section-label">
               Preview Texture
             </div>
             <div className="truncate text-[10px] text-muted-foreground">

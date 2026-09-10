@@ -42,6 +42,7 @@ export function LoveJsPreview({
   const dragRef = useRef<{ startMouseX: number; startMouseY: number; startTx: number; startTy: number } | null>(null);
 
   const previewAspectRatio = aspectRatio > 0 ? aspectRatio : DEFAULT_ASPECT_RATIO;
+  const floatingRef = useRef<HTMLDivElement | null>(null);
   const [previewWidth, setPreviewWidth] = useState(DEFAULT_W);
   const previewHeight = Math.round(previewWidth / previewAspectRatio);
   const resizeRef = useRef<{ startX: number; startW: number } | null>(null);
@@ -126,9 +127,33 @@ export function LoveJsPreview({
     document.addEventListener('mouseup', onUp);
   }
 
+  // The floating preview is `fixed`, so it sits over whatever occupies the
+  // bottom-right — which in Shader Graph is the panel holding the diagnostics
+  // list. A "fix this" button under the preview cannot be clicked at all, so
+  // the preview publishes its own footprint and the panel behind it reserves
+  // that much room. Measured rather than assumed, because the preview is
+  // resizable and a hardcoded gutter goes stale the moment someone drags it.
+  useEffect(() => {
+    const node = floatingRef.current;
+    if (!floating || !node) return;
+
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => {
+      // + the `bottom-4` offset the shell already holds off the edge.
+      root.style.setProperty('--floating-preview-gutter', `${Math.round(node.getBoundingClientRect().height) + 16}px`);
+    });
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--floating-preview-gutter');
+    };
+  }, [floating]);
+
   if (floating) {
     return (
       <div
+        ref={floatingRef}
         data-testid="love-js-preview-floating"
         className="fixed bottom-4 right-4 z-99 overflow-hidden rounded-xl border border-border/60 bg-card/95 shadow-2xl backdrop-blur-sm"
         style={{ width: previewWidth, transform: `translate(${translate.x}px, ${translate.y}px)` }}

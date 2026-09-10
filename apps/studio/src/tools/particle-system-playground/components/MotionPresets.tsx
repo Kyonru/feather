@@ -99,7 +99,7 @@ export function MotionPresets({ system, onChange }: Props) {
     <section className="grid gap-3">
       <div className="flex items-center gap-3">
         <button
-          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+          className="section-label hover:text-foreground transition-colors"
           onClick={() => setOpen((v) => !v)}
         >
           Motion Presets {open ? '▴' : '▾'}

@@ -1042,7 +1042,7 @@ export function TimelinePanel({
   );
 
   return (
-    <section className="grid min-w-0 gap-3 rounded-md border bg-card p-3" data-testid="particle-timeline-panel">
+    <section className="surface grid min-w-0 gap-3 p-3" data-testid="particle-timeline-panel">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold">Timeline</h2>
@@ -1057,7 +1057,7 @@ export function TimelinePanel({
         )}
       </div>
 
-      <div className="sticky top-0 z-40 grid gap-3 rounded-md border bg-card/95 p-2 shadow-xs backdrop-blur">
+      <div className="surface sticky top-0 z-40 grid gap-3 p-2 shadow-xs backdrop-blur">
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="icon"
@@ -1139,7 +1139,7 @@ export function TimelinePanel({
           </label>
           <div className="grid gap-1">
             <span className="text-[10px] text-muted-foreground">Mode</span>
-            <div className="grid grid-cols-3 rounded-md border bg-background p-0.5" data-testid="particle-timeline-mode">
+            <div className="surface-inset grid grid-cols-3 p-0.5" data-testid="particle-timeline-mode">
               {(['one-shot', 'loop', 'ambient'] as ParticleTimelineMode[]).map((mode) => (
                 <Button
                   key={mode}
@@ -1178,13 +1178,13 @@ export function TimelinePanel({
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-md border" data-testid="particle-timeline-scroll">
+      <div className="surface overflow-x-auto" data-testid="particle-timeline-scroll">
         <div
           className="min-w-full overflow-hidden"
           data-testid="particle-timeline-canvas"
           style={{ width: timelineWidth, minWidth: '100%' }}
         >
-          <div className="grid grid-cols-[12rem_minmax(0,1fr)] border-b bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="grid grid-cols-[12rem_minmax(0,1fr)] border-b bg-muted/30 section-label">
             <div className="sticky left-0 z-30 border-r bg-muted/95 px-3 py-2">Emitter</div>
             <div className="min-w-0 px-3 py-2">
               <div className="relative h-5" data-testid="particle-timeline-ruler-strip">
@@ -1306,7 +1306,7 @@ export function TimelinePanel({
                               <div
                                 key={`${clip.id}-tail-${index}`}
                                 data-testid={`particle-timeline-tail-${system.index}`}
-                                className="pointer-events-none absolute inset-y-[4px] rounded-sm border border-dashed border-primary/25 bg-primary/10"
+                                className="surface pointer-events-none absolute inset-y-[4px] border-dashed border-primary/25 bg-primary/10"
                                 style={{
                                   left: `${startPercent}%`,
                                   right: `${100 - Math.max(startPercent, endPercent)}%`,
@@ -1526,7 +1526,7 @@ export function TimelinePanel({
 
       {selectedTrack && selectedSystem && (
         <div
-          className="grid gap-3 rounded-md border bg-muted/10 p-3"
+          className="surface-inset grid gap-3 p-3"
           data-testid="particle-timeline-inspector"
           onPointerDownCapture={collapseSelectionToFocused}
         >

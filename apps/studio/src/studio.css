@@ -7,27 +7,19 @@
 @source "./";
 @source "../../../packages/ui/src";
 
-:root {
-  color-scheme: light dark;
+/* Tailwind v4 changed the default `border` color from a light grey to
+   `currentColor`. Without this rule every `border` utility in Studio drew in the
+   *text* colour — a near-black line around every container, which is exactly the
+   "strong borders" that made the tools look boxed-in. shadcn assumes this rule
+   exists; the showcase had it, Studio's own entry never did. See V4-STUDIO.md
+   §5 (W2b). */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
 }
-
-body {
-  margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: light-dark(#f4f5f7, #14171c);
-  color: light-dark(#171a1f, #e4e8ec);
-}
-
-.studio { max-width: 60rem; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
-.studio-header { border-bottom: 1px solid light-dark(#d7dbe1, #262b33); padding-bottom: 1.25rem; margin-bottom: 1.75rem; }
-.studio-header h1 { margin: 0 0 .35rem; font-size: 1.75rem; letter-spacing: -.02em; }
-.studio-sub { margin: 0; color: light-dark(#5c6673, #8b96a2); font-size: .95rem; }
-.studio-panel { border: 1px solid light-dark(#d7dbe1, #262b33); border-radius: .5rem; padding: 1.25rem 1.4rem; margin-bottom: 1.25rem; background: light-dark(#fff, #191d23); }
-.studio-panel h2 { margin: 0 0 .9rem; font-size: 1rem; letter-spacing: .01em; }
-.studio-panel dl { display: grid; grid-template-columns: 8rem 1fr; gap: .45rem 1rem; margin: 0 0 1rem; font-size: .9rem; }
-.studio-panel dt { color: light-dark(#5c6673, #8b96a2); }
-.studio-panel dd { margin: 0; }
-.studio-button { font: inherit; font-size: .9rem; padding: .5rem .9rem; border-radius: .375rem; border: 1px solid light-dark(#c3c9d1, #333b45); background: light-dark(#fbfbfc, #20252c); color: inherit; cursor: pointer; }
-.studio-button:hover { background: light-dark(#f1f2f4, #262c34); }
-.studio-note { margin: .75rem 0 0; font-size: .85rem; color: light-dark(#5c6673, #8b96a2); }
-.studio-error { margin: .75rem 0 0; font-size: .85rem; color: light-dark(#b4442a, #f07a3e); }

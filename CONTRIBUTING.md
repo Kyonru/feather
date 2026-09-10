@@ -149,6 +149,25 @@ pnpm run test:packages:e2e       # package-catalog install flows
 pnpm run extension:test          # VS Code extension
 ```
 
+### Testing while a dev server is already running
+
+Playwright starts its own server and refuses the port if something already holds it — which it
+usually does, because you have `pnpm run studio:tauri` or `inspector:tauri` open in another terminal:
+
+```
+Error: http://127.0.0.1:1430 is already used, make sure that nothing is running on the port/url
+```
+
+Reuse the server you already have instead of killing it:
+
+```sh
+PLAYWRIGHT_REUSE_SERVER=1 pnpm run test              # the whole suite
+PLAYWRIGHT_REUSE_SERVER=1 pnpm run test:studio:e2e   # one lane
+```
+
+The tests then run against your live dev server, so they pick up whatever is on disk without a
+rebuild — which also makes this the fast way to iterate on a single failing test.
+
 ### Run one file or one test
 
 ```sh

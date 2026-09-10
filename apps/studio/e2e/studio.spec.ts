@@ -144,3 +144,40 @@ test('a failed Inspector connection leaves Studio working', async ({ page }) => 
   await expect(page.getByTestId('studio-tool-surface')).toBeVisible();
   await expect(page.getByTestId('studio-inspector-status')).toContainText('Local only');
 });
+
+test('the three tools share one visual language', async ({ page }) => {
+  await page.goto('/');
+
+  for (const tool of ['shader-graph', 'particle-playground', 'texture-lab'] as const) {
+    await page.getByTestId('studio-menu-trigger').click();
+    await page.getByTestId(`studio-tool-${tool}`).click();
+    await expect(page.getByTestId('studio-menu')).toBeHidden();
+    await expect(page.getByTestId('studio-tool-surface')).toBeVisible();
+
+    const harsh = await page.evaluate(() => {
+      const offenders: string[] = [];
+      for (const el of document.querySelectorAll('*')) {
+        const style = getComputedStyle(el);
+        if (style.borderTopWidth === '0px' || style.borderTopStyle === 'none') continue;
+        // sRGB forms only: an oklch() severity stripe has small numeric
+        // components that would otherwise read as "near black".
+        const color = style.borderTopColor;
+        if (!color.startsWith('rgb')) continue;
+        const parts = color.match(/[\d.]+/g);
+        if (!parts) continue;
+        const [r, g, b, a] = parts.map(Number);
+        if (r < 90 && g < 90 && b < 90 && (a === undefined || a > 0.5)) {
+          offenders.push(`${el.tagName.toLowerCase()}.${Array.from(el.classList).join(' ')}`);
+        }
+      }
+      return offenders;
+    });
+
+    // Tailwind v4 defaults `border` to `currentColor`, so a missing
+    // `border-border` base rule draws every container in the *text* colour.
+    // Studio shipped that way once: 172 near-black outlines in Shader Graph
+    // alone, which is what "strong border on every container" looked like.
+    // See V4-STUDIO.md §5 (W2b).
+    expect(harsh, `${tool} draws borders in the text colour`).toEqual([]);
+  }
+});

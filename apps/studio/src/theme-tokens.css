@@ -106,3 +106,50 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 }
+
+/**
+ * The workbench surface idiom.
+ *
+ * Studio's three tools were built at different times inside Inspector and each
+ * accumulated its own way of drawing a box: 98 containers across eight distinct
+ * class combinations — `rounded border`, `rounded-md border border-border/70`,
+ * `rounded border bg-background`, and so on. The result read as three products
+ * sharing a window, and every container arrived with a drawn outline.
+ *
+ * These are the two things a container can be, named once:
+ *
+ * `.surface`        a region — a value step up from its parent, no outline.
+ * `.surface-inset`  a region *within* a region — a step the other way.
+ *
+ * Neither draws a border, per V4-STUDIO.md **W2b**: a border is a line you have
+ * to look at, and a value step says "different region" then stops registering.
+ * Anything you click into keeps its border, because there the edge is an
+ * affordance rather than decoration.
+ *
+ * Changing how a container looks is now one edit here rather than 98.
+ */
+@layer components {
+  .surface {
+    background-color: var(--card);
+    border-radius: var(--radius-sm, 0.25rem);
+  }
+
+  .surface-inset {
+    background-color: color-mix(in srgb, var(--muted) 55%, transparent);
+    border-radius: var(--radius-sm, 0.25rem);
+  }
+
+  /* The label above a group of controls. The three tools had written this
+     eight ways — 10px/11px/xs, semibold/medium, wider/wide — which is the
+     kind of drift nobody introduces on purpose and everybody notices as
+     "these screens don't match". Named once, it is now a decision rather
+     than a copy. */
+  .section-label {
+    font-size: 10px;
+    line-height: 1.4;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-foreground);
+  }
+}

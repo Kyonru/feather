@@ -72,7 +72,7 @@ export function ShaderEditor({ shaderPath, shaderFilename, shaderSource, error, 
         onChange={setSource}
       />
       {error && (
-        <div className="flex items-start gap-2 rounded border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+        <div className="surface flex items-start gap-2 border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
           <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
           <span>{error}</span>
         </div>

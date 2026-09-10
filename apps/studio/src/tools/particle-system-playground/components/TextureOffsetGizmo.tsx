@@ -136,7 +136,7 @@ export function TextureOffsetGizmo({ system, onChange }: Props) {
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between gap-2">
-        <Label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Texture Anchor</Label>
+        <Label className="section-label">Texture Anchor</Label>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">Range ±</span>
           <ParticleNumberInput
@@ -154,7 +154,7 @@ export function TextureOffsetGizmo({ system, onChange }: Props) {
         width="100%"
         height={H}
         viewBox={`0 0 300 ${H}`}
-        className="touch-none rounded border bg-muted/10 select-none"
+        className="surface-inset touch-none select-none"
         onPointerMove={updateFromPointer}
         onPointerUp={() => setDragging(false)}
         onPointerLeave={() => setDragging(false)}

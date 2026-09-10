@@ -107,7 +107,7 @@ export function ColorGradientEditor({ value, onChange }: { value: string; onChan
         ref={alphaRef}
         width="100%"
         height={ALPHA_H}
-        className="rounded border bg-card touch-none select-none"
+        className="surface touch-none select-none"
         onPointerMove={onAlphaPointerMove}
         onPointerUp={stopAlphaDrag}
         onPointerLeave={stopAlphaDrag}

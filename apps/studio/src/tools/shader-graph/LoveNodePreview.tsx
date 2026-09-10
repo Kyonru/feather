@@ -48,7 +48,7 @@ function texturePayload(
 
 function InactiveLoveNodePreview({ pinned, onTogglePin }: Pick<Props, 'pinned'> & { onTogglePin: () => void }) {
   return (
-    <div className="nodrag nopan mt-2 overflow-hidden rounded border bg-black/95" data-testid="shader-preview-probe">
+    <div className="surface nodrag nopan mt-2 overflow-hidden bg-black/95" data-testid="shader-preview-probe">
       <div className="flex h-6 items-center gap-1 border-b border-white/10 bg-card/95 px-1.5">
         <span className="min-w-0 flex-1 truncate text-[9px] text-muted-foreground">paused</span>
         <Button
@@ -219,7 +219,7 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
       : null;
 
   return (
-    <div className="nodrag nopan mt-2 overflow-hidden rounded border bg-black/95" data-testid="shader-preview-probe">
+    <div className="surface nodrag nopan mt-2 overflow-hidden bg-black/95" data-testid="shader-preview-probe">
       <div className="flex h-6 items-center gap-1 border-b border-white/10 bg-card/95 px-1.5">
         <span className="min-w-0 flex-1 truncate text-[9px] text-muted-foreground">
           {status === 'error' ? (error ?? 'Runtime preview failed.') : status === 'live' ? 'Sent to game' : 'love.js'}

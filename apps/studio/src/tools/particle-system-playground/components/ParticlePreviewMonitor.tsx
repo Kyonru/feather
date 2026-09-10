@@ -221,7 +221,7 @@ export function ParticlePreviewMonitor({
     const statusMessage = error ?? effectiveDisabledReason ?? runtimeMessage;
 
     return (
-      <section className="grid min-w-0 gap-3 rounded-md border bg-card p-3" data-testid="particle-preview-monitor">
+      <section className="surface grid min-w-0 gap-3 p-3" data-testid="particle-preview-monitor">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -234,7 +234,7 @@ export function ParticlePreviewMonitor({
           </div>
           <div className="flex flex-wrap justify-end gap-2">{gamePreviewButton}</div>
         </div>
-        <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">{statusMessage}</div>
+        <div className="surface-inset px-3 py-2 text-xs text-muted-foreground">{statusMessage}</div>
       </section>
     );
   }
