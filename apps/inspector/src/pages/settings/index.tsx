@@ -171,7 +171,7 @@ type McpBridgeSettings = {
   configPath: string;
 };
 
-const settingsTabs = [
+export const settingsTabs = [
   {
     value: 'connection',
     label: 'Connection',
@@ -1610,6 +1610,7 @@ function CliStatusPanel() {
 export function SettingsModal() {
   const open = useSettingsStore((state) => state.open);
   const setOpen = useSettingsStore((state) => state.setOpen);
+  const settingsTab = useSettingsStore((state) => state.settingsTab);
   const reset = useSettingsStore((state) => state.reset);
   const resetPanelState = usePanelStateStore((state) => state.resetAll);
 
@@ -1658,7 +1659,17 @@ export function SettingsModal() {
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="connection" orientation="vertical" className="min-h-0 flex-1 gap-0 md:flex-row">
+        <Tabs
+          // Falls back because persisted settings written before this field
+          // existed rehydrate without it, and a controlled `Tabs` given
+          // `undefined` renders no section at all — the dialog opens empty.
+          // Adding a field to a persisted store is a migration whether or not
+          // it is called one.
+          value={settingsTab || settingsTabs[0].value}
+          onValueChange={(tab) => setOpen(true, tab)}
+          orientation="vertical"
+          className="min-h-0 flex-1 gap-0 md:flex-row"
+        >
           <div className="border-b bg-muted/10 p-2 md:w-64 md:shrink-0 md:border-b-0 md:border-r">
             <TabsList className="flex !h-auto w-full flex-wrap items-stretch justify-start gap-1 rounded-none bg-transparent p-0 md:flex-col">
               {settingsTabs.map((tab) => (

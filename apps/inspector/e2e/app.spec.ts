@@ -1362,6 +1362,32 @@ test('typing in the log search survives a log the runtime sent without a message
   await expect(page.getByText('player spawned')).toBeVisible();
 });
 
+test('settings are findable from the command palette', async ({ page }) => {
+  // The palette advertised pages, plugins, snippets, sessions and docs, and
+  // could not find a single setting — 1,789 lines of them, reachable only by
+  // opening the dialog and hunting. V4-ENHANCED 6.12.
+  await seedSession(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+
+  await pressCommandCenterShortcut(page);
+  await expect(page.getByTestId('command-center')).toBeVisible();
+  await page.getByRole('textbox', { name: 'Command Center search' }).fill('api key');
+
+  // Searching for what a setting *is about* finds the section holding it.
+  const security = page.getByText('Settings — Security').first();
+  await expect(security).toBeVisible();
+  await security.click();
+
+  // And it lands on that section, not merely on the dialog's first tab. Asserted
+  // through the UI rather than storage: the section is navigation for this app
+  // run, deliberately not persisted.
+  const dialog = page.getByRole('dialog', { name: 'Settings' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('tab', { name: 'Security' })).toHaveAttribute('data-state', 'active');
+  await expect(dialog.getByLabel('API Key').first()).toBeVisible();
+});
+
 test('an empty panel caused by a stale filter offers a way out', async ({ page }) => {
   // C1 made filters outlive the visit that set them, which created this: you can
   // arrive at an empty panel because of a filter you set days ago. The state

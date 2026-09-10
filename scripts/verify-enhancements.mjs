@@ -416,6 +416,27 @@ check('the Missing filter checks the whole project, in bounded batches', () => {
   return `${pass} assertions — complete, batched, and cancellable`;
 });
 
+// --- 6.12 Settings ---------------------------------------------------------
+
+section(
+  '6.12',
+  'Settings',
+  'pnpm run up  →  Cmd/Ctrl+K, type "api key". The Security section comes up, and choosing it\n' +
+    '              opens Settings on that section rather than on the first tab.',
+);
+
+check('settings are reachable from the palette, and from one source', () => {
+  const palette = readFileSync(join(ROOT, 'apps/inspector/src/components/command-center.tsx'), 'utf8');
+  if (!palette.includes("id: 'settings'")) throw new Error('the palette cannot find settings');
+  if (!palette.includes('settingsTabs.map')) {
+    throw new Error('entries are hand-listed rather than derived, so a new section will be missed');
+  }
+  if (!/placeholder="[^"]*settings/i.test(palette)) throw new Error('the placeholder does not offer what it now does');
+  const store = readFileSync(join(ROOT, 'apps/inspector/src/store/settings.ts'), 'utf8');
+  if (!store.includes('settingsTab')) throw new Error('settings cannot be opened at a section');
+  return 'derived from settingsTabs, opens on the matching section';
+});
+
 // --- summary ---------------------------------------------------------------
 
 process.stdout.write(

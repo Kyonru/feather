@@ -11,6 +11,14 @@ import { normalizeThemePreference, type ThemePreference } from '@/assets/theme/r
 
 type SettingsStoreState = {
   open: boolean;
+  /**
+   * Which settings section to show when the dialog opens.
+   *
+   * Exists so something else can point at a section — the command palette can
+   * now find settings, and "find" is only useful if it lands you on the right
+   * one rather than the first one.
+   */
+  settingsTab: string;
   theme: ThemePreference;
   // Port the Feather desktop WS server listens on (games connect to this)
   port: number;
@@ -33,7 +41,7 @@ type SettingsStoreState = {
 
 type SettingsStoreActions = {
   setIsLatestVersion: (isLatestVersion: boolean) => void;
-  setOpen: (open: boolean) => void;
+  setOpen: (open: boolean, tab?: string) => void;
   setTheme: (theme: ThemePreference) => void;
   setPort: (port: number) => void;
   setTextEditorPath: (textEditorPath: string) => void;
@@ -84,6 +92,7 @@ function normalizePinnedSidebarTools(toolIds?: unknown): SidebarToolId[] {
 const defaultSettings: SettingsStoreState = {
   isLatestVersion: true,
   open: false,
+  settingsTab: 'connection',
   theme: 'system',
   apiKey: '',
   appId: createAppId(),
@@ -130,7 +139,8 @@ export const useSettingsStore = create<SettingsStore>()(
     (set) => ({
       ...defaultSettings,
       setIsLatestVersion: (isLatestVersion: boolean) => set({ isLatestVersion }),
-      setOpen: (open: boolean) => set({ open }),
+      setOpen: (open: boolean, tab?: string) =>
+        set((state) => ({ open, settingsTab: tab ?? state.settingsTab ?? 'connection' })),
       setTheme: (theme: ThemePreference) => set({ theme: normalizeThemePreference(theme) }),
       setPort: (port: number) => set({ port }),
       setTextEditorPath: (textEditorPath: string) => set({ textEditorPath }),
@@ -182,6 +192,7 @@ export const useSettingsStore = create<SettingsStore>()(
     {
       name: 'settings-storage',
       storage: createJSONStorage(createSettingsStorage),
+      partialize: ({ settingsTab: _settingsTab, open: _open, ...rest }) => rest,
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<SettingsStore> | undefined;
 
@@ -190,6 +201,13 @@ export const useSettingsStore = create<SettingsStore>()(
           ...persisted,
           theme: normalizeThemePreference(persisted?.theme),
           pinnedSidebarTools: normalizePinnedSidebarTools(persisted?.pinnedSidebarTools),
+          // Which section you were last on is navigation, not a preference.
+          // Persisting it means opening Settings and landing wherever you
+          // happened to finish last time — and by C1's own rule, this is not
+          // something anyone is annoyed to choose again, because you open
+          // Settings *for* a reason each time. It stays for the life of the app
+          // run so the palette can point at a section, and resets after that.
+          settingsTab: currentState.settingsTab,
         };
       },
     },

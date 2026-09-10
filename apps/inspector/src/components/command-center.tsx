@@ -37,6 +37,7 @@ import { useConfigStore } from '@/store/config';
 import { useConsoleHistoryStore } from '@/store/console-history';
 import { useSessionStore, type SessionInfo } from '@/store/session';
 import { useSettingsStore } from '@/store/settings';
+import { settingsTabs } from '@/pages/settings';
 import { openUrl } from '@/utils/linking';
 import { cn } from '@/utils/styles';
 import { toast } from 'sonner';
@@ -211,6 +212,7 @@ export function CommandCenter() {
   const storeConfig = useConfigStore((state) => state.config);
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const setLogOverride = useConfigStore((state) => state.setLogOverride);
+  const openSettings = useSettingsStore((state) => state.setOpen);
   const hiddenMainFeatures = useSettingsStore((state) => state.hiddenMainFeatures);
   const showHiddenMainFeaturesInCommandCenter = useSettingsStore(
     (state) => state.showHiddenMainFeaturesInCommandCenter,
@@ -532,6 +534,25 @@ export function CommandCenter() {
       run: () => closeAndRun(() => openUrl(doc.url)),
     }));
 
+    // Settings were the one thing the palette could not find, in a list that
+    // already promised pages, plugins, snippets, sessions and docs. 1,789 lines
+    // of settings across four sections, reachable only by opening the dialog and
+    // hunting — the longest common path in the app.
+    //
+    // Built from `settingsTabs` rather than a copy of it, so a new section shows
+    // up here without anyone remembering to add it. Section granularity is
+    // deliberate: enumerating individual toggles would drift the moment one is
+    // renamed, and lands you in the same place anyway.
+    const settingsItems: CommandCenterItem[] = settingsTabs.map((tab) => ({
+      id: `settings:${tab.value}`,
+      title: `Settings — ${tab.label}`,
+      subtitle: tab.description,
+      keywords: ['settings', 'preferences', 'options', tab.value, tab.label.toLowerCase()],
+      icon: tab.icon,
+      actionKind: 'navigate' as const,
+      run: () => closeAndRun(() => openSettings(true, tab.value)),
+    }));
+
     return [
       { id: 'pages', title: 'Pages', items: pages },
       { id: 'plugins', title: 'Plugins', items: plugins },
@@ -539,6 +560,7 @@ export function CommandCenter() {
       { id: 'debugger', title: 'Debugger', items: debuggerItems },
       { id: 'hot-reload', title: 'Hot Reload', items: hotReloadItems },
       { id: 'session', title: 'Session', items: sessionItems },
+      { id: 'settings', title: 'Settings', items: settingsItems },
       { id: 'docs', title: 'Docs', items: docs },
     ].filter((group) => group.items.length > 0);
   }, [
@@ -548,6 +570,7 @@ export function CommandCenter() {
     hiddenPlugins,
     hotReload,
     navigate,
+    openSettings,
     queryClient,
     savedSnippets,
     sessionId,
@@ -597,7 +620,7 @@ export function CommandCenter() {
       >
         <DialogTitle className="sr-only">Command Center</DialogTitle>
         <DialogDescription className="sr-only">
-          Search pages, plugins, snippets, debugger actions, sessions, and docs.
+          Search pages, plugins, snippets, debugger actions, sessions, settings, and docs.
         </DialogDescription>
         <div className="border-b p-3">
           <div className="relative">
@@ -623,7 +646,7 @@ export function CommandCenter() {
                   setOpen(false);
                 }
               }}
-              placeholder="Search pages, plugins, snippets, sessions, docs..."
+              placeholder="Search pages, plugins, snippets, settings, docs..."
               className="h-11 pl-9 pr-24"
               aria-label="Command Center search"
             />

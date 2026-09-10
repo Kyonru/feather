@@ -549,8 +549,8 @@ alone.
 | 6.9 | Time Travel | **REVIEWED** | cost is shown and bounded; C0 regression in its indicators fixed |
 | 6.10 | Session Replay | **REVIEWED** | the 6 toasts are export/import feedback, not noise |
 | 6.11 | Compare | **DONE** | empty state names the command; stale-filter escape hatch |
-| 6.12 | Settings | NOT STARTED | |
-| 6.13 | About | NOT STARTED | Smallest |
+| 6.12 | Settings | **DONE** | findable from the palette; security toggles already explained their consequence |
+| 6.13 | About | **REVIEWED, NO CHANGE** | all four claims accurate after the split |
 
 Suggested order: **~~C0~~ → ~~C1~~ → ~~C2~~ → ~~6.1~~ → ~~6.4~~ → ~~6.3~~**, then the rest. C0 first because it is a
 correctness bug and because C2 needs a working color channel to build on. C1 and C2 then remove the
@@ -968,6 +968,39 @@ state that means *this is on and wants your attention*, and keeping danger for r
 keeps danger meaning something. That is the same call made for rejected breakpoints in 6.4, which is
 the point: with a real semantic channel these questions have consistent answers instead of
 per-panel taste.
+
+**2026-09-10 — 6.12 Settings and 6.13 About.**
+
+Settings' security question turned out to be answered already: the MCP toggle, the one with the
+widest consequence, says at the point of decision that it "allows local MCP clients to inspect and
+control live Feather sessions through a token-protected localhost bridge". It names the capability
+granted and the protection around it. Nothing to add.
+
+Findability was the real gap, and the palette was the right place to fix it rather than Settings.
+The command palette advertised "pages, plugins, snippets, sessions, docs" and could not find a
+single setting — 1,789 lines of them across four sections, reachable only by opening the dialog and
+hunting. Under §1's amendment that is a promise half kept, not a missing feature.
+
+Entries are derived from `settingsTabs` rather than copied from it, so a new section appears in the
+palette without anyone remembering. Section granularity is deliberate: enumerating individual
+toggles would drift the first time one is renamed and lands you in the same place anyway.
+
+**The interesting part was what the existing tests caught.** Making the dialog open at a chosen
+section meant making its tabs controlled, which had two consequences I did not intend. A persisted
+store written before the field existed rehydrated without it, and a controlled `Tabs` given
+`undefined` renders *no section at all* — adding a field to a persisted store is a migration whether
+or not anyone calls it one. And persisting the field meant Settings reopened wherever you last
+finished, which `persists settings changes across reloads` failed on immediately.
+
+The second was the more interesting question, and the answer came from C1's own rule: state belongs
+in storage if the user chose it and would be annoyed to choose it again. Which settings section you
+were last on is not that — you open Settings *for* a reason each time. So it is navigation for the
+life of the app run, which is enough for the palette to point at a section, and it resets after
+that. The test that caught it had encoded the right expectation all along.
+
+About reviewed and unchanged: all four claims still hold after the split. "Inspect creative systems"
+reads oddly at first now, but it describes inspecting the *game's* shader and particle systems
+through the Lua plugins, which is a different thing from authoring them in Studio — and still true.
 
 **2026-09-09 — §4 design direction added, and C0 found while writing it.** The question was which
 visual style suits Inspector; the answer turned out to matter less than what the audit for it
