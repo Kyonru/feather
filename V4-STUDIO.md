@@ -1,6 +1,6 @@
 # V4 Studio — turning Feather Studio into a usable tool
 
-**Status:** specification, not started · **Written:** 2026-09-10
+**Status:** S1–S3 done, S3b/S4/S5 open · **Written:** 2026-09-10 · **Last worked:** 2026-09-10
 **Companions:** [`V4.md`](./V4.md) (why Studio is a separate product) · [`V4-ENHANCED.md`](./V4-ENHANCED.md) — its §9 summarizes this
 
 ---
@@ -139,8 +139,12 @@ What each absence would cost, if you mounted a tool today:
 - **No `UiProvider`** — `@feather/ui` components lose `useThemeMode`, `useSyntaxTheme` and
   `copyToClipboard`.
 
-`apps/studio/src/studio.css` is 32 lines of placeholder styling with no tokens, which is fine and not
-the problem: tokens come from the provider at runtime, not from that file.
+**A second half of this gap, found while implementing S1:** `@theme inline` — the block that maps the
+tokens onto Tailwind's color utilities, and therefore what makes `bg-card` *exist* as a class at
+all — lived only in `showcase-app.css`. Without it Tailwind never generates those utilities, so the
+classes are inert no matter what the token values are. It now lives in
+`apps/studio/src/theme-tokens.css`, imported by both Studio and the showcase so they cannot drift on
+what a card looks like.
 
 ---
 
@@ -308,9 +312,11 @@ Build a provider stack matching `showcase/providers.tsx`, with these differences
   lazily imports `@tauri-apps/*`. **Do not change it**; a web build must not pull Tauri in.
 - Keep the existing `setCreativeMcpTransport` wiring for the desktop case.
 - `UiProvider` needs the same three dependencies the showcase supplies.
-- **Studio opens dark by default**, not on the system preference (§5, **W2**). `theme.tsx` follows
-  the system today; give it a Studio default of dark with the system preference as a user choice
-  rather than the initial state. The reason is in W2 and it is perceptual, not aesthetic.
+- **Leave the theme behaviour alone for now.** §5 **W2** argues Studio should open dark regardless
+  of the system preference. The owner has deferred that: themes are wanted and the default is a
+  later conversation. `theme.tsx` keeps following the system, and W2's *preview ground* rule (the
+  neutral, switchable surround) lands in S3b regardless — it is the part that actually affects
+  color judgement, and it does not depend on which theme is active.
 
 **Acceptance:** a tool mounted anywhere in Studio renders with real card backgrounds, borders and
 muted text, in both light and dark, following the system preference.
@@ -608,9 +614,9 @@ Studio is finished as a tool when all of these are true:
 3. Connecting to Inspector **adds** live preview, and disconnecting removes it without losing work
    or showing an error.
 4. Every state color follows the user's theme and clears WCAG AA on it.
-5. Studio opens dark, contributes no color of its own, and every preview sits on a neutral ground the
-   user can change — so what someone sees while authoring is the artifact, not the interface's
-   opinion of it (§5).
+5. Studio contributes no color of its own, and every preview sits on a neutral ground the user can
+   change — so what someone sees while authoring is the artifact, not the interface's opinion of it
+   (§5). *(Dark-by-default is deferred: see S1.)*
 6. `pnpm run verify:enhanced` covers Studio and passes.
 7. `pnpm run test` passes 7/7.
 

@@ -18,9 +18,7 @@ import type { SessionDescription } from '@feather/session-bridge';
  * the tools already understood as "no session".
  */
 
-export const CREATIVE_SESSION_PREFIX = 'creative:';
-
-export type SessionKind = 'live' | 'creative';
+export type SessionKind = 'live';
 
 export type SessionInfo = {
   id: string;
@@ -31,28 +29,41 @@ export type SessionInfo = {
   runtimeSuspended?: boolean;
 };
 
-export function createCreativeSessionId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `${CREATIVE_SESSION_PREFIX}${crypto.randomUUID()}`;
-  }
-  return `${CREATIVE_SESSION_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-}
-
 /**
- * A local, gameless workspace.
+ * Is a game attached and accepting commands?
  *
- * Standalone Studio is always in this state, which is why it stays fully useful
- * with no Inspector installed.
+ * The honest question, and the only one Studio needs to ask about sessions.
+ * `false` is the ordinary answer: most of the time nobody has a game running,
+ * and Studio is fully useful anyway.
  */
-export function isCreativeSession(session?: SessionInfo | null): boolean {
-  return session?.kind === 'creative' || session?.id.startsWith(CREATIVE_SESSION_PREFIX) === true;
-}
-
-/** A real game is attached and accepting commands. */
 export function sessionSupportsRuntime(
   session?: SessionInfo | null,
 ): session is SessionInfo & { connected: true; kind?: undefined } {
-  return !!session && !isCreativeSession(session) && !session.kind && session.connected;
+  return !!session && !session.kind && session.connected;
+}
+
+/**
+ * Studio's two modes.
+ *
+ * `local` — authoring against Studio's own state. **This is the default**, and
+ * it is fully capable: every tool works, nothing is disabled, no empty state
+ * asks for a session.
+ *
+ * `attached` — a game is reachable through Inspector, which *adds* live preview
+ * and pushing work into the running game. Nothing else changes.
+ *
+ * This replaced a predicate called `isCreativeSession`, inherited from Inspector
+ * where a gameless workspace was the exception you deliberately created. In
+ * Studio the same words name the default, which is why the code read backwards:
+ * `creativeSession ? localPlayground : livePlayground` selected the *live*
+ * controller whenever no game was attached, because Studio never creates a
+ * creative session. Asking the question the right way round removes the bug and
+ * the vocabulary together.
+ */
+export type StudioMode = 'local' | 'attached';
+
+export function studioModeFor(session?: SessionInfo | null): StudioMode {
+  return sessionSupportsRuntime(session) ? 'attached' : 'local';
 }
 
 type StudioSessionStore = {
@@ -86,3 +97,20 @@ export const useSessionStore = create<StudioSessionStore>()((set) => ({
 
   clear: () => set({ sessionId: null, sessions: {} }),
 }));
+
+/** The active session, or null when no game is attached. */
+export function useActiveSession(): SessionInfo | null {
+  return useSessionStore((state) => (state.sessionId ? (state.sessions[state.sessionId] ?? null) : null));
+}
+
+/** Studio's current mode. See `StudioMode`. */
+export function useStudioMode(): StudioMode {
+  return studioModeFor(useActiveSession());
+}
+
+/** Convenience for the common branch: local is the default. */
+export function useIsLocalMode(): boolean {
+  return useStudioMode() === 'local';
+}
+
+

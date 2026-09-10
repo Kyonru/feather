@@ -559,9 +559,9 @@ alone with the reason recorded.
 
 | # | Step | Pass | Notes |
 |---|---|---|---|
-| S1 | Mount the providers | NOT STARTED | Theme, QueryClient and Ui providers absent from `main.tsx` |
-| S2 | Shell, and mount the tools | NOT STARTED | 25,500 LOC unreachable; **Studio is unusable until this lands** |
-| S3 | Invert the session model | NOT STARTED | 13 sites; Shader Graph is already the correct shape |
+| S1 | Mount the providers | **DONE** | plus `@theme inline`, which was missing too — see V4-STUDIO §4 |
+| S2 | Shell, and mount the tools | **DONE** | rail + tool surface; **Studio is usable** |
+| S3 | Invert the session model | **DONE** | `useIsLocalMode`; creative vocabulary gone; `standalone` prop gone |
 | S3b | Workbench layout for the other two tools | NOT STARTED | Texture Lab is a page, Particles are cards |
 | S4 | Durable workspaces | NOT STARTED | losing a shader graph is not losing a filter |
 | S5 | Apply C0–C5 | NOT STARTED | 86 raw color literals waiting |

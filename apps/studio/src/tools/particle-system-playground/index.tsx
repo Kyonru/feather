@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
 import { usePluginControl } from '@studio/session/plugin-control';
 import { useParticleSystemPlayground } from '@studio/hooks/use-particle-system-playground';
 import { useLocalParticlePlayground } from '@studio/tools/particle-system-playground/use-local-particle-playground';
-import { isCreativeSession, useSessionStore } from '@studio/session';
+import { useIsLocalMode, useSessionStore } from '@studio/session';
 import { CompositeSelector } from './components/CompositeSelector';
 import { EmitterList } from './components/EmitterList';
 import { ExportPanel } from './components/ExportPanel';
@@ -42,40 +42,38 @@ function targetIsTextInput(target: EventTarget | null): boolean {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || target.isContentEditable;
 }
 
-export default function ParticleSystemPlaygroundPage({
-  playgroundOverride,
-  standalone = false,
-}: {
-  playgroundOverride?: ParticleSystemPlaygroundController;
-  standalone?: boolean;
-} = {}) {
+/**
+ * A stable id for the local workspace, so work persists across restarts.
+ *
+ * Previously the id came from a "creative session", which Studio never creates,
+ * so it was always `undefined` and every launch started from
+ * `defaultLocalParticleData()`. S4 replaces this constant with real named
+ * workspaces; until then it is what makes the tool remember anything at all.
+ */
+const LOCAL_WORKSPACE_ID = 'studio-local';
+
+export default function ParticleSystemPlaygroundPage() {
   const host = useHost();
   const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
-  const creativeSession = isCreativeSession(activeSession);
+  // Local is the default. This used to ask `isCreativeSession`, which is false
+  // when no game is attached, so it selected the *live* controller in exactly
+  // the situation Studio is normally in — see V4-STUDIO.md S3.
+  const localMode = useIsLocalMode();
   const livePlayground = useParticleSystemPlayground();
-  const localPlayground = useLocalParticlePlayground(creativeSession ? activeSession?.id : undefined);
-  const playground = playgroundOverride ?? (creativeSession ? localPlayground : livePlayground);
+  const localPlayground = useLocalParticlePlayground(localMode ? LOCAL_WORKSPACE_ID : activeSession?.id);
+  const playground = localMode ? localPlayground : livePlayground;
   const pluginControl = usePluginControl('particle-system-playground');
-  const localMode = standalone || creativeSession;
   const composite = playground.composite;
   const system = playground.activeSystem;
   const isGameComposite = composite?.compositeType === 'game';
   const projectInputRef = useRef<HTMLInputElement>(null);
   const [gamePreviewActive, setGamePreviewActive] = useState(false);
   const sendRuntimeTimeline = gamePreviewActive && !playground.runtimeSuspended;
-  const [viewportHeight, setViewportHeight] = useState(() =>
-    typeof window === 'undefined' ? 0 : window.innerHeight,
-  );
-
-  useEffect(() => {
-    if (standalone) return;
-    const updateViewportHeight = () => setViewportHeight(window.innerHeight);
-    updateViewportHeight();
-    window.addEventListener('resize', updateViewportHeight);
-    return () => window.removeEventListener('resize', updateViewportHeight);
-  }, [standalone]);
-
-  const appRootHeight = !standalone && viewportHeight > 0 ? Math.max(240, viewportHeight - 64) : undefined;
+  // The viewport measuring that used to live here existed for one situation:
+  // this tool embedded in an Inspector page, where it had to size itself to the
+  // window minus the surrounding chrome. In Studio the tool owns the window and
+  // fills its container, so the measurement, the resize listener and the
+  // explicit pixel height are all gone.
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -136,9 +134,7 @@ export default function ParticleSystemPlaygroundPage({
           <AlertTriangleIcon className="size-8 text-muted-foreground" />
           <h1 className="text-lg font-semibold">Particles Playground is disabled</h1>
           <p className="text-sm text-muted-foreground">
-            {standalone
-              ? 'The standalone showcase keeps this tool enabled with local sample data.'
-              : 'Enable the built-in plugin for this session to author particle effects.'}
+            Enable the built-in plugin for this session to author particle effects.
           </p>
           <Button
             size="sm"
@@ -161,10 +157,7 @@ export default function ParticleSystemPlaygroundPage({
   return (
     <div
       data-testid="particle-playground-root"
-      className={`grid min-h-0 w-full grid-cols-[18rem_minmax(0,1fr)] overflow-hidden ${
-        standalone ? 'h-0 flex-1' : 'shrink-0'
-      }`}
-      style={appRootHeight ? { height: appRootHeight } : undefined}
+      className="grid h-0 min-h-0 w-full flex-1 grid-cols-[18rem_minmax(0,1fr)] overflow-hidden"
     >
       <input
         ref={projectInputRef}
@@ -307,9 +300,9 @@ export default function ParticleSystemPlaygroundPage({
 
                 <ParticlePreviewMonitor
                   playground={playground}
-                  standalone={standalone || creativeSession}
+                  standalone={localMode}
                   isGameComposite={isGameComposite}
-                  allowGamePreview={!creativeSession}
+                  allowGamePreview={!localMode}
                   gamePreviewActive={gamePreviewActive}
                   onGamePreviewActiveChange={setGamePreviewActive}
                 />

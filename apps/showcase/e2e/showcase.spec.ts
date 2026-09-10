@@ -369,7 +369,14 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await expect(textureHeader.getByRole('button', { name: /reset values/i })).toBeVisible();
   await expect(textureHeader.getByRole('button', { name: /regenerate/i })).toBeVisible();
   await expect(textureHeader.getByRole('button', { name: /export png/i })).toBeVisible();
-  await expect(textureHeader.getByRole('button', { name: /use as shader preview/i })).toBeVisible();
+  // The apply button names where the texture will go, and that target depends on
+  // what is available: an active particle emitter, then a selected shader node,
+  // then the shader preview as a fallback. This asserted the *fallback* label,
+  // which was only reachable because Texture Lab was wired to the live particle
+  // controller — unavailable with no game — instead of the local one. With that
+  // fixed it can feed the emitter, so the label is now "Use in <emitter>". The
+  // property worth pinning is that the button exists and says where it applies.
+  await expect(textureHeader.getByRole('button', { name: /^use (in|as) /i })).toBeVisible();
   await expect(page.getByLabel('Texture background color')).toHaveValue('#000000');
   await expect(page.getByLabel('Texture background alpha')).toHaveValue('0');
   const preview = page.getByTestId('texture-lab-preview');

@@ -1,6 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createWebHost, HostProvider, type FeatherHost } from '@feather/host';
+import { UiProvider, type UiDependencies } from '@feather/ui';
+import { ThemeProvider, useResolvedTheme } from './theme';
 import { StudioApp } from './StudioApp';
 import './studio.css';
 
@@ -31,10 +34,44 @@ async function resolveHost(): Promise<FeatherHost> {
 
 const host = await resolveHost();
 
+/**
+ * Studio's provider stack.
+ *
+ * This mounted `HostProvider` alone until now, which is why none of the tools
+ * could be rendered: they reference design tokens 394 times and every one
+ * resolved to nothing without `ThemeProvider`, their hooks need a query client,
+ * and `@feather/ui` components need the UI dependencies. The showcase has run
+ * the same tools successfully with these four all along — see
+ * `showcase/providers.tsx`, which this mirrors.
+ *
+ * The query client keeps a long `gcTime` because creative state is expensive to
+ * rebuild and cheap to hold.
+ */
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { gcTime: 1000 * 60 * 60 } },
+});
+
+// Studio follows the system theme. Whether it should instead open dark by
+// default — the argument being that you cannot judge a color against a surround
+// that has its own — is deferred; see V4-STUDIO.md S1.
+const uiDependencies: UiDependencies = {
+  useThemeMode: () => useResolvedTheme().mode,
+  useSyntaxTheme: () => useResolvedTheme().syntax as Record<string, unknown>,
+  copyToClipboard: (value: string) => {
+    void navigator.clipboard?.writeText(value);
+  },
+};
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <HostProvider host={host}>
-      <StudioApp />
-    </HostProvider>
+    <QueryClientProvider client={queryClient}>
+      <HostProvider host={host}>
+        <UiProvider value={uiDependencies}>
+          <ThemeProvider>
+            <StudioApp />
+          </ThemeProvider>
+        </UiProvider>
+      </HostProvider>
+    </QueryClientProvider>
   </React.StrictMode>,
 );

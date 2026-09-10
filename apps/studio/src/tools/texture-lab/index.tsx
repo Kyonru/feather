@@ -5,7 +5,7 @@ import { useParticleSystemPlayground } from '@studio/hooks/use-particle-system-p
 import { useLocalParticlePlayground } from '@studio/tools/particle-system-playground/use-local-particle-playground';
 import { useShaderGraphStore } from '@studio/store/shader-graph';
 import { useStudioPreferencesStore } from '@studio/store/studio-preferences';
-import { isCreativeSession, useSessionStore } from '@studio/session';
+import { useIsLocalMode, useSessionStore } from '@studio/session';
 import type { GeneratedTextureResult } from '@studio/types/texture-lab';
 
 const SHADER_TEXTURE_NODE_TYPES = new Set(['TextureInput', 'TextureUniformColor', 'TextureParameter']);
@@ -13,10 +13,10 @@ const SHADER_TEXTURE_NODE_TYPES = new Set(['TextureInput', 'TextureUniformColor'
 export default function TextureLab() {
   const sessionId = useSessionStore((state) => state.sessionId);
   const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
-  const creativeSession = isCreativeSession(activeSession);
+  const localMode = useIsLocalMode();
   const livePlayground = useParticleSystemPlayground();
-  const localPlayground = useLocalParticlePlayground(creativeSession ? activeSession?.id : undefined);
-  const playground = creativeSession ? localPlayground : livePlayground;
+  const localPlayground = useLocalParticlePlayground(localMode ? 'studio-local' : activeSession?.id);
+  const playground = localMode ? localPlayground : livePlayground;
   const workspaceId = sessionId ?? 'default';
   const activateShaderWorkspace = useShaderGraphStore((state) => state.activateWorkspace);
   const activateTextureLabWorkspace = useStudioPreferencesStore((state) => state.activateTextureLabWorkspace);
