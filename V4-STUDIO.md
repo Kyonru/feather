@@ -372,7 +372,7 @@ Applying W1–W6 to S2, the shell should be:
 
 ## 6. The work
 
-### S1 — Mount the providers
+### S1 — Mount the providers — **DONE** (c95b272)
 
 **Goal:** the tools can render at all.
 
@@ -398,7 +398,7 @@ should look like a tool, not unstyled markup. Revert the temporary render before
 
 ---
 
-### S2 — Build the shell
+### S2 — Build the shell — **DONE** (c95b272, refined in a44e7ce)
 
 **Goal:** Studio becomes usable. **This is the step that makes Studio exist.**
 
@@ -439,7 +439,7 @@ existing tests, which assert the placeholder.
 
 ---
 
-### S3 — Invert the session model
+### S3 — Invert the session model — **DONE** (c95b272)
 
 **Goal:** the tools stop treating "no game" as degraded.
 
