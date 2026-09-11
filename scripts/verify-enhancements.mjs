@@ -460,20 +460,20 @@ section(
     '              should read in every theme, and the drag handles in Texture Lab should stay solid.',
 );
 
-check('Studio uses the same semantic derivation, not a copy of it', () => {
-  const shared = join(ROOT, 'packages/ui/src/theme/semantic.ts');
-  if (!existsSync(shared)) throw new Error('the shared derivation is missing');
+check('the theme registry is shared, not copied into each app', () => {
+  if (!existsSync(join(ROOT, 'packages/ui/src/theme/registry/index.ts'))) {
+    throw new Error('the shared registry is missing');
+  }
   for (const app of ['inspector', 'studio']) {
-    const file = join(ROOT, `apps/${app}/src/assets/theme/registry/semantic.ts`);
-    const source = readFileSync(file, 'utf8');
-    if (!source.includes('@feather/ui/theme/semantic')) {
-      throw new Error(`${app} defines its own derivation instead of requiring the shared one`);
-    }
-    if (/function solveForeground|const SEMANTIC_HUES/.test(source)) {
-      throw new Error(`${app} still contains the derivation maths`);
+    if (existsSync(join(ROOT, `apps/${app}/src/assets/theme`))) {
+      throw new Error(`apps/${app} has its own theme tree again`);
     }
   }
-  return 'one contrast-solved derivation, required by both apps';
+  const shared = readFileSync(join(ROOT, 'packages/ui/src/theme/semantic.ts'), 'utf8');
+  if (!/function solveForeground/.test(shared)) {
+    throw new Error('the shared module no longer contains the derivation');
+  }
+  return 'one registry, one contrast-solved derivation, both apps';
 });
 
 check('Studio exposes the semantic tokens as utilities', () => {

@@ -36,6 +36,7 @@ export default defineConfig(async () => ({
       // Order matters: array aliases are tried top to bottom, and the bare
       // `@feather/ui` entry must not swallow `@feather/ui/<component>`.
       { find: /^@feather\/ui\/hooks\/(.*)$/, replacement: path.resolve(__dirname, './packages/ui/src/hooks/$1') },
+      { find: /^@feather\/ui\/theme\/registry$/, replacement: path.resolve(__dirname, './packages/ui/src/theme/registry/index.ts') },
       { find: /^@feather\/ui\/theme\/(.*)$/, replacement: path.resolve(__dirname, './packages/ui/src/theme/$1') },
       { find: /^@feather\/ui$/, replacement: path.resolve(__dirname, './packages/ui/src/index.ts') },
       { find: /^@feather\/ui\/(.*)$/, replacement: path.resolve(__dirname, './packages/ui/src/components/$1') },

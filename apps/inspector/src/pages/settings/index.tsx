@@ -43,7 +43,7 @@ import { useSessionStore } from '@/store/session';
 import { MobileConnection } from '@/components/mobile-connection';
 import { openUrl } from '@/utils/linking';
 import { cn } from '@/utils/styles';
-import { normalizeThemePreference, themeSelectorGroups, type ThemeSelectorOption } from '@/assets/theme/registry';
+import { normalizeThemePreference, themeSelectorGroups, type ThemeSelectorOption } from '@feather/ui/theme/registry';
 import { version as appVersion } from '../../../../../package.json';
 import {
   ActivityIcon,

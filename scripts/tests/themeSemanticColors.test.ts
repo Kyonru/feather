@@ -15,13 +15,12 @@ import test from 'node:test';
  * See V4-ENHANCED.md §4 (C0).
  */
 
-const { appThemes } = await import('../../apps/inspector/src/assets/theme/registry/index.ts');
-// Studio ships its own registry of the same themes. It now derives through the
-// same shared module, so the contrast guarantee must be asserted for both — a
-// colour that fails AA in Studio is exactly as unreadable as one in Inspector.
-const { appThemes: studioThemes } = await import('../../apps/studio/src/assets/theme/registry/index.ts');
+// One registry now, in the package, read by both apps. It used to be two
+// byte-identical copies — 4,602 duplicated lines — which is why the same
+// contrast guarantee had to be asserted twice.
+const { appThemes } = await import('../../packages/ui/src/theme/registry/index.ts');
 const { contrastRatio, CONTRAST_FLOOR } = await import(
-  '../../apps/inspector/src/assets/theme/registry/semantic.ts'
+  '../../packages/ui/src/theme/semantic.ts'
 );
 
 const STATES = ['ok', 'warn', 'danger', 'info'] as const;
@@ -116,29 +115,14 @@ test('the four states stay distinguishable from each other', () => {
   assert.deepEqual(failures, [], `states that collide:\n${failures.join('\n')}`);
 });
 
-test('Studio ships the same themes, derived through the same module', () => {
-  const inspectorIds = Object.keys(appThemes).sort();
-  const studioIds = Object.keys(studioThemes).sort();
-  assert.deepEqual(studioIds, inspectorIds, 'the two registries have drifted apart');
-});
-
-test('every Studio theme clears WCAG AA for all four semantic states', () => {
-  const failures: string[] = [];
-  for (const [id, theme] of Object.entries(studioThemes)) {
-    const variables = (theme as { variables: Record<string, string> }).variables;
-    for (const state of ['ok', 'warn', 'danger', 'info']) {
-      // Against every ground the value can land on — page, card, and its own
-      // surface. Solving against the page alone left 66 combinations failing
-      // the first time this was done.
-      for (const ground of ['background', 'card', `${state}-surface`]) {
-        const groundValue = variables[ground];
-        if (!groundValue) continue;
-        const ratio = contrastRatio(variables[state], groundValue);
-        if (ratio < CONTRAST_FLOOR) {
-          failures.push(`${id}: ${state} on ${ground} is ${ratio.toFixed(2)}:1`);
-        }
-      }
-    }
+test('the registry is shared, not duplicated per app', async () => {
+  // The apps used to hold byte-identical copies of eleven files. If either one
+  // grows its own registry again, this import is no longer the whole truth.
+  const { existsSync } = await import('node:fs');
+  for (const app of ['inspector', 'studio']) {
+    assert.ok(
+      !existsSync(new URL(`../../apps/${app}/src/assets/theme/registry/index.ts`, import.meta.url)),
+      `apps/${app} has grown its own theme registry again`,
+    );
   }
-  assert.deepEqual(failures, [], `${failures.length} Studio theme/state combinations fail AA`);
 });

@@ -21,12 +21,12 @@
  */
 
 /**
- * Moved here from Inspector so Studio uses the same derivation rather than a
- * second copy. The two apps must not import each other (enforced by
- * `no-restricted-imports`), and hand-porting 211 lines of contrast-solving
- * would have produced exactly the divergence this repository keeps finding.
- * See V4-STUDIO.md S5.
+ * Lives in the package, with the registry it serves, so both apps read one
+ * definition. The two apps must not import each other (enforced by
+ * `no-restricted-imports`), and hand-porting 211 lines of contrast-solving is
+ * how divergence starts. See V4-STUDIO.md S5.
  */
+import type { AuthoredThemeVariables, ThemeVariables } from './registry/types';
 
 /**
  * Hue per meaning, and the saturation to render it at.
@@ -202,13 +202,13 @@ export function deriveSemanticColors(background: string, card?: string): Semanti
  * Values the theme already defines win, so a theme with a curated palette can
  * opt out of derivation per token.
  */
-export function withSemanticColors<T extends Record<string, string>>(variables: T): T & SemanticVariables {
+export function withSemanticColors(variables: AuthoredThemeVariables): ThemeVariables {
   const derived = deriveSemanticColors(variables.background, variables.card);
   const merged = { ...variables } as Record<string, string>;
   for (const [name, value] of Object.entries(derived)) {
     if (!merged[name]) merged[name] = value;
   }
-  return merged as T & SemanticVariables;
+  return merged as ThemeVariables;
 }
 
 /**

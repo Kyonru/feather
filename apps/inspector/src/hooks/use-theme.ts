@@ -1,5 +1,5 @@
 import { useSettingsStore } from '@/store/settings';
-import { resolveTheme, type AppTheme, type SyntaxHighlighterStyle, type ThemeMode } from '@/assets/theme/registry';
+import { resolveTheme, type AppTheme, type SyntaxHighlighterStyle, type ThemeMode } from '@feather/ui/theme/registry';
 import { useSyncExternalStore } from 'react';
 
 const prefersDarkQuery = '(prefers-color-scheme: dark)';

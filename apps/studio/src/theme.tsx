@@ -1,5 +1,5 @@
 import { useLayoutEffect, useSyncExternalStore } from 'react';
-import { resolveTheme, type ThemeMode } from '@studio/assets/theme/registry';
+import { resolveTheme, type ThemeMode } from '@feather/ui/theme/registry';
 
 const prefersDarkQuery = '(prefers-color-scheme: dark)';
 

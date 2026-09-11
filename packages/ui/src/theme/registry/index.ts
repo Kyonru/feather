@@ -10,7 +10,7 @@ import {
 } from './rainglow';
 import { tokyoNightThemes } from './tokyo-night';
 import { visualStudioCppThemes } from './visual-studio-cpp';
-import { withSemanticColors } from './semantic';
+import { withSemanticColors } from '../semantic';
 import type {
   AppTheme,
   AuthoredThemeVariables,

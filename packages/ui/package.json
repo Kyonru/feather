@@ -9,7 +9,8 @@
     "./*": "./src/components/*.tsx",
     "./lib/styles": "./src/lib/styles.ts",
     "./hooks/use-mobile": "./src/hooks/use-mobile.ts",
-    "./theme/semantic": "./src/theme/semantic.ts"
+    "./theme/registry": "./src/theme/registry/index.ts",
+    "./theme/*": "./src/theme/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

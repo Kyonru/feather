@@ -7,7 +7,7 @@ import {
   type SidebarToolId,
 } from '@/constants/main-features';
 import { compactStoredLogHistory, isStorageQuotaError } from './log-history';
-import { normalizeThemePreference, type ThemePreference } from '@/assets/theme/registry';
+import { normalizeThemePreference, type ThemePreference } from '@feather/ui/theme/registry';
 
 type SettingsStoreState = {
   open: boolean;

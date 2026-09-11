@@ -1,6 +1,6 @@
 import { useSettingsStore } from '@/store/settings';
 import { useLayoutEffect } from 'react';
-import { resolveTheme } from '@/assets/theme/registry';
+import { resolveTheme } from '@feather/ui/theme/registry';
 import { useSystemThemeMode } from '@/hooks/use-theme';
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
