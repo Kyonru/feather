@@ -208,3 +208,82 @@ test('the love.js preview target is served, not the app itself', async ({ page }
     expect((await response.body()).byteLength, `${asset} is empty`).toBeGreaterThan(0);
   }
 });
+
+test('Particles keeps its full toolset in the resizable Context Lens workbench', async ({ page }) => {
+  await page.goto('/');
+  await chooseTool(page, 'particle-playground');
+
+  await expect(page.getByTestId('studio-particle-workbench')).toBeVisible();
+  await expect(page.getByTestId('particle-selection')).toBeVisible();
+  await expect(page.getByTestId('particle-preview')).toBeVisible();
+  await expect(page.getByTestId('particle-inspector')).toBeVisible();
+  const previewFrame = await page.getByTestId('love-js-preview-frame').boundingBox();
+  expect(previewFrame).not.toBeNull();
+  expect(Math.abs(previewFrame!.width / previewFrame!.height - 16 / 9)).toBeLessThan(0.02);
+  await expect(page.getByRole('button', { name: 'Add Emitter' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Project' }).click();
+  for (const action of ['Import Project', 'Save Project', 'Copy Lua Code', 'Save Runtime ZIP']) {
+    await expect(page.getByRole('menuitem', { name: action })).toBeVisible();
+  }
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('tab', { name: 'Preview & Assets' }).click();
+  await expect(page.getByRole('heading', { name: 'Composite Preview' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Texture' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Shader' })).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await expect(page.getByTestId('particle-timeline-panel')).toBeVisible();
+  await expect(page.getByTestId('love-js-preview-frame')).toBeVisible();
+
+  await page.getByLabel('Light preview background').click();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('feather-studio:preview-ground:particles')))
+    .toBe('light');
+});
+
+test('Texture Lab keeps every editor behind its preview-priority workbench', async ({ page }) => {
+  await page.goto('/');
+  await chooseTool(page, 'texture-lab');
+
+  await expect(page.getByTestId('studio-texture-workbench')).toBeVisible();
+  await expect(page.getByTestId('texture-navigator')).toBeVisible();
+  await expect(page.getByTestId('texture-preview')).toBeVisible();
+  await expect(page.getByTestId('texture-inspector')).toBeVisible();
+  await expect(page.getByTestId('texture-lab-navigator')).toContainText('Recipes & Generators');
+  await expect(page.getByTestId('texture-lab-controls-panel')).toBeVisible();
+
+  await page.getByLabel('Light preview background').click();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('feather-studio:preview-ground:texture-lab')))
+    .toBe('light');
+
+  await page.getByRole('button', { name: 'Create Atlas' }).click();
+  await expect(page.getByRole('tab', { name: /Atlas/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('texture-lab-atlas-panel')).toBeVisible();
+  await page.getByRole('tab', { name: 'Parameters' }).click();
+  await expect(page.getByLabel('Texture generator')).toBeVisible();
+  await expect(page.getByTestId('texture-lab-saved-recipes')).toBeVisible();
+});
+
+test('creative workbench pane sizes persist independently', async ({ page }) => {
+  await page.goto('/');
+  await chooseTool(page, 'texture-lab');
+
+  const workbench = page.getByTestId('studio-texture-workbench');
+  const navigator = page.getByTestId('texture-navigator');
+  const firstHandle = workbench.locator('[data-separator]').first();
+  const before = await navigator.evaluate((element) => element.getBoundingClientRect().width);
+  await firstHandle.focus();
+  await page.keyboard.press('ArrowRight');
+  const after = await navigator.evaluate((element) => element.getBoundingClientRect().width);
+  expect(after).not.toBe(before);
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('feather-studio:panel-layout:texture-lab')))
+    .not.toBeNull();
+
+  await page.reload();
+  const restored = await page.getByTestId('texture-navigator').evaluate((element) => element.getBoundingClientRect().width);
+  expect(Math.abs(restored - after)).toBeLessThan(3);
+});

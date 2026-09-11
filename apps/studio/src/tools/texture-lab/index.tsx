@@ -60,10 +60,10 @@ export default function TextureLab() {
 
   return (
     <main className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden" data-testid="texture-lab-page">
-      <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 bg-sidebar px-4 py-3">
-        <div className="grid gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Texture Lab</h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
+      <header className="flex min-h-12 shrink-0 flex-wrap items-center justify-between gap-3 bg-sidebar px-3 py-2">
+        <div className="min-w-0">
+          <h1 className="truncate text-sm font-semibold">Texture Lab</h1>
+          <p className="truncate text-[10px] text-muted-foreground">
             Generate tiny procedural textures for particles, shader masks, noise uniforms, trails, and sprite effects.
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function TextureLab() {
           className="max-w-full justify-start sm:justify-end"
         />
       </header>
-      <div className="h-0 min-h-0 flex-1 overflow-hidden p-4">
+      <div className="h-0 min-h-0 flex-1 overflow-hidden">
         <div className="h-full min-h-0 w-full">
           <TextureLabPanel applyLabel={applyLabel} onApply={useTexture} />
         </div>

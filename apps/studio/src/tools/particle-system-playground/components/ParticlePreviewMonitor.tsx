@@ -3,6 +3,7 @@ import { MonitorOffIcon, MonitorPlayIcon } from 'lucide-react';
 import { Badge } from '@feather/ui/badge';
 import { Button } from '@feather/ui/button';
 import { LoveJsPreview } from '@studio/components/love-js-preview';
+import { PreviewGroundControl, usePreviewGround } from '@studio/components/PreviewGroundControl';
 import { sessionSupportsRuntime, useSessionStore } from '@studio/session';
 import type {
   ParticleSystemPlaygroundCompositeData,
@@ -59,6 +60,7 @@ export function ParticlePreviewMonitor({
   );
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [previewGround, setPreviewGround] = usePreviewGround('particles');
   const setRuntimePreviewActiveRef = useRef(playground.setRuntimePreviewActive);
   const activeGameCompositeRef = useRef<string | null>(null);
   const runtimeSuspendedRef = useRef(runtimeSuspended);
@@ -151,8 +153,9 @@ export function ParticlePreviewMonitor({
       activeComposite: playground.activeComposite,
       activeSystem: playground.activeSystem,
       composite: playground.composite,
+      previewGround,
     }),
-    [playground.activeComposite, playground.activeSystem, playground.composite, previewEnabled],
+    [playground.activeComposite, playground.activeSystem, playground.composite, previewEnabled, previewGround],
   );
 
   async function toggleGamePreview() {
@@ -241,11 +244,12 @@ export function ParticlePreviewMonitor({
 
   return (
     <LoveJsPreview
-      floating
       title="Particle Preview"
       description={description}
       payload={payload}
-      actions={null}
+      fill
+      className="rounded-none border-0 bg-transparent"
+      actions={<PreviewGroundControl value={previewGround} onChange={setPreviewGround} />}
       footer={footer}
     />
   );

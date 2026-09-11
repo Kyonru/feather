@@ -949,7 +949,6 @@ export function TimelinePanel({
       toggleSelection(item);
       return;
     }
-    blurFocusedTimelineEditor();
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -979,6 +978,10 @@ export function TimelinePanel({
       moveItems: mode === 'move' ? moveItemsForSelection(timeline, dragSelection, item) : [],
     };
     beginDocumentDrag();
+    // Blur after pointer capture and drag state are established. Blurring a
+    // number editor can synchronously update the timeline and replace this DOM
+    // node; doing it earlier made the first drag after a typed edit disappear.
+    blurFocusedTimelineEditor();
   };
 
   const beginKeyframeDrag = (
@@ -998,7 +1001,6 @@ export function TimelinePanel({
       toggleSelection(item);
       return;
     }
-    blurFocusedTimelineEditor();
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -1023,6 +1025,7 @@ export function TimelinePanel({
       moveItems: moveItemsForSelection(timeline, dragSelection, item),
     };
     beginDocumentDrag();
+    blurFocusedTimelineEditor();
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
@@ -1355,7 +1358,7 @@ export function TimelinePanel({
                             data-clip-end={clip.end.toFixed(2)}
                             data-selected={groupSelectedClip ? 'true' : 'false'}
                             className={[
-                              'absolute inset-y-0 cursor-grab rounded-sm border border-primary/45 bg-primary/25 shadow-xs outline-none',
+                              'absolute inset-y-0 cursor-grab select-none touch-none rounded-sm border border-primary/45 bg-primary/25 shadow-xs outline-none',
                               'focus-visible:ring-ring/50 focus-visible:ring-2 active:cursor-grabbing',
                               groupSelectedClip ? 'ring-2 ring-primary/35' : '',
                               selectedClipMatch ? 'ring-2 ring-primary/80' : '',
@@ -1380,7 +1383,7 @@ export function TimelinePanel({
                             />
                             <div
                               data-testid={`particle-timeline-clip-end-handle-${system.index}`}
-                              className="absolute inset-y-0 right-0 z-10 w-2 cursor-ew-resize rounded-r-sm bg-primary/70"
+                              className="absolute inset-y-0 right-px z-10 w-2 cursor-ew-resize rounded-r-sm bg-primary/70"
                               title="Drag clip end"
                               onPointerDown={(event) => beginClipDrag(event, 'end', system.index, clip)}
                             />

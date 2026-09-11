@@ -10,6 +10,7 @@ async function openShaderControls(page: Page) {
 }
 
 async function dragLocatorBy(page: Page, locator: Locator, dx: number, dy = 0) {
+  await locator.scrollIntoViewIfNeeded();
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -19,6 +20,7 @@ async function dragLocatorBy(page: Page, locator: Locator, dx: number, dy = 0) {
 }
 
 async function dragLocatorToX(page: Page, locator: Locator, x: number) {
+  await locator.scrollIntoViewIfNeeded();
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -424,7 +426,9 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await page.getByLabel('Seeded fill preset').click();
   await page.getByRole('option', { name: 'Smoke Variants' }).click();
   await page.getByRole('button', { name: /fill frames/i }).click();
+  await page.getByRole('tab', { name: 'Parameters' }).click();
   await expect(page.getByLabel('Texture generator')).toHaveText(/Smoke Puff/);
+  await page.getByRole('tab', { name: /Atlas · 16/ }).click();
   await expect(page.getByLabel('Atlas particle playback')).toHaveText(/Variants/);
   await expect(page.getByRole('button', { name: /replace frame/i })).toBeVisible();
   await page.getByRole('button', { name: 'Select atlas frame 2' }).click();
@@ -432,10 +436,14 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await expect(page.getByTestId('texture-lab-onion-future')).toBeVisible();
   const selectedAtlasFramePreview = page.locator('img[alt="Selected atlas frame"]');
   const atlasFrameBeforeEdit = await selectedAtlasFramePreview.getAttribute('src');
+  await page.getByRole('tab', { name: 'Parameters' }).click();
   await page.getByLabel('Texture softness').fill('0.12');
+  await page.getByRole('tab', { name: /Atlas · 16/ }).click();
   await expect.poll(() => selectedAtlasFramePreview.getAttribute('src')).not.toBe(atlasFrameBeforeEdit);
   await page.getByTestId('texture-lab-custom-frame-input').setInputFiles(shaderPreviewTextureFiles().water);
+  await page.getByRole('tab', { name: 'Parameters' }).click();
   await expect(page.getByTestId('texture-lab-uploaded-frame-readonly')).toContainText(/replace-only/i);
+  await page.getByRole('tab', { name: /Atlas · 16/ }).click();
   await page.getByRole('button', { name: /copy selected to all/i }).click();
   const copyFramesDialog = page.getByRole('dialog', { name: /copy selected frame to all/i });
   await expect(copyFramesDialog).toBeVisible();
@@ -502,7 +510,7 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await page.mouse.move(shapePoint!.x + shapePoint!.width / 2 + 24, shapePoint!.y + shapePoint!.height / 2 + 12);
   await page.mouse.up();
   await expect.poll(() => preview.getAttribute('src')).not.toBe(shapeBeforePointEdit);
-  await page.getByRole('button', { name: 'Rect' }).click();
+  await page.getByRole('button', { name: 'Rect', exact: true }).click();
   await expect(page.getByTitle('Disable Rect')).toBeVisible();
   const withRect = await preview.getAttribute('src');
   await page.getByTestId('texture-lab-shape-move-handle').scrollIntoViewIfNeeded();
@@ -538,7 +546,7 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await textureHeader.getByRole('button', { name: /reset values/i }).click();
   await expect(page.getByLabel('Texture seed')).toHaveValue('1337');
   await page.getByRole('button', { name: /expand texture presets/i }).click();
-  await expect(page.getByRole('button', { name: /smoke puff/i })).toBeVisible();
+  await expect(page.getByTestId('texture-lab-main-panel').getByRole('button', { name: /smoke puff/i })).toBeVisible();
   await expect(textureHeader.getByRole('button', { name: /export png/i })).toBeVisible();
 
   await page.goto('/particle-system-playground');
@@ -548,7 +556,7 @@ test('texture lab generates textures and feeds creative tools in the showcase', 
   await expect
     .poll(async () => page.locator('input').evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value)))
     .toContainEqual(expect.stringMatching(/shapes-polygons-64-\d+\.png/));
-  await page.getByTitle('Minimise').click({ force: true });
+  await expect(page.getByTestId('particle-playground-main').getByTestId('love-js-preview-frame')).toBeVisible();
 
   await page.goto('/shader-graph');
   await openShaderOutput(page);
@@ -582,7 +590,7 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await expect(page.getByTestId('particle-timeline-track-1')).toBeVisible();
   await expect(page.getByTestId('particle-timeline-track-2')).toBeVisible();
   await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
-  await page.getByTitle('Minimise').click();
+  await expect(page.getByTestId('particle-playground-main').getByTestId('love-js-preview-frame')).toBeVisible();
 
   const mainWidth = await page
     .getByTestId('particle-playground-main')
@@ -607,6 +615,8 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await page.getByTestId('particle-timeline-track-1').click();
   await expect(page.getByRole('button', { name: 'Select Emitter' })).toBeVisible();
 
+  const firstClipEndHandle = page.getByTestId('particle-timeline-clip-end-handle-1').first();
+  await firstClipEndHandle.scrollIntoViewIfNeeded();
   const clipBox = await page.getByTestId('particle-timeline-clip-1').first().boundingBox();
   const trackStripBox = await page.getByTestId('particle-timeline-track-strip-1').boundingBox();
   expect(clipBox).not.toBeNull();
@@ -616,7 +626,7 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
 
   await dragLocatorToX(
     page,
-    page.getByTestId('particle-timeline-clip-end-handle-1').first(),
+    firstClipEndHandle,
     trackStripBox!.x + trackStripBox!.width * 0.8,
   );
   await expect(page.getByLabel('Stop at').first()).toHaveValue('2.4');

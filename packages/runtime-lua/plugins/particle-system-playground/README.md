@@ -51,7 +51,9 @@ Game composites are not drawn by this plugin. The game remains responsible for d
 
 ## Scratch Composites
 
-Scratch composites are created from the playground. The browser showcase shows a floating, aspect-locked local love.js preview by default. In the Feather/Tauri app, particle preview is connected-game only for now: the plugin owns `love.ParticleSystem` instances in the connected game only when **Show in Game** is enabled.
+Scratch composites are created from the playground. Studio and the browser showcase keep an aspect-locked local love.js simulation docked in the center workbench, so particle authoring works without Inspector or a connected game. When Studio is attached, the plugin owns `love.ParticleSystem` instances in the connected game only while **Show in Game** is enabled.
+
+The surrounding workbench keeps composite and emitter selection on the left, the simulation in the largest center region, and complete emitter properties on the right. **Preview & Assets** retains composite movement, texture import/generation, and shader editing. **Timeline** adds a resizable layer below the simulation instead of replacing it. Pane sizes persist per tool, and the simulation ground can switch between dark, neutral, light, and checker calibration surfaces without changing the exported effect.
 
 Built-in scratch templates include Fire, Explosion, Smoke, Sparkles, Muzzle Flash, Magic Burst, Dust Puff, Complex Composite, Snowfall, Rainfall, Storm Rain, and Falling Leaves. Complex Composite is a five-emitter example with staggered timeline clips for a core pulse, expanding ring, smoke bloom, spark trails, and dust wake. Storm Rain layers heavy foreground streaks, a background rain sheet, ground splashes, and low mist. Snowfall, Rainfall, Storm Rain, and Falling Leaves use Ambient timeline mode for continuous background effects.
 
@@ -69,7 +71,7 @@ Scratch composites can pause the plugin-owned preview without changing emitter s
 
 ## Timeline Preview
 
-The playground includes a composite timeline for authoring multi-emitter effects like a small video editor. Use the header **Play** action for a quick preview, or open the Timeline tab to edit clips and keyframes. The timeline has three modes:
+The playground includes a composite timeline for authoring multi-emitter effects like a small video editor. Use the header **Play** action for a quick preview, or open the **Timeline** layer to edit clips and keyframes while keeping the simulation visible. The timeline has three modes:
 
 - **One-shot** plays once and stops scheduling at Duration.
 - **Loop** wraps at Duration, restarts clip scheduling each cycle, and preserves live particle tails across wraps.
@@ -91,7 +93,7 @@ Stop and Reset Playhead reset playback state, but they do not rewrite the emitte
 
 Emitter property edits and motion presets update the saved base values even while the timeline preview is paused or muted, so playing the timeline after choosing a preset keeps the authored rate, speed, and acceleration instead of capturing the muted preview state.
 
-The Timeline tab keeps play, pause, stop, and seek editor-local until **Show in Game** is enabled. In the browser showcase those controls drive the local love.js monitor; in Feather they sync to the connected LÖVE preview only while Show in Game is active and the runtime is not suspended. When the game preview is active, timeline controls sync to the connected LÖVE preview while the Timeline tab keeps its own playhead animation smooth between runtime state updates. Timeline automation applies when playback/seek/editing asks for it, not as idle per-frame work for every saved composite. Seeking resets the preview systems and fast-forwards from `0` to the playhead with capped fixed steps so the canvas matches the authored timeline. Paused timelines mute continuous emission at the playhead so one-shot templates do not keep spawning particles while stopped. Looping timelines preserve live particle tails across the cycle boundary while scheduling the next cycle's clips; one-shot timelines stop scheduling at the duration; Ambient timelines hold at Duration without rescheduling clip bursts.
+The Timeline layer keeps play, pause, stop, and seek editor-local until **Show in Game** is enabled. In standalone Studio and the browser showcase those controls drive the local love.js monitor; when attached they additionally sync to the connected LÖVE preview only while Show in Game is active and the runtime is not suspended. When the game preview is active, timeline controls sync to the connected LÖVE preview while the Timeline layer keeps its own playhead animation smooth between runtime state updates. Timeline automation applies when playback/seek/editing asks for it, not as idle per-frame work for every saved composite. Seeking resets the preview systems and fast-forwards from `0` to the playhead with capped fixed steps so the canvas matches the authored timeline. Paused timelines mute continuous emission at the playhead so one-shot templates do not keep spawning particles while stopped. Looping timelines preserve live particle tails across the cycle boundary while scheduling the next cycle's clips; one-shot timelines stop scheduling at the duration; Ambient timelines hold at Duration without rescheduling clip bursts.
 
 Game-owned composites support timeline automation best-effort. Feather can adjust `ParticleSystem` values and emit scheduled bursts, but draw-only behavior such as opacity depends on the game drawing the registered systems.
 

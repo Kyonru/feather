@@ -46,6 +46,7 @@ import {
 } from '@feather/ui/dialog';
 import { Input } from '@feather/ui/input';
 import { Label } from '@feather/ui/label';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@feather/ui/resizable';
 import {
   Select,
   SelectContent,
@@ -56,6 +57,13 @@ import {
   SelectValue,
 } from '@feather/ui/select';
 import { useStudioPreferencesStore } from '@studio/store/studio-preferences';
+import {
+  PreviewGroundControl,
+  previewGroundClassName,
+  usePreviewGround,
+  type PreviewGround,
+} from '@studio/components/PreviewGroundControl';
+import { usePersistedPanelLayout } from '@studio/hooks/use-persisted-panel-layout';
 import {
   TEXTURE_LAB_ALPHA_MODES,
   TEXTURE_LAB_ATLAS_MODES,
@@ -131,6 +139,9 @@ type TextureLabActionControlsProps = Pick<TextureLabPanelProps, 'applyLabel' | '
 };
 
 type AtlasConfirmAction = 'copy-selected-to-all' | 'empty-all-frames';
+type TextureInspectorMode = 'parameters' | 'atlas';
+
+const TEXTURE_PANEL_IDS = ['texture-navigator', 'texture-preview', 'texture-inspector'] as const;
 
 const NUMBER_CONTROLS: Array<{
   key: keyof Pick<TextureLabRecipe, 'softness' | 'falloff' | 'contrast' | 'threshold' | 'scale' | 'distortion'>;
@@ -637,10 +648,11 @@ type SplineEditorProps = {
   pixelated: boolean;
   dataUrl: string;
   aspectRatio: string;
+  previewGround: PreviewGround;
   onChange: (spline: TextureLabSplineRecipe) => void;
 };
 
-function TextureSplineEditor({ spline, pixelated, dataUrl, aspectRatio, onChange }: SplineEditorProps) {
+function TextureSplineEditor({ spline, pixelated, dataUrl, aspectRatio, previewGround, onChange }: SplineEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<number>(0);
   const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
@@ -715,7 +727,7 @@ function TextureSplineEditor({ spline, pixelated, dataUrl, aspectRatio, onChange
       </div>
       <div
         ref={containerRef}
-        className="relative w-full overflow-hidden rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+        className={cn('relative w-full overflow-hidden rounded-sm', previewGroundClassName(previewGround))}
         style={{ aspectRatio }}
         data-testid="texture-lab-spline-editor"
         onDoubleClick={(event) => {
@@ -849,10 +861,11 @@ type ShapeEditorProps = {
   pixelated: boolean;
   dataUrl: string;
   aspectRatio: string;
+  previewGround: PreviewGround;
   onChange: (shape: TextureLabShapeRecipe) => void;
 };
 
-function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, onChange }: ShapeEditorProps) {
+function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, previewGround, onChange }: ShapeEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedLayer =
     shape.layers.find((layer) => layer.id === shape.selectedLayerId) ?? shape.layers.find(shapeLayerSupportsPoints);
@@ -1083,7 +1096,7 @@ function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, onChange }
       </div>
       <div
         ref={containerRef}
-        className="relative w-full overflow-hidden rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+        className={cn('relative w-full overflow-hidden rounded-sm', previewGroundClassName(previewGround))}
         style={{ aspectRatio }}
         data-testid="texture-lab-shape-editor"
         onDoubleClick={(event) => {
@@ -1361,6 +1374,9 @@ export function TextureLabPanel({
   const [atlasConfirmAction, setAtlasConfirmAction] = useState<AtlasConfirmAction | null>(null);
   const [customAtlasPixels, setCustomAtlasPixels] = useState<TextureLabAtlasPixels | null>(null);
   const [customAtlasError, setCustomAtlasError] = useState<string | null>(null);
+  const [inspectorMode, setInspectorMode] = useState<TextureInspectorMode>('parameters');
+  const [previewGround, setPreviewGround] = usePreviewGround('texture-lab');
+  const workbenchLayout = usePersistedPanelLayout('texture-lab', TEXTURE_PANEL_IDS);
   const [asyncPreviewPixels, setAsyncPreviewPixels] = useState<TextureLabGeneratedPixels | TextureLabAtlasPixels | null>(
     null,
   );
@@ -1385,6 +1401,7 @@ export function TextureLabPanel({
   const deleteTextureLabSavedRecipe = useStudioPreferencesStore((state) => state.deleteTextureLabSavedRecipe);
   const atlasSettings = useMemo(() => normalizeTextureLabAtlasSettings(recipe.atlas), [recipe.atlas]);
   const atlasEnabled = recipe.atlas?.enabled === true;
+  const atlasWasEnabledRef = useRef(atlasEnabled);
   const customAtlasEnabled = isTextureLabCustomAtlas(recipe);
   const imageMaskGenerator = isTextureLabImageMaskGenerator(recipe.generator);
   const imageMaskReady = imageMaskGenerator && !!recipe.imageMask?.dataBase64;
@@ -1450,6 +1467,12 @@ export function TextureLabPanel({
       }, {}),
     [],
   );
+
+  useEffect(() => {
+    if (atlasEnabled === atlasWasEnabledRef.current) return;
+    atlasWasEnabledRef.current = atlasEnabled;
+    setInspectorMode(atlasEnabled ? 'atlas' : 'parameters');
+  }, [atlasEnabled]);
 
   const commitEditorRecipe = (nextEditorRecipe: TextureLabRecipe) => {
     if (selectedCustomFrameIsUploaded) return;
@@ -1799,21 +1822,8 @@ export function TextureLabPanel({
     setSelectedAtlasFrame(0);
   }, [atlasEnabled, atlasSettings, customAtlasEnabled, recipe, setRecipe]);
 
-  return (
-    <div
-      className={cn(
-        'grid min-h-0 gap-4',
-        compact
-          ? 'text-xs'
-          : cn(
-              'h-full grid-rows-[minmax(0,1fr)_minmax(0,1fr)] overflow-hidden lg:grid-rows-1',
-              atlasEnabled
-                ? 'lg:grid-cols-[minmax(18rem,20rem)_minmax(0,1fr)_minmax(13rem,15rem)] xl:grid-cols-[minmax(20rem,22rem)_minmax(0,1fr)_minmax(14rem,16rem)]'
-                : 'lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)] xl:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]',
-            ),
-      )}
-    >
-      <section className={cn('min-h-0 overflow-hidden rounded-md border bg-card', compact ? '' : 'h-full')}>
+  const controlsPanel = (
+      <section className={cn('min-h-0 overflow-hidden bg-card', compact ? 'rounded-md border' : 'h-full')}>
         <div
           className={cn(
             'grid min-h-0 gap-3 p-3',
@@ -2563,8 +2573,10 @@ export function TextureLabPanel({
           )}
         </div>
       </section>
+  );
 
-      <section className={cn('min-h-0 overflow-hidden rounded-md border bg-card select-none', compact ? '' : 'h-full')}>
+  const previewPanel = (
+      <section className={cn('min-h-0 overflow-hidden bg-background select-none', compact ? 'rounded-md border' : 'h-full')}>
         <div
           className={cn(
             'grid min-h-0 gap-3 p-3',
@@ -2581,7 +2593,10 @@ export function TextureLabPanel({
                   : `${textureDimensionText} PNG`}
               </div>
             </div>
-            <ImageIcon className="size-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <PreviewGroundControl value={previewGround} onChange={setPreviewGround} />
+              <ImageIcon className="size-4 text-muted-foreground" />
+            </div>
           </div>
           {isShapeComposer && shape && !compact && !selectedCustomFrameIsUploaded ? (
             <TextureShapeEditor
@@ -2589,6 +2604,7 @@ export function TextureLabPanel({
               pixelated={recipe.pixelated}
               dataUrl={editorDataUrl}
               aspectRatio={textureAspectRatio}
+              previewGround={previewGround}
               onChange={(nextShape) => patch({ shape: nextShape })}
             />
           ) : isSpline && spline && !compact && !selectedCustomFrameIsUploaded ? (
@@ -2597,11 +2613,12 @@ export function TextureLabPanel({
               pixelated={recipe.pixelated}
               dataUrl={editorDataUrl}
               aspectRatio={textureAspectRatio}
+              previewGround={previewGround}
               onChange={(nextSpline) => patch({ spline: nextSpline })}
             />
           ) : (
             <div className="surface p-2">
-              <div className="grid min-h-[24rem] place-items-center rounded-sm bg-[linear-gradient(45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(-45deg,hsl(var(--muted))_25%,transparent_25%),linear-gradient(45deg,transparent_75%,hsl(var(--muted))_75%),linear-gradient(-45deg,transparent_75%,hsl(var(--muted))_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] p-4">
+              <div className={cn('grid min-h-[24rem] place-items-center rounded-sm p-4', previewGroundClassName(previewGround))}>
                 <img
                   data-testid="texture-lab-preview"
                   alt="Generated texture preview"
@@ -2663,7 +2680,9 @@ export function TextureLabPanel({
           )}
         </div>
       </section>
-      {atlasEnabled && (
+  );
+
+  const atlasPanel = atlasEnabled ? (
         <section
           className={cn('min-h-0 overflow-hidden rounded-md border bg-card', compact ? '' : 'h-full')}
           data-testid="texture-lab-atlas-panel"
@@ -2972,7 +2991,99 @@ export function TextureLabPanel({
             </div>
           </div>
         </section>
-      )}
+      ) : null;
+
+  const navigatorPanel = (
+    <aside className="flex h-full min-h-0 flex-col bg-sidebar" data-testid="texture-lab-navigator">
+      <div className="flex h-10 shrink-0 items-center justify-between px-3">
+        <span className="section-label">Recipes &amp; Generators</span>
+        <span className="text-[10px] tabular-nums text-muted-foreground">{TEXTURE_LAB_GENERATORS.length}</span>
+      </div>
+      <div className="h-0 min-h-0 flex-1 overflow-y-auto px-2 pb-3 [scrollbar-gutter:stable]">
+        {Object.entries(groupedGenerators).map(([category, generators]) => (
+          <section key={category} className="mb-3">
+            <h3 className="section-label px-1 py-1.5">{category}</h3>
+            <div className="grid gap-0.5">
+              {generators.map((generator) => (
+                <button
+                  key={generator.id}
+                  type="button"
+                  className={cn(
+                    'grid min-h-10 gap-0.5 rounded-sm border-l px-2 py-1.5 text-left transition-colors',
+                    generator.id === recipe.generator
+                      ? 'border-l-foreground bg-muted text-foreground'
+                      : 'border-l-transparent text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  )}
+                  aria-current={generator.id === recipe.generator ? 'true' : undefined}
+                  onClick={() => selectGenerator(generator.id)}
+                >
+                  <span className="truncate text-xs font-medium">{generator.label}</span>
+                  <span className="line-clamp-1 text-[9px] text-muted-foreground">{generator.description}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
+        <section>
+          <div className="flex items-center justify-between px-1 py-1.5">
+            <h3 className="section-label">Saved Recipes</h3>
+            <span className="text-[9px] tabular-nums text-muted-foreground">{savedRecipes.length}/{TEXTURE_LAB_SAVED_RECIPE_LIMIT}</span>
+          </div>
+          {savedRecipes.length === 0 ? (
+            <p className="px-1 py-2 text-[10px] leading-relaxed text-muted-foreground">Save a recipe from Parameters to keep it here for quick reuse.</p>
+          ) : (
+            <div className="grid gap-0.5">
+              {savedRecipes.map((savedRecipe) => (
+                <button key={savedRecipe.id} type="button" className="grid min-h-9 gap-0.5 rounded-sm px-2 py-1.5 text-left text-muted-foreground hover:bg-muted/70 hover:text-foreground" onClick={() => loadSavedRecipe(savedRecipe.id)}>
+                  <span className="truncate text-xs font-medium">{savedRecipe.name}</span>
+                  <span className="truncate text-[9px] text-muted-foreground">{textureLabGeneratorLabel(savedRecipe.recipe)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </aside>
+  );
+
+  const workbench = compact ? (
+    <div className="grid min-h-0 gap-4 text-xs">
+      {controlsPanel}
+      {previewPanel}
+      {atlasPanel}
+    </div>
+  ) : (
+    <ResizablePanelGroup
+      id="studio-texture-workbench"
+      orientation="horizontal"
+      className="h-full min-h-0 overflow-hidden"
+      defaultLayout={workbenchLayout.defaultLayout}
+      onLayoutChanged={workbenchLayout.onLayoutChanged}
+      data-testid="texture-lab-workbench"
+    >
+      <ResizablePanel id="texture-navigator" defaultSize="15%" minSize="12%" maxSize="20%" className="min-h-0">
+        {navigatorPanel}
+      </ResizablePanel>
+      <ResizableHandle className="bg-border/40" />
+      <ResizablePanel id="texture-preview" defaultSize="60%" minSize="50%" className="min-h-0 min-w-0">
+        {previewPanel}
+      </ResizablePanel>
+      <ResizableHandle className="bg-border/40" />
+      <ResizablePanel id="texture-inspector" defaultSize="25%" minSize="21%" maxSize="30%" className="min-h-0 min-w-0 bg-card">
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="grid h-10 shrink-0 grid-cols-2 gap-1 bg-card p-1.5" role="tablist" aria-label="Texture inspector mode">
+            <button type="button" role="tab" aria-selected={inspectorMode === 'parameters'} className={cn('rounded-sm text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground', inspectorMode === 'parameters' && 'bg-muted font-medium text-foreground')} onClick={() => setInspectorMode('parameters')}>Parameters</button>
+            <button type="button" role="tab" aria-selected={inspectorMode === 'atlas'} disabled={!atlasEnabled} className={cn('rounded-sm text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40', inspectorMode === 'atlas' && 'bg-muted font-medium text-foreground')} onClick={() => setInspectorMode('atlas')}>Atlas{atlasEnabled ? ` · ${atlasSettings.frameCount}` : ''}</button>
+          </div>
+          <div className="h-0 min-h-0 flex-1 overflow-hidden">{inspectorMode === 'atlas' && atlasPanel ? atlasPanel : controlsPanel}</div>
+        </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
+  );
+
+  return (
+    <>
+      {workbench}
       <Dialog
         open={atlasConfirmAction !== null}
         onOpenChange={(open) => {
@@ -3000,6 +3111,6 @@ export function TextureLabPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

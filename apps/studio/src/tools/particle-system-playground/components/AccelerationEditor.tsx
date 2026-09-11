@@ -36,7 +36,7 @@ export function AccelerationEditor({ system, onChange }: Props) {
         </TabsContent>
 
         <TabsContent value="raw" className="mt-0">
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2">
             <RangePairField label="Linear X" minKey="linearAccelXMin" maxKey="linearAccelXMax" system={system} onChange={onChange} step={1} />
             <RangePairField label="Linear Y" minKey="linearAccelYMin" maxKey="linearAccelYMax" system={system} onChange={onChange} step={1} />
             <RangePairField label="Radial" minKey="radialAccelMin" maxKey="radialAccelMax" system={system} onChange={onChange} step={1} />

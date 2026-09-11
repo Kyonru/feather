@@ -130,8 +130,8 @@ export function PropertiesPanel({ system, onChange }: Props) {
   return (
     <div className="grid gap-5">
       <div className="grid gap-3">
-        <div className="grid grid-cols-[1fr_10rem_7rem_9rem] gap-2">
-          <div className="grid gap-1">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2 grid gap-1">
             <Label className="text-[10px] text-muted-foreground font-semibold">Title</Label>
             <Input
               className="h-8 text-xs"
@@ -203,7 +203,7 @@ export function PropertiesPanel({ system, onChange }: Props) {
           {group.title === 'Direction And Speed' && <DirectionSpreadGizmo system={system} onChange={onChange} />}
           {group.title === 'Shape' && <TextureOffsetGizmo system={system} onChange={onChange} />}
           {group.title === 'Rotation' && <RotationSpinGizmo system={system} onChange={onChange} />}
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2">
             {group.fields.map((field) =>
               field.type === 'range' ? (
                 <RangePairField
@@ -230,7 +230,7 @@ export function PropertiesPanel({ system, onChange }: Props) {
           <h3 className="section-label">Emission Area</h3>
           <Separator className="flex-1" />
         </div>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
             <Label className="text-[10px] text-muted-foreground font-semibold">Distribution</Label>
             <Select

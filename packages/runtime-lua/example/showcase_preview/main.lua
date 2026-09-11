@@ -243,19 +243,6 @@ local function hydrateUploadList(uploads)
   return hydrated
 end
 
--- Grid
-
-local function drawGrid(w, h)
-  love.graphics.setColor(0.58, 0.64, 0.72, 0.12)
-  love.graphics.setLineWidth(1)
-  for x = 0, w, 32 do
-    love.graphics.line(x, 0, x, h)
-  end
-  for y = 0, h, 32 do
-    love.graphics.line(0, y, w, y)
-  end
-end
-
 -- Preset particle textures
 
 local TWO_PI = math.pi * 2
@@ -989,6 +976,7 @@ end
 
 local pollState = {
   tool = "idle",
+  previewGround = "dark",
   time = 0,
   pollTimer = 0,
   lastPayloadJson = "",
@@ -1014,6 +1002,11 @@ local function pollPayload()
 
   local tool = tostring(payload.tool or "idle")
   pollState.tool = tool
+  local previewGround = tostring(payload.previewGround or "dark")
+  if previewGround ~= "dark" and previewGround ~= "neutral" and previewGround ~= "light" and previewGround ~= "checker" then
+    previewGround = "dark"
+  end
+  pollState.previewGround = previewGround
   if tool == "shader-graph" then
     particleState.payloadSignature = ""
     local okApply, applyErr = pcall(applyShaderPayload, payload)
@@ -1084,8 +1077,24 @@ end
 ---@diagnostic disable-next-line: duplicate-set-field
 function love.draw()
   local w, h = love.graphics.getDimensions()
-  love.graphics.clear(0.02, 0.03, 0.05, 1)
-  drawGrid(w, h)
+  if pollState.previewGround == "neutral" then
+    love.graphics.clear(0.463, 0.463, 0.463, 1)
+  elseif pollState.previewGround == "light" then
+    love.graphics.clear(0.831, 0.831, 0.831, 1)
+  elseif pollState.previewGround == "checker" then
+    love.graphics.clear(0.353, 0.353, 0.353, 1)
+    love.graphics.setColor(0.435, 0.435, 0.435, 1)
+    local cell = 16
+    for y = 0, h, cell do
+      for x = 0, w, cell do
+        if (math.floor(x / cell) + math.floor(y / cell)) % 2 == 0 then
+          love.graphics.rectangle("fill", x, y, cell, cell)
+        end
+      end
+    end
+  else
+    love.graphics.clear(0.02, 0.03, 0.05, 1)
+  end
 
   if pollState.tool == "particle-system-playground" then
     drawParticlePreview(w, h)
@@ -1098,6 +1107,10 @@ function love.draw()
     love.graphics.circle("line", w * 0.5, h * 0.5, r)
   end
 
-  love.graphics.setColor(0.84, 0.87, 0.91, 0.72)
+  if pollState.previewGround == "light" then
+    love.graphics.setColor(0.08, 0.08, 0.08, 0.62)
+  else
+    love.graphics.setColor(0.84, 0.87, 0.91, 0.72)
+  end
   love.graphics.print("Feather standalone preview target", 12, 12)
 end

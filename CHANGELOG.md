@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Rebuilt Particle Playground and Texture Lab as resizable three-region Studio workbenches with preview-first layouts, persisted per-tool pane sizes, switchable calibration grounds, and every existing editor/export workflow retained.
 - Release tags are now per-train instead of repo-wide. `cli-v*` publishes the CLI alone, `runtime-v*` the Lua runtime alone, `desktop-v*` the desktop app alone, and `ext-v*` the VS Code extension alone. `v*` still performs a full platform release of runtime, CLI, and desktop together. Previously every tag fired all four publish paths.
 - `scripts/set-version.sh` now takes a release train (`cli`, `runtime`, `desktop`, `ext`, or `platform`) and only writes the files that train owns, so bumping one artifact no longer rewrites the others. It is also portable now, where it previously assumed macOS `sed`.
 - The LuaRocks publish is skipped when the Lua runtime is unchanged since the previous runtime release, so a platform tag no longer burns a rock version for an unmodified runtime.
@@ -49,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Added Studio and showcase coverage for the Particle Context Lens and Texture Preview Priority workbenches, including preserved toolsets, atlas/parameter switching, preview grounds, timeline editing, and independently persisted pane sizes.
 - Added dev-session lifecycle coverage for multiple tracked process groups, malformed records, and stale PID command guards.
 - Added MCP CLI, Tauri bridge, and Settings coverage for token auth, sanitized session snapshots, command routing, and visible MCP controls.
 - Added CLI coverage for Codex and Claude MCP setup, dry-runs, idempotent config updates, and stale Feather MCP block replacement.
@@ -66,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed docked love.js previews so their game canvas keeps its native 16:9 aspect ratio, and removed the decorative grid from Particle Playground and Shader Graph preview backgrounds.
 - Fixed MCP `resources/list` so static plugin catalog and creative resource URIs remain discoverable when the desktop bridge is unavailable.
 - Fixed the Shader Graph GLSL code input by replacing the mirrored textarea/highlighter stack with a CodeMirror editor that keeps selection, wrapping, caret positioning, and richer keyword/function/variable/number/parameter highlighting in one editing surface.
 - Fixed CLI-managed `feather run` shims and the direct `love src-lua --test-cli` example route so game-local Lua modules and bundled particle assets resolve.

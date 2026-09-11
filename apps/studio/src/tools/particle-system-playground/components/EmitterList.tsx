@@ -77,7 +77,7 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
             className={cn(
               'group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1 rounded text-xs transition-colors',
               active
-                ? 'bg-primary text-primary-foreground'
+                ? 'bg-muted text-foreground ring-1 ring-inset ring-border'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               isDragTarget && 'ring-2 ring-primary ring-offset-1',
               disabled && !active && 'opacity-55',
@@ -106,7 +106,7 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
                 <span
                   className={cn(
                     'block truncate text-[10px]',
-                    active ? 'text-primary-foreground/70' : 'text-muted-foreground',
+                    'text-muted-foreground',
                   )}
                 >
                   {disabled ? 'Disabled' : `${system.properties.count ?? 0} / ${system.properties.bufferSize ?? 0}`}
@@ -114,7 +114,7 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
               </span>
               <Badge
                 variant="outline"
-                className={cn('h-5 px-1.5 text-[10px]', active && 'border-primary-foreground/40')}
+                className="h-5 px-1.5 text-[10px]"
               >
                 {system.blendMode}
               </Badge>
@@ -126,7 +126,7 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
                 className={cn(
                   'mr-1 size-7 shrink-0',
                   active
-                    ? 'text-primary-foreground/80 hover:text-primary-foreground'
+                    ? 'text-muted-foreground hover:text-destructive'
                     : 'text-muted-foreground hover:text-destructive',
                 )}
                 title={systems.length > 1 ? 'Delete emitter' : 'A composite needs at least one emitter'}

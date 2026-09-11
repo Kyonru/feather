@@ -4,6 +4,12 @@ Texture Lab generates small procedural PNG textures for Feather's creative tools
 
 Open **Texture Lab** from the Creative sidebar group, Command Center, or the standalone showcase. It works without a connected game because generation happens in the browser with deterministic TypeScript/ImageData helpers.
 
+## Workbench
+
+Texture Lab uses a preview-priority, three-region workbench. The left navigator keeps every generator and saved recipe directly reachable, the center gives most of the window to the generated texture and its direct editors, and the right inspector switches between **Parameters** and **Atlas**. Drag the dividers to resize the regions; Studio remembers this layout separately from the other creative tools.
+
+Use the four preview-ground controls above the canvas to judge transparency and contrast against dark, neutral, light, or checker surfaces. The ground is an editor preference and does not alter the exported PNG.
+
 ## What To Generate
 
 Texture Lab includes focused generators for common LÖVE effects:
@@ -34,7 +40,7 @@ Threshold controls the base radius, Softness controls the distance spread or glo
 
 ## Atlas And Flipbook Export
 
-Use **Create Atlas** when one PNG should contain multiple frames. Texture Lab opens a first-class atlas workspace: the normal generator controls stay on the left, the selected frame stays editable in the center preview/editor, and a right panel owns the frame grid, layout, playback, seeded fills, onion skin, and frame actions.
+Use **Create Atlas** when one PNG should contain multiple frames. Texture Lab opens the **Atlas** inspector automatically. The selected frame stays editable in the center preview/editor, while the Atlas inspector owns the frame grid, layout, playback, seeded fills, onion skin, and frame actions. Switch to **Parameters** whenever you want the selected frame's complete generator controls; switching tabs does not discard atlas state.
 
 Atlas controls set the layout, frame count, FPS, seed step, and Particle Playground playback mode:
 

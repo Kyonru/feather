@@ -1,6 +1,6 @@
 # V4 Studio — turning Feather Studio into a usable tool
 
-**Status:** S1–S3 done, S3b/S4/S5 open · **Written:** 2026-09-10 · **Last worked:** 2026-09-10
+**Status:** S1–S3b done, S4/S5 open · **Written:** 2026-09-10 · **Last worked:** 2026-09-11
 **Companions:** [`V4.md`](./V4.md) (why Studio is a separate product) · [`V4-ENHANCED.md`](./V4-ENHANCED.md) — its §9 summarizes this
 
 ---
@@ -336,10 +336,8 @@ is worth animating. Nothing else is.
 Inspector is tabbed because you look at one thing at a time. Studio is not: you need the graph, the
 preview and the parameters **simultaneously**, because the whole job is relating them.
 
-Shader Graph already has this shape — palette | canvas | inspector, resizable, in the showcase's
-composition. The other two do not: Texture Lab is a page with a header
-(`tools/texture-lab/index.tsx:62`), and Particle Playground is built from Inspector's cards
-(`rounded-md border bg-card`). Both should become three-region workbenches:
+Shader Graph established this shape — palette | canvas | inspector, resizable, in the showcase's
+composition. S3b brought the other two tools into the same model:
 
 | Tool | Left | Center (the work) | Right |
 |---|---|---|---|
@@ -503,7 +501,7 @@ state. `pnpm run test:showcase:e2e` still passes.
 
 ---
 
-### S3b — Give the other two tools the workbench shape
+### S3b — Give the other two tools the workbench shape — **DONE** (2026-09-11)
 
 **Goal:** §5 **W5**. All three tools are workspaces, not pages.
 
@@ -523,6 +521,22 @@ you are not moving components and changing their session behaviour at once.
 
 **Acceptance:** each tool shows its work, its parameters and its list at the same time, the regions
 resize, and the preview sits on a neutral ground the user can change.
+
+**Implementation:** Particle Playground now uses the selected **Context Lens** direction: a
+composite/emitter navigator, a docked love.js simulation preview with an optional resizable timeline
+layer, and an emitter inspector whose Preview & Assets tab retains movement, texture, and shader
+authoring. Texture Lab uses **Preview Priority**: all 44 generators and saved recipes remain directly
+reachable in the navigator, the generated texture owns the largest region, and Parameters/Atlas
+share the inspector. Both workbenches persist their pane sizes independently. Their preview grounds
+offer dark, neutral, light, and checker calibration surfaces using the exact W2 values; Particle
+Playground sends the selected ground into love.js rather than painting only around the canvas.
+
+No existing commands were removed: particle import/save/Lua/ZIP export remain under Project;
+undo/redo, playback, reset, kick-start, textures, shaders, motion, emitter controls, and the full
+timeline remain available. Texture generation, presets, image/SDF/spline/shape editing, recipes,
+atlas fill/playback/onion-skin/frame replacement, PNG/ZIP export, and creative-tool handoff remain
+available. Studio and showcase E2E coverage exercises those preservation paths, resizing, and
+per-tool persistence.
 
 ### S4 — Durable workspaces
 

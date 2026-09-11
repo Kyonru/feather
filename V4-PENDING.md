@@ -1,6 +1,6 @@
 # V4 — what is left
 
-*State as of 2026-09-10, at the end of the particles and Studio-colour work. Every claim here was
+*State as of 2026-09-11, after the Studio creative workbenches landed. Every claim here was
 checked against the repository rather than recalled; where something is "done", the evidence is
 named so you can disagree with it.*
 
@@ -14,7 +14,7 @@ Four documents drive V4 and each owns its own detail:
 |---|---|---|
 | `V4.md` | The re-architecture and release trains | Code landed; **5 release steps need push access** |
 | `V4-ENHANCED.md` | Inspector, feature by feature | **Closed** |
-| `V4-STUDIO.md` | Making Studio a usable product | S1–S3, S5 (C0/C1/C3) done; **S3b, S4, C2, C5 open** |
+| `V4-STUDIO.md` | Making Studio a usable product | S1–S3b, S5 (C0/C1/C3) done; **S4, C2, C5 open** |
 | `V4-PARTICLES.md` | Particle runtime and export | P1–P5 done; **§5.3 authoring redesign open** |
 
 This file is the index of what is *not* done. When an item lands, record it in its own document and
@@ -40,15 +40,7 @@ commits. Rewriting history to remove it is cheap before the branch is pushed and
 
 ---
 
-## 2. Studio — the biggest remaining gap
-
-### S3b — the workbench shape for Texture Lab and Particles
-
-**Open.** Verified: neither `TextureLabPanel.tsx` nor the particle playground's `index.tsx` uses
-`ResizablePanelGroup`, so neither has the three-region layout Shader Graph has. This is the one a
-user feels immediately — two of the three tools do not look like the third.
-
-Largest remaining UX change in Studio, and the one worth doing with someone watching.
+## 2. Studio — durable workspaces remain
 
 ### S4 — durable workspaces
 

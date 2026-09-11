@@ -9,7 +9,7 @@ const DEFAULT_W = 360;
 const DEFAULT_ASPECT_RATIO = 16 / 9;
 const MIN_W = 220;
 const MAX_W = 720;
-const PREVIEW_ASSET_VERSION = 'preview-bridge-v9';
+const PREVIEW_ASSET_VERSION = 'preview-bridge-v10';
 
 type LoveJsPreviewProps = {
   title: string;
@@ -18,6 +18,7 @@ type LoveJsPreviewProps = {
   className?: string;
   floating?: boolean;
   aspectRatio?: number;
+  fill?: boolean;
   actions?: ReactNode;
   footer?: ReactNode;
 };
@@ -29,6 +30,7 @@ export function LoveJsPreview({
   className,
   floating = false,
   aspectRatio = DEFAULT_ASPECT_RATIO,
+  fill = false,
   actions,
   footer,
 }: LoveJsPreviewProps) {
@@ -210,7 +212,13 @@ export function LoveJsPreview({
   }
 
   return (
-    <section className={cn('grid min-h-0 gap-3 rounded-md border bg-card p-3', className)}>
+    <section
+      className={cn(
+        'grid min-h-0 gap-3 rounded-md border bg-card p-3',
+        fill && 'h-full grid-rows-[auto_minmax(0,1fr)_auto]',
+        className,
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -228,13 +236,32 @@ export function LoveJsPreview({
           </Button>
         </div>
       </div>
-      <div
-        className="overflow-hidden rounded-md border bg-black"
-        data-testid="love-js-preview-frame"
-        style={{ aspectRatio: previewAspectRatio }}
-      >
-        <iframe ref={iframeRef} title={title} src={previewSrc} className="h-full w-full border-0" onLoad={handleLoad} />
-      </div>
+      {fill ? (
+        <div
+          className="grid h-full min-h-0 place-items-center overflow-hidden [container-type:size]"
+          data-testid="love-js-preview-stage"
+        >
+          <div
+            className="overflow-hidden rounded-md border bg-black"
+            data-testid="love-js-preview-frame"
+            style={{
+              aspectRatio: previewAspectRatio,
+              width: `min(100cqw, calc(100cqh * ${previewAspectRatio}))`,
+              height: `min(100cqh, calc(100cqw / ${previewAspectRatio}))`,
+            }}
+          >
+            <iframe ref={iframeRef} title={title} src={previewSrc} className="block h-full w-full border-0" onLoad={handleLoad} />
+          </div>
+        </div>
+      ) : (
+        <div
+          className="overflow-hidden rounded-md border bg-black"
+          data-testid="love-js-preview-frame"
+          style={{ aspectRatio: previewAspectRatio }}
+        >
+          <iframe ref={iframeRef} title={title} src={previewSrc} className="block h-full w-full border-0" onLoad={handleLoad} />
+        </div>
+      )}
       <div className="text-[10px] text-muted-foreground">
         {footer ??
           'This iframe is the standalone preview boundary. Deployment must serve the love.js path with COOP/COEP and WASM CSP headers when the full 2dengine player is installed.'}
