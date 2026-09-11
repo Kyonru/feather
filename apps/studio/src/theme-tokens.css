@@ -17,6 +17,18 @@
  */
 
 :root {
+  --ok: #137245;
+  --ok-surface: #e2f8ee;
+  --ok-border: #b1e7ce;
+  --warn: #85580a;
+  --warn-surface: #f8f0e2;
+  --warn-border: #e7d3b1;
+  --danger: #b4271d;
+  --danger-surface: #f8e4e2;
+  --danger-border: #e7b5b1;
+  --info: #2161ab;
+  --info-surface: #e2ecf8;
+  --info-border: #b1cae7;
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
   line-height: 24px;
@@ -89,6 +101,21 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  /* Semantic state colours. Derived per theme by @feather/ui/theme/semantic;
+     these are the light-theme fallbacks for before a theme is applied.
+     See V4-STUDIO.md S5 and V4-ENHANCED.md §4 (C0). */
+  --color-ok: var(--ok);
+  --color-ok-surface: var(--ok-surface);
+  --color-ok-border: var(--ok-border);
+  --color-warn: var(--warn);
+  --color-warn-surface: var(--warn-surface);
+  --color-warn-border: var(--warn-border);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
+  --color-info-border: var(--info-border);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

@@ -261,7 +261,7 @@ export function ShaderControlsPanel({ onFocusSelection }: { onFocusSelection?: (
           Root graph parameters collected in one place.
         </p>
         {activeSubgraphId && (
-          <p className="rounded border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-[10px] text-sky-700 dark:text-sky-300">
+          <p className="rounded border border-info-border bg-info-surface px-2 py-1 text-[10px] text-info">
             Showing root graph controls while editing inside a subgraph.
           </p>
         )}
@@ -288,7 +288,7 @@ export function ShaderControlsPanel({ onFocusSelection }: { onFocusSelection?: (
                         {PARAMETER_TYPE_LABEL[node.data.nodeType]}
                       </Badge>
                       {!connected && (
-                        <Badge className="h-5 rounded bg-yellow-500/15 px-1.5 text-[9px] text-yellow-700 dark:text-yellow-300">
+                        <Badge className="h-5 rounded bg-warn-surface px-1.5 text-[9px] text-warn">
                           Not connected
                         </Badge>
                       )}

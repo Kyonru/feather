@@ -555,31 +555,68 @@ performs.
 
 ---
 
-### S5 — Apply what Inspector already learned
+### S5 — Apply what Inspector already learned — **C0, C1, C3 DONE 2026-09-10**
 
 **Goal:** Studio starts where Inspector finished rather than rediscovering it.
 
-From V4-ENHANCED §4–§5, in rough priority:
+**C0, C1 and C3 landed. C2 and C5 remain.**
 
-- **C0 — semantic color.** Studio has **86 raw Tailwind color literals** in
-  `apps/studio/src/**/*.tsx`. Studio's theme registry is a separate copy from Inspector's, so the
-  semantic ramps (`--ok`, `--warn`, `--danger`, `--info` with `-surface`/`-border`) need porting or
-  sharing. Read `apps/inspector/src/assets/theme/registry/semantic.ts` — the derivation is done and
-  contrast-tested, and it must be **solved against every ground including its own surface** (that
-  bug cost 66 theme/state combinations the first time). Note also the follow-up: surfaces are for
-  row and region tints; **dots and bars need the foreground**, or they render invisible.
-- **C1 — panel state.** Filters and tool selection persist. `apps/inspector/src/store/panel-state.ts`
-  is the pattern; global, not per session.
+#### C0 — semantic colour
+
+The derivation is **shared, not ported**. `packages/ui/src/theme/semantic.ts` owns the
+contrast-solving — hand-copying 211 lines of it would have produced the divergence this repository
+keeps finding, and the two apps cannot import each other, so the package was the only honest home.
+
+**82 of 86 raw literals became tokens.** The other four are identity, not state, and now say so with
+an inline disable: Texture Lab's move and resize handles (told apart by shape *and* colour over
+arbitrary texture content) and Shader Graph's violet "Probe" badge, which marks *what a node is*,
+not that something is wrong with it.
+
+**The C0 regression happened again, and was caught.** A mechanical pass turned the two drag handles
+into `bg-info-surface` / `bg-ok-surface` — a pale region tint on a 12px solid mark over a texture,
+which is invisible. `verify:enhanced` now checks for exactly that shape.
+
+#### The whole registry is shared now, not just the derivation
+
+*(2026-09-10, on the owner's call.)* Ten of the eleven theme files were **byte-identical** between
+the two apps — one registry maintained twice, 4,602 duplicated lines — and the eleventh differed
+only because C0 had landed in one of them. Same shape as the particle semantics: the copy that has
+not drifted yet is the one that is about to.
+
+`packages/ui/src/theme/` holds all of it: `registry/` (79 themes across five families), `dark.ts`,
+`light.ts`, `semantic.ts`, and the `NOTICE.md` attribution that belongs with them. Both apps import
+`@feather/ui/theme/registry`; neither has an `assets/theme` directory any more. **4,824 lines
+deleted, 45 added**, across six import sites. With `types.ts` now a sibling of `semantic.ts`, the
+generic signature the split had forced went away too.
+
+#### C1 — panel state: already satisfied
+
+Checked rather than assumed. Studio persists the active tool (`studio-ui.ts`), preferences including
+collapsed palette categories (`studio-preferences.ts`), and the shader graph itself. A survey found
+exactly **one** un-persisted filter: the node palette's search box. It stays that way deliberately —
+you type it to find a node and immediately drag that node out, so persisting it would reopen the
+palette pre-filtered, which is the "reopening into a state nobody left it in" trap C1 warns about.
+
+#### C3 — next actions: mostly satisfied, two gaps closed
+
+Of 15 error and empty states, most already name the action, and "No composites yet" has a **New
+Composite** button directly beneath it. Two did not: the node picker's "No nodes found" now says the
+search is filtering and that clearing it shows everything, and three connected-game preview failures
+now name the likely cause and what to check.
+
+#### Still open from this phase
+
 - **C2 — freshness.** Only applies in `attached` mode, and matters there: a preview reflecting a game
   that has since restarted is the same lie. `apps/inspector/src/hooks/use-freshness.ts` judges
   against the session's `connectedAt`, not the clock.
-- **C3 — next actions.** Every error and empty state names what to do.
 - **C5 — third-party data.** The shader graph loads user files and the tools accept imported
   workspaces. Be strict wherever a value authored outside this repository reaches rendering.
 
-**Acceptance:** `pnpm run verify:enhanced` gains a Studio section, and the `no-restricted-syntax`
-lint rule banning raw color literals covers `apps/studio/src` as it does `apps/inspector/src`
-(`eslint.config.js`).
+**Acceptance — both met.** `pnpm run verify:enhanced` has an S5 section with five checks, and the
+`no-restricted-syntax` rule covers `apps/studio/src` alongside `apps/inspector/src`. The rule was
+confirmed to bite by reintroducing a literal. `themeSemanticColors.test.ts` asserts every shipped
+theme clears WCAG AA for all four states against page, card **and its own surface**, and that
+neither app has grown its own registry back.
 
 ---
 

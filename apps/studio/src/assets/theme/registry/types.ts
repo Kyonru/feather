@@ -37,6 +37,21 @@ export const THEME_CSS_VARIABLES = [
   'plugin-active-foreground',
   'plugin-active-icon',
   'plugin-active-border',
+  // Semantic state colors. Derived per theme in `semantic.ts` unless a theme
+  // sets them explicitly — see V4-ENHANCED.md §4 (C0) for why they are tokens
+  // rather than the Tailwind literals they replaced.
+  'ok',
+  'ok-surface',
+  'ok-border',
+  'warn',
+  'warn-surface',
+  'warn-border',
+  'danger',
+  'danger-surface',
+  'danger-border',
+  'info',
+  'info-surface',
+  'info-border',
 ] as const;
 
 export type ThemeCssVariable = (typeof THEME_CSS_VARIABLES)[number];
@@ -134,6 +149,22 @@ export type ThemeId =
   | VisualStudioCppThemeId;
 export type ThemePreference = 'system' | ThemeId;
 export type ThemeVariables = Record<ThemeCssVariable, string>;
+
+/**
+ * The variables a theme actually authors. The semantic state colors are derived
+ * from the theme's own background by `withSemanticColors`, so registries do not
+ * hand-write them — see V4-ENHANCED.md §4 (C0). A theme may still author one to
+ * override the derivation, which is why they are optional rather than absent.
+ */
+export type SemanticCssVariable = Extract<
+  ThemeCssVariable,
+  | 'ok' | 'ok-surface' | 'ok-border'
+  | 'warn' | 'warn-surface' | 'warn-border'
+  | 'danger' | 'danger-surface' | 'danger-border'
+  | 'info' | 'info-surface' | 'info-border'
+>;
+export type AuthoredThemeVariables = Record<Exclude<ThemeCssVariable, SemanticCssVariable>, string> &
+  Partial<Record<SemanticCssVariable, string>>;
 export type SyntaxHighlighterStyle = Record<string, CSSProperties>;
 
 export type AppTheme = {
@@ -167,7 +198,7 @@ export type ThemeSeed = {
   label: string;
   mode: ThemeMode;
   swatches: string[];
-  variables: ThemeVariables;
+  variables: AuthoredThemeVariables;
   syntax: ThemeSyntaxPalette;
 };
 

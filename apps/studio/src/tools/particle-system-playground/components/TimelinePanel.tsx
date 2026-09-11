@@ -1051,7 +1051,7 @@ export function TimelinePanel({
           </p>
         </div>
         {isGameComposite && (
-          <Badge variant="outline" className="h-6 border-amber-500/40 text-[10px] text-amber-700 dark:text-amber-300">
+          <Badge variant="outline" className="h-6 border-warn-border text-[10px] text-warn">
             Game composite: draw-only lanes are best effort
           </Badge>
         )}
@@ -1328,7 +1328,7 @@ export function TimelinePanel({
                             <div
                               key={`${clip.id}-ambient-continuation`}
                               data-testid={`particle-timeline-ambient-continuation-${system.index}`}
-                              className="pointer-events-none absolute inset-y-[7px] rounded-sm border border-sky-400/25 bg-sky-400/15"
+                              className="pointer-events-none absolute inset-y-[7px] rounded-sm border border-info-border bg-info-surface"
                               style={{
                                 left: `${startPercent}%`,
                                 right: `${100 - Math.max(startPercent, endPercent)}%`,

@@ -52,6 +52,10 @@ export function ShaderNode({ id, data, selected }: NodeProps<Node<ShaderNodeData
       <div className="flex items-center gap-1.5">
         <div className="min-w-0 truncate text-xs font-semibold">{data.label}</div>
         {data.nodeType === 'Preview' && (
+          // Identity, not state: violet marks *what kind of node this is*, not whether
+          // anything is wrong with it. A state token would say "info" about a node that is
+          // simply a probe.
+          // eslint-disable-next-line no-restricted-syntax
           <span className="inline-flex shrink-0 items-center gap-1 rounded border border-violet-500/30 bg-violet-500/10 px-1 py-0.5 text-[9px] font-medium text-violet-700 dark:text-violet-300">
             <EyeIcon className="size-2.5" />
             Probe

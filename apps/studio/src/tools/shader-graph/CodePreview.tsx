@@ -49,9 +49,9 @@ type PreviewParams = {
 };
 
 const diagnosticStyles: Record<ShaderGraphDiagnostic['severity'], string> = {
-  error: 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300',
-  warning: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
-  info: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  error: 'border-danger-border bg-danger-surface text-danger',
+  warning: 'border-warn-border bg-warn-surface text-warn',
+  info: 'border-info-border bg-info-surface text-info',
 };
 
 function DiagnosticPanel({
@@ -70,8 +70,8 @@ function DiagnosticPanel({
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="section-label">Graph Diagnostics</span>
         <div className="flex items-center gap-1">
-          {errorCount > 0 && <Badge className="h-4 rounded-full bg-red-500/15 px-1.5 text-[9px] text-red-600 dark:text-red-300">{errorCount} error{errorCount === 1 ? '' : 's'}</Badge>}
-          {warningCount > 0 && <Badge className="h-4 rounded-full bg-yellow-500/15 px-1.5 text-[9px] text-yellow-700 dark:text-yellow-300">{warningCount} warning{warningCount === 1 ? '' : 's'}</Badge>}
+          {errorCount > 0 && <Badge className="h-4 rounded-full bg-danger-surface px-1.5 text-[9px] text-danger">{errorCount} error{errorCount === 1 ? '' : 's'}</Badge>}
+          {warningCount > 0 && <Badge className="h-4 rounded-full bg-warn-surface px-1.5 text-[9px] text-warn">{warningCount} warning{warningCount === 1 ? '' : 's'}</Badge>}
         </div>
       </div>
       <div className="grid max-h-28 gap-1 overflow-y-auto">
@@ -135,9 +135,9 @@ export function CodePreview() {
 
   const statusColor = {
     idle: 'bg-muted text-muted-foreground',
-    validating: 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400',
-    ok: 'bg-green-500/20 text-green-600 dark:text-green-400',
-    error: 'bg-red-500/20 text-red-600 dark:text-red-400',
+    validating: 'bg-warn-surface text-warn',
+    ok: 'bg-ok-surface text-ok',
+    error: 'bg-danger-surface text-danger',
   }[validationStatus];
 
   return (
@@ -151,7 +151,7 @@ export function CodePreview() {
             className="flex items-center justify-center size-5 rounded hover:bg-muted text-muted-foreground transition-colors"
             title="Copy GLSL"
           >
-            {copied ? <CheckIcon className="size-3 text-green-500" /> : <CopyIcon className="size-3" />}
+            {copied ? <CheckIcon className="size-3 text-ok" /> : <CopyIcon className="size-3" />}
           </button>
         </div>
       </div>
@@ -358,14 +358,14 @@ export function ShaderOutputDock({
       <DiagnosticPanel diagnostics={diagnostics} onSelectNode={selectNode} />
 
       {(validationErrors.pixelError || validationErrors.vertexError) && (
-        <div className="border-b px-3 py-2 bg-red-500/10">
+        <div className="border-b px-3 py-2 bg-danger-surface">
           <div className="mb-1 flex items-center justify-between gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-red-700 dark:text-red-300">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-danger">
               Runtime Compile Error
             </span>
             <button
               type="button"
-              className="flex size-5 items-center justify-center rounded text-red-700 transition-colors hover:bg-red-500/10 dark:text-red-300"
+              className="flex size-5 items-center justify-center rounded text-danger transition-colors hover:bg-danger-surface"
               title="Copy raw shader error"
               onClick={copyValidationErrors}
             >
@@ -373,18 +373,18 @@ export function ShaderOutputDock({
             </button>
           </div>
           {validationErrors.pixelError && (
-            <p className="mb-1 text-[10px] font-semibold text-red-700 dark:text-red-300">Pixel stage failed</p>
+            <p className="mb-1 text-[10px] font-semibold text-danger">Pixel stage failed</p>
           )}
           {validationErrors.pixelError && (
-            <p className="max-h-20 overflow-y-auto text-[10px] text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap break-all">
+            <p className="max-h-20 overflow-y-auto text-[10px] text-danger font-mono whitespace-pre-wrap break-all">
               {validationErrors.pixelError}
             </p>
           )}
           {validationErrors.vertexError && (
-            <p className="mb-1 mt-2 text-[10px] font-semibold text-red-700 dark:text-red-300">Vertex stage failed</p>
+            <p className="mb-1 mt-2 text-[10px] font-semibold text-danger">Vertex stage failed</p>
           )}
           {validationErrors.vertexError && (
-            <p className="max-h-20 overflow-y-auto text-[10px] text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap break-all">
+            <p className="max-h-20 overflow-y-auto text-[10px] text-danger font-mono whitespace-pre-wrap break-all">
               {validationErrors.vertexError}
             </p>
           )}
@@ -464,7 +464,7 @@ export function ShaderOutputDock({
       </div>
 
       {runtimeSuspended && previewEnabled && (
-        <div className="border-t px-3 py-2 text-[10px] text-amber-700 dark:text-amber-300">
+        <div className="border-t px-3 py-2 text-[10px] text-warn">
           Running from the last shader payload. Resume Feather to sync edits.
         </div>
       )}

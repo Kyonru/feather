@@ -145,13 +145,22 @@ export default tseslint.config(
       // Syntax highlighting is the deliberate exception — a string literal in a
       // stack trace is not a state — and is opted out of with an inline disable
       // that says so.
+    },
+  },
+  {
+    // Both apps, because Studio inherited Inspector's tools and, with them, 86
+    // raw literals expressing the same four meanings. The semantic ramps are
+    // derived by one shared module (`@feather/ui/theme/semantic`), so the rule
+    // that keeps colour meaningful belongs to both. See V4-STUDIO.md S5.
+    files: ['apps/inspector/src/**', 'apps/studio/src/**'],
+    rules: {
       'no-restricted-syntax': [
         'error',
         {
           selector:
             "Literal[value=/\\b(?:text|bg|border|fill|stroke|ring|from|to|via)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]{2,3}\\b/]",
           message:
-            'Raw Tailwind color literal. Color in Inspector means state: use the ok / warn / danger / info tokens (text-ok, bg-warn-surface, border-danger-border), or muted-foreground for chrome. See V4-ENHANCED.md §4 (C0).',
+            'Raw Tailwind color literal. Colour here means state: use the ok / warn / danger / info tokens (text-ok, bg-warn-surface, border-danger-border), or muted-foreground for chrome. If the colour marks identity rather than state — a node kind, a drag handle — opt out with an inline disable that says so. See V4-ENHANCED.md §4 (C0).',
         },
       ],
     },

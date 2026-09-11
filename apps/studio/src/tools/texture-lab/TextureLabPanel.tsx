@@ -1178,6 +1178,10 @@ function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, onChange }
               type="button"
               aria-label="Move selected shape layer"
               data-testid="texture-lab-shape-move-handle"
+              // Identity, not state: the move and resize handles are told apart by shape
+              // and colour against arbitrary texture content. A semantic surface token is
+              // a pale region tint and would vanish here. See V4-ENHANCED.md §4 (C0).
+              // eslint-disable-next-line no-restricted-syntax
               className="absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-500 shadow-sm cursor-move"
               style={{
                 left: `${selectedLayer.x * 100}%`,
@@ -1224,6 +1228,8 @@ function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, onChange }
                 type="button"
                 aria-label="Resize selected shape layer"
                 data-testid="texture-lab-shape-size-handle"
+                // Identity, not state; see the move handle above.
+                // eslint-disable-next-line no-restricted-syntax
                 className="absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-sm border-2 border-white bg-emerald-500 shadow-sm cursor-nwse-resize"
                 style={{
                   left: `${selectedLayerSizeHandle.x * 100}%`,
@@ -1865,7 +1871,7 @@ export function TextureLabPanel({
 
           {selectedCustomFrameIsUploaded && (
             <div
-              className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[10px] text-amber-900 dark:text-amber-200"
+              className="rounded-md border border-warn-border bg-warn-surface px-2 py-1.5 text-[10px] text-warn"
               data-testid="texture-lab-uploaded-frame-readonly"
             >
               Uploaded frames are replace-only. Select a generated frame to edit Texture Lab recipe controls.

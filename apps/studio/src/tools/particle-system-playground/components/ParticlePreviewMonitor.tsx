@@ -197,7 +197,7 @@ export function ParticlePreviewMonitor({
       className={
         gamePreviewActive
           ? 'h-7 gap-1.5 text-xs'
-          : 'h-7 gap-1.5 border-emerald-500/60 text-xs text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 dark:border-emerald-400/50 dark:text-emerald-300 dark:hover:bg-emerald-400/10 dark:hover:text-emerald-200'
+          : 'h-7 gap-1.5 border-ok-border text-xs text-ok hover:bg-ok-surface hover:text-ok dark:hover:bg-ok-surface dark:hover:text-ok'
       }
       disabled={status === 'sending' || (!gamePreviewActive && !canShowInGame)}
       title={gamePreviewActive ? 'Hide the particle preview in the connected game' : effectiveDisabledReason}

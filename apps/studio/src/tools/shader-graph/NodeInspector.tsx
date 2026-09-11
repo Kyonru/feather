@@ -333,7 +333,7 @@ export function NodeInspector() {
             </div>
             <button
               onClick={() => removeNode(selected.id)}
-              className="flex items-center justify-center size-6 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors shrink-0 mt-0.5"
+              className="flex items-center justify-center size-6 rounded hover:bg-danger-surface text-muted-foreground hover:text-danger transition-colors shrink-0 mt-0.5"
               title="Delete node (Del)"
             >
               <Trash2Icon className="size-3.5" />
@@ -721,7 +721,7 @@ export function NodeInspector() {
             </div>
             <button
               onClick={() => removeEdge(selectedEdge.id)}
-              className="flex items-center justify-center size-6 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
+              className="flex items-center justify-center size-6 rounded hover:bg-danger-surface text-muted-foreground hover:text-danger transition-colors shrink-0"
               title="Delete edge (Del)"
             >
               <Trash2Icon className="size-3.5" />
@@ -780,7 +780,7 @@ export function NodeInspector() {
               ) : (
                 <div className="grid gap-1">
                   {customDraftValidation.errors.map((error) => (
-                    <p key={error} className="font-mono text-[10px] text-red-600 dark:text-red-400">
+                    <p key={error} className="font-mono text-[10px] text-danger">
                       {error}
                     </p>
                   ))}

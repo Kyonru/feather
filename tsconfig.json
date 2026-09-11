@@ -31,6 +31,7 @@
       "@feather/session-bridge": ["./packages/session-bridge/src/index.ts"],
       "@feather/ui": ["./packages/ui/src/index.ts"],
       "@feather/ui/hooks/*": ["./packages/ui/src/hooks/*"],
+      "@feather/ui/theme/*": ["./packages/ui/src/theme/*"],
       "@feather/ui/*": ["./packages/ui/src/components/*"]
     }
   },

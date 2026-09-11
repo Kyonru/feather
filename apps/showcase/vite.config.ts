@@ -25,6 +25,7 @@ export default defineConfig({
     alias: [
       { find: /^@studio\/(.*)$/, replacement: path.resolve(repoRoot, 'apps/studio/src/$1') },
       { find: /^@feather\/ui\/hooks\/(.*)$/, replacement: path.resolve(repoRoot, 'packages/ui/src/hooks/$1') },
+      { find: /^@feather\/ui\/theme\/(.*)$/, replacement: path.resolve(repoRoot, 'packages/ui/src/theme/$1') },
       { find: /^@feather\/ui$/, replacement: path.resolve(repoRoot, 'packages/ui/src/index.ts') },
       { find: /^@feather\/ui\/(.*)$/, replacement: path.resolve(repoRoot, 'packages/ui/src/components/$1') },
       { find: /^@feather\/host$/, replacement: path.resolve(repoRoot, 'packages/host/src/index.ts') },

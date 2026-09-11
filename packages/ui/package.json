@@ -8,8 +8,13 @@
     ".": "./src/index.ts",
     "./*": "./src/components/*.tsx",
     "./lib/styles": "./src/lib/styles.ts",
-    "./hooks/use-mobile": "./src/hooks/use-mobile.ts"
+    "./hooks/use-mobile": "./src/hooks/use-mobile.ts",
+    "./theme/semantic": "./src/theme/semantic.ts"
   },
-  "scripts": { "typecheck": "tsc --noEmit -p tsconfig.json" },
-  "peerDependencies": { "react": ">=19" }
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  }
 }

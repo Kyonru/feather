@@ -296,7 +296,7 @@ export default function ParticleSystemPlaygroundPage() {
             ) : (
               <>
                 {isGameComposite && !system.exportReady && (
-                  <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                  <div className="rounded-md border border-warn-border bg-warn-surface p-3 text-xs text-warn">
                     This game composite is editable, but export metadata is incomplete. Add texture/shader metadata or
                     import a texture before relying on ZIP export.
                   </div>

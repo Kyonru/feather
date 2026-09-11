@@ -279,7 +279,7 @@ export function TemplateControlsPanel() {
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 text-[10px] text-muted-foreground">
                     <div className="truncate">{upload?.filename ?? 'No texture uploaded'}</div>
-                    {!sourceNode && <div className="text-yellow-600 dark:text-yellow-400">Connect a root texture node to this slot.</div>}
+                    {!sourceNode && <div className="text-warn">Connect a root texture node to this slot.</div>}
                   </div>
                   <div className="flex shrink-0 gap-1">
                     {sourceNode && upload && (

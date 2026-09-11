@@ -13,7 +13,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -447,6 +447,97 @@ check('settings are reachable from the palette, and from one source', () => {
   const store = readFileSync(join(ROOT, 'apps/inspector/src/store/settings.ts'), 'utf8');
   if (!store.includes('settingsTab')) throw new Error('settings cannot be opened at a section');
   return 'derived from settingsTabs, opens on the matching section';
+});
+
+// --- S5 — Studio starts where Inspector finished ---------------------------
+
+const studioSources = walk(join(ROOT, 'apps/studio/src'), /\.tsx?$/);
+
+section(
+  'S5',
+  'Studio inherited the lessons, not just the tools',
+  'pnpm run studio:tauri  →  switch theme, then open a shader with an error. The diagnostic\n' +
+    '              should read in every theme, and the drag handles in Texture Lab should stay solid.',
+);
+
+check('Studio uses the same semantic derivation, not a copy of it', () => {
+  const shared = join(ROOT, 'packages/ui/src/theme/semantic.ts');
+  if (!existsSync(shared)) throw new Error('the shared derivation is missing');
+  for (const app of ['inspector', 'studio']) {
+    const file = join(ROOT, `apps/${app}/src/assets/theme/registry/semantic.ts`);
+    const source = readFileSync(file, 'utf8');
+    if (!source.includes('@feather/ui/theme/semantic')) {
+      throw new Error(`${app} defines its own derivation instead of requiring the shared one`);
+    }
+    if (/function solveForeground|const SEMANTIC_HUES/.test(source)) {
+      throw new Error(`${app} still contains the derivation maths`);
+    }
+  }
+  return 'one contrast-solved derivation, required by both apps';
+});
+
+check('Studio exposes the semantic tokens as utilities', () => {
+  const css = readFileSync(join(ROOT, 'apps/studio/src/theme-tokens.css'), 'utf8');
+  const missing = ['ok', 'warn', 'danger', 'info'].flatMap((state) =>
+    [state, `${state}-surface`, `${state}-border`].filter((name) => !css.includes(`--color-${name}:`)),
+  );
+  if (missing.length > 0) {
+    throw new Error(`text-${missing[0]} would not exist; missing ${missing.length} token(s)`);
+  }
+  return 'all twelve, with light and dark fallbacks';
+});
+
+check('no raw Tailwind color literals in Studio outside a stated identity exemption', () => {
+  const palette =
+    /\b(?:text|bg|border|fill|stroke|ring|from|to|via)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/;
+  const offenders = [];
+  for (const file of studioSources) {
+    const lines = readFileSync(file, 'utf8').split('\n');
+    lines.forEach((line, index) => {
+      if (line.trimStart().startsWith('//') || line.trimStart().startsWith('*')) return;
+      if (!palette.test(line)) return;
+      // An identity use opts out on the line immediately above and says why.
+      const previous = lines[index - 1] ?? '';
+      if (previous.includes('eslint-disable-next-line no-restricted-syntax')) return;
+      offenders.push(`${file.replace(`${ROOT}/`, '')}:${index + 1}`);
+    });
+  }
+  if (offenders.length > 0) {
+    throw new Error(`${offenders.length} raw literal(s), first at ${offenders[0]}`);
+  }
+  return 'state goes through the tokens; identity opts out explicitly';
+});
+
+check('a semantic surface never carries a small mark on its own', () => {
+  // The regression C0 hit the first time: a surface token is a pale region
+  // tint, so a 2px dot painted with one is invisible. A mark needs the
+  // foreground token; a surface needs something readable on top of it.
+  const offenders = [];
+  for (const file of studioSources) {
+    readFileSync(file, 'utf8')
+      .split('\n')
+      .forEach((line, index) => {
+        if (!/bg-(?:ok|warn|danger|info)-surface/.test(line)) return;
+        const isSmallMark = /\b(?:size-[0-3]|h-[0-3]|w-[0-3])\b/.test(line);
+        const hasForeground = /text-(?:ok|warn|danger|info)\b/.test(line);
+        if (isSmallMark && !hasForeground) {
+          offenders.push(`${file.replace(`${ROOT}/`, '')}:${index + 1}`);
+        }
+      });
+  }
+  if (offenders.length > 0) {
+    throw new Error(`a surface tint on a small mark renders invisible: ${offenders[0]}`);
+  }
+  return 'surfaces tint regions, foregrounds draw marks';
+});
+
+check('the colour rule covers Studio, not only Inspector', () => {
+  const config = readFileSync(join(ROOT, 'eslint.config.js'), 'utf8');
+  const block = /files: \[[^\]]*apps\/studio\/src[^\]]*\][\s\S]{0,600}?no-restricted-syntax/;
+  if (!block.test(config)) {
+    throw new Error('apps/studio/src is not covered by the raw-colour rule');
+  }
+  return 'eslint.config.js applies it to both apps';
 });
 
 // --- summary ---------------------------------------------------------------
