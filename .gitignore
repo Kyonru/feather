@@ -50,3 +50,7 @@ feather.build.json
 apps/vscode-extension/bundled-*/
 apps/vscode-extension/out/
 apps/vscode-extension/*.vsix
+
+# Handed to another agent to implement; deliberately not part of this repo's
+# history. Listed here so a `git add -A` cannot sweep it back in.
+V4-PARTICLES-GPU.md
