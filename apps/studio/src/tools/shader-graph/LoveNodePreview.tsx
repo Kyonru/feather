@@ -208,7 +208,7 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
       setStatus('live');
     } catch (err) {
       setStatus('error');
-      setError(err instanceof Error ? err.message : 'Failed to send preview to LÖVE runtime.');
+      setError(err instanceof Error ? err.message : 'Could not send the preview to the game. It may have disconnected — check it is still running.');
     }
   }
 

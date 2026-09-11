@@ -95,7 +95,7 @@ export function ParticlePreviewMonitor({
       setError(null);
       setStatus('idle');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to hide the connected-game preview.');
+      setError(err instanceof Error ? err.message : 'Could not hide the preview in the game. It may have disconnected — check it is still running.');
       setStatus('error');
     }
   }, [onGamePreviewActiveChange, playground.activeComposite]);
@@ -140,7 +140,7 @@ export function ParticlePreviewMonitor({
         setStatus('live');
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Failed to resume the connected-game preview.');
+        setError(err instanceof Error ? err.message : 'Could not resume the preview in the game. It may have disconnected — check it is still running.');
         setStatus('error');
       });
   }, [canShowInGame, gamePreviewActive, playground, runtimeSuspended, standalone]);
@@ -174,7 +174,7 @@ export function ParticlePreviewMonitor({
       onGamePreviewActiveChange(true);
       setStatus('live');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to show the connected-game preview.');
+      setError(err instanceof Error ? err.message : 'Could not show the preview in the game. It may have disconnected — check it is still running.');
       setStatus('error');
     }
   }

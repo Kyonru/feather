@@ -872,7 +872,10 @@ export function ShaderCanvas() {
               </button>
             ))}
             {nodePickerItems.length === 0 && (
-              <div className="px-2 py-4 text-center text-xs text-muted-foreground">No nodes found</div>
+              <div className="grid gap-1 px-2 py-4 text-center text-xs text-muted-foreground">
+                <span>No nodes match that search.</span>
+                <span className="text-[10px]">Clear the box to see every node.</span>
+              </div>
             )}
           </div>
         </div>
