@@ -1,12 +1,6 @@
 name: Tauri E2E
 
 on:
-  pull_request:
-    paths:
-      - "src-tauri/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/tauri-e2e.yml"
   push:
     branches: [ main, next ]
     paths:
