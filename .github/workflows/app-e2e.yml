@@ -1,14 +1,6 @@
 name: App E2E
 
 on:
-  pull_request:
-    paths:
-      - "src/**"
-      - "e2e/**"
-      - "playwright.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/app-e2e.yml"
   push:
     branches: [ main, next ]
     paths:

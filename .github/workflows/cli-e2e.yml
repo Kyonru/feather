@@ -1,14 +1,6 @@
 name: CLI E2E
 
 on:
-  pull_request:
-    paths:
-      - "cli/**"
-      - "src-lua/**"
-      - "scripts/bundle-lua.sh"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/cli-e2e.yml"
   push:
     branches: [main]
     paths:
