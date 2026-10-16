@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed local Particle Playground playback so delayed editor playhead updates no longer pull the Lua simulation clock backwards and make animated emission points stutter.
 - Fixed docked love.js previews so their game canvas keeps its native 16:9 aspect ratio, and removed the decorative grid from Particle Playground and Shader Graph preview backgrounds.
 - Fixed MCP `resources/list` so static plugin catalog and creative resource URIs remain discoverable when the desktop bridge is unavailable.
 - Fixed the Shader Graph GLSL code input by replacing the mirrored textarea/highlighter stack with a CodeMirror editor that keeps selection, wrapping, caret positioning, and richer keyword/function/variable/number/parameter highlighting in one editing surface.

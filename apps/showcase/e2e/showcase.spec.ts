@@ -742,6 +742,37 @@ test('particle playground local preview follows timeline playback in the showcas
 
   await expect.poll(async () => (await particlePreviewStatus(page)).time ?? 0, { timeout: 2500 }).toBeGreaterThan(0.85);
   await expect.poll(async () => (await particlePreviewStatus(page)).particleCount ?? 0, { timeout: 2500 }).toBeGreaterThan(0);
+
+  const beforeStaleEditorTime = Number((await particlePreviewStatus(page)).time ?? 0);
+  await page.evaluate(() => {
+    const frame = document.querySelector('iframe[title="Particle Preview"]') as HTMLIFrameElement | null;
+    const previewWindow = frame?.contentWindow as (Window & {
+      _featherPayload?: { composite?: { timelineState?: { time?: number; playing?: boolean } } };
+      _featherStaleTimelineInterval?: number;
+    }) | null;
+    const payload = previewWindow?._featherPayload;
+    if (!previewWindow || !payload?.composite?.timelineState) throw new Error('Particle preview payload is unavailable');
+    const stalePayload = structuredClone(payload);
+    stalePayload.composite!.timelineState = {
+      ...stalePayload.composite!.timelineState,
+      time: 0.1,
+      playing: true,
+    };
+    previewWindow._featherStaleTimelineInterval = window.setInterval(() => {
+      previewWindow._featherPayload = stalePayload;
+    }, 5);
+  });
+  await page.waitForTimeout(260);
+  const afterStaleEditorTime = Number((await particlePreviewStatus(page)).time ?? 0);
+  expect(afterStaleEditorTime).toBeGreaterThan(beforeStaleEditorTime);
+  await page.evaluate(() => {
+    const frame = document.querySelector('iframe[title="Particle Preview"]') as HTMLIFrameElement | null;
+    const previewWindow = frame?.contentWindow as (Window & { _featherStaleTimelineInterval?: number }) | null;
+    if (previewWindow?._featherStaleTimelineInterval !== undefined) {
+      window.clearInterval(previewWindow._featherStaleTimelineInterval);
+      delete previewWindow._featherStaleTimelineInterval;
+    }
+  });
   await page.getByTitle('Pause timeline').click();
 });
 

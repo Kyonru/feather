@@ -836,17 +836,16 @@ local function syncParticleTimelineState(state)
   local wasPlaying = particleState.timelineState.playing == true
   local explicitSeek = scrubVersion ~= particleState.lastScrubVersion and not wasPlaying and not incomingPlaying
 
-  if explicitSeek then
+  if incomingPlaying and wasPlaying then
+    -- Once playback has started, the simulation clock in love.update is the
+    -- authority. The browser also advances a UI playhead and posts it every
+    -- few frames; copying that delayed value back into Lua made timeline
+    -- offsets and the emission source jump backwards every poll interval.
+    -- Play/pause transitions and explicit seeks still synchronize below.
+    particleState.timelineState.playing = true
+  elseif explicitSeek then
     seekParticleTimeline(target, incomingPlaying)
   else
-    if incomingPlaying and wasPlaying then
-      if target >= currentTime then
-        emitTimelineStarts(currentTime, target)
-      elseif particleState.timeline.mode == "loop" then
-        emitTimelineStarts(currentTime, duration)
-        emitTimelineStarts(0, target)
-      end
-    end
     particleState.timelineState.time = target
     particleState.timelineState.playing = incomingPlaying
     applyTimelineAt(target, incomingPlaying)
