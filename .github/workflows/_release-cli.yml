@@ -1,7 +1,8 @@
 name: "[reusable] CLI release"
 
-# Publishes @kyonru/feather to npm. Called by release-cli.yml, which fires on
-# both `cli-v*` (CLI alone) and `v*` (full platform release).
+# Publishes @kyonru/feather to npm. Called by release.yml, whose filename is
+# retained for npm trusted-publisher compatibility and which fires on both
+# `cli-v*` (CLI alone) and `v*` (full platform release).
 
 on:
   workflow_call:

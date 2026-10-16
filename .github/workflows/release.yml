@@ -1,0 +1,20 @@
+name: Release CLI
+
+# npm's trusted publisher is bound to this workflow filename. Keep this thin
+# caller at release.yml while the reusable workflow owns the CLI release path.
+# `cli-v*` -> CLI alone; `v*` -> CLI as part of a platform release.
+on:
+  push:
+    tags:
+      - "cli-v*"
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  cli:
+    name: CLI
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/_release-cli.yml
+    secrets: inherit

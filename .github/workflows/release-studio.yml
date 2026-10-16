@@ -57,7 +57,7 @@ jobs:
           # A Studio release must not be able to ship Inspector, the CLI, the
           # runtime or the extension. Those workflows filter on other tag
           # prefixes; this fails loudly if one ever starts matching studio-v*.
-          for wf in release-cli release-desktop release-runtime release-platform vscode-extension; do
+          for wf in release release-desktop release-runtime release-platform vscode-extension; do
             if grep -qE '^\s+- "studio-v\*"' ".github/workflows/${wf}.yml"; then
               echo "${wf}.yml triggers on studio-v* — a Studio release would ship other products."
               exit 1
