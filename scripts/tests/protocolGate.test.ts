@@ -3,7 +3,7 @@ import test from 'node:test';
 
 /**
  * An incompatible wire protocol must stop commands, not only be reported.
- * See inspector-improvements/runtime-protocol.md finding 1.
+ * See apps/docs/architecture.md, "Runtime and session reliability."
  */
 
 const { evaluateProtocol } = await import('../../apps/inspector/src/constants/feather-protocol.ts');

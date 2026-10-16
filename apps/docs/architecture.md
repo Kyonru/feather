@@ -39,6 +39,21 @@ generated output. Payload data stays `unknown` until a handler has a load-bearin
 schema (D14); Rust stays a transparent relay (D15). A standalone integer `protocolVersion` rides
 `feather:hello`, with a named Inspector error on mismatch (D9, D18).
 
+## Runtime and session reliability
+
+The implemented runtime and session safeguards below are permanent behavioral invariants, not
+roadmap items:
+
+- An incompatible game remains visible for historical inspection, but Inspector rejects live
+  refreshes and mutating commands locally until that session reports a compatible protocol.
+- Session lifecycle events affect only their named session. A background game connecting or
+  disconnecting cannot replace the active game or mutate another session's connection state.
+- A runtime log batch is applied as one state update, and in-memory log and performance histories
+  have explicit bounds.
+
+The remaining hardening work and its acceptance checks live in the repository's
+[`ROADMAP.md`](https://github.com/Kyonru/feather/blob/v4/ROADMAP.md#reliability-and-maintainability-backlog).
+
 ## `packages/host` — what the environment can do
 
 Open a file, save a file, pick a directory, workspace storage, theme, open external. Two

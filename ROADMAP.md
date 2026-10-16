@@ -156,14 +156,84 @@ byte-identical between Inspector and Studio. Candidates for `packages/ui` or a s
 but only if the sharing is a contract (see `apps/docs/architecture.md`). `assets.ts` and `file.ts` differ; `lib`, `hooks`,
 `store` and `components` share no files.
 
-### The architecture audit
+### Reliability and maintainability backlog
 
-`inspector-improvements/` (audited 2026-09-10) is a separate, proposed set of workstreams —
-connection budgets, per-session state, plugin capability enforcement, transactional package
-installs, MCP request correlation. Its repository-boundary findings that belonged to the completed
-architecture migration have already landed.
+The September 2026 architecture audit has been reconciled into this backlog. Its critical
+correctness and release-boundary work has landed; the following items are deliberately post-v4
+candidates rather than release blockers.
 
-The plugin audit's P0/P1 boundary is nevertheless closed: the runtime bounds plugin payload bytes,
-depth, nodes, strings and binary totals before transport, Inspector independently validates before
-rendering, and structured health plus a bounded error panel explain any rejection. Capability-scoped
-Lua contexts and manager decomposition remain post-v4 architecture work.
+#### Connection and transport
+
+- Replace the remaining Rust session channel with byte-accounted queues and class-aware overload
+  policy. Control/auth responses retain reserved capacity; logs may coalesce or drop only with a
+  surfaced count; telemetry may use latest-value-wins.
+- Surface queue depth, queued bytes, oldest age, dropped/coalesced counts and maximum flush time in
+  Inspector instead of silently resetting or losing overloaded traffic.
+- Prove the boundary with a 60-second slow-consumer test whose memory and queue depth stabilize, a
+  command-flood test that preserves control capacity, and an eight-hour synthetic session whose
+  performance memory stays within its documented bound.
+
+#### Runtime and protocol
+
+- Negotiate supported protocol range, feature set and payload/chunk limits during the existing
+  handshake; preserve the deliberately named legacy profile until its removal is announced.
+- Add targeted validation only for load-bearing payloads: hello/auth, correlated responses, plugin
+  actions, debugger state, binary metadata, replay/time-travel imports and the outer log/performance
+  batch shapes. Preserve unknown fields and reject malformed input without partial state changes.
+- Represent queue overflow and dropped data as named protocol diagnostics. Keep Rust a transparent
+  relay for ordinary game messages and keep `check:protocol` authoritative for shared declarations.
+
+Completion means incompatible sessions remain read-only, negotiated limits/features are stored per
+session, malformed fixtures fail with named reasons, and two identical concurrent commands cannot
+consume the same response.
+
+#### Inspector application
+
+- Split the connection kernel into a non-React transport service, domain handlers, a per-session
+  repository and explicit effects. Query keys and domain contracts must not depend on the transport
+  hook.
+- Finish the host boundary so the browser entry does not eagerly evaluate Tauri modules; keep
+  native-only setup in a desktop adapter.
+- Turn the remaining swallowed clipboard and native-invoke failures into explicit choices: surface,
+  recover, or document why ignoring the failure is safe.
+
+Completion means recorded messages can test the connection service without mounting React, each
+message type has one handler and contract owner, Session A cannot mutate Session B, and the existing
+Inspector/Studio artifact-boundary checks remain green.
+
+#### Plugins
+
+- Give plugins capability-scoped Lua contexts so a denied capability is unavailable by construction,
+  not only blocked at activation.
+- Decompose the manager behind its existing facade into discovery/manifest policy,
+  activation/capabilities, lifecycle/callbacks, scheduling, and payload/action routing without an
+  accidental plugin API change.
+
+Completion means a denied-capability fixture proves no plugin code or callback executes, generated
+manifests carry the runtime and action/UI contract metadata, concurrent actions remain independently
+correlated, and the public manager facade stays compatible. Payload byte/depth/node/string/binary
+limits and structured Inspector/MCP health are already complete.
+
+#### Packages and registry trust
+
+- Sign generated registry metadata independently of the registry host, pin the trusted public key
+  in the CLI, and define deliberate key rotation.
+
+Completion means tampered registry metadata is rejected before any package URL is trusted while
+network, cache and bundled provenance remain visible. Transactional install/remove, ownership,
+lockfile validation, immutable resolution and atomic recovery are already complete.
+
+#### CLI, extension and MCP structure
+
+- Define one versioned CLI machine contract for validated requests plus started, progress, warning,
+  prompt, artifact, completion, failure and cancellation events. Commander and automation must share
+  schemas/defaults, and the extension must consume this contract rather than reconstruct CLI policy.
+- Shape build targets as adapters with validation, planning, execution and artifact inspection;
+  extract shared cancellation, progress, redacted logging, staging and atomic-write services only as
+  those contracts require them.
+- Split the MCP gateway into focused domain registrars while retaining one agent-facing
+  `feather mcp` server and independently owned Inspector and Studio backends.
+
+Completion means extension command plans cannot drift from CLI options, managed jobs expose
+structured progress/completion/cancellation, a new build target registers through one adapter, MCP
+registrars have focused tests, and existing command text/JSON and e2e behavior stay compatible.

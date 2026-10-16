@@ -3,7 +3,7 @@ import test from 'node:test';
 
 /**
  * One runtime `logs` batch is one update, and performance history is bounded.
- * See inspector-improvements/connection.md findings 7 and 8.
+ * See apps/docs/architecture.md, "Runtime and session reliability."
  */
 
 const { applyLogOps, applyLogUpdate } = await import('../../apps/inspector/src/store/log-history.ts');

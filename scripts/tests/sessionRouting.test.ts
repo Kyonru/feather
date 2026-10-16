@@ -3,7 +3,7 @@ import test from 'node:test';
 
 /**
  * One session's events must not change another's.
- * See inspector-improvements/inspector.md finding 2.
+ * See apps/docs/architecture.md, "Runtime and session reliability."
  */
 
 const { shouldActivateOnHello, endSessionState } = await import('../../apps/inspector/src/store/session.ts');
