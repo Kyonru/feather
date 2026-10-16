@@ -41,3 +41,11 @@ test('the marketplace icon generator resolves the post-v4 repository asset', () 
 test('the prepared package carries the canonical repository license', () => {
   assert.equal(readFileSync(join(extensionRoot, 'LICENSE'), 'utf8'), readFileSync(join(repoRoot, 'LICENSE'), 'utf8'));
 });
+
+test('packaging restores the development launcher after building the VSIX', () => {
+  const rootManifest = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'));
+  assert.match(rootManifest.scripts['extension:package'], /scripts\/package\.mjs$/);
+  const packageScript = readFileSync(join(extensionRoot, 'scripts', 'package.mjs'), 'utf8');
+  assert.match(packageScript, /finally\s*\{/);
+  assert.match(packageScript, /prepare\.mjs/);
+});

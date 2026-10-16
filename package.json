@@ -33,7 +33,7 @@
     "extension:test:integration": "pnpm run extension:build && pnpm --filter feather-cli-vscode run test:integration",
     "test:ready": "pnpm run verify && pnpm run verify:enhanced && pnpm run test && pnpm run test:packages:e2e && pnpm run test:rust && pnpm run extension:test && pnpm run build && pnpm run studio:build && pnpm run check:artifact-boundary",
     "test:ready:gui": "pnpm run test:ready && pnpm run extension:test:integration",
-    "extension:package": "pnpm run extension:binary && node apps/vscode-extension/scripts/prepare.mjs --binaries && tsc -p apps/vscode-extension/tsconfig.json && pnpm --filter feather-cli-vscode run generate:icon && cd apps/vscode-extension && npx @vscode/vsce package",
+    "extension:package": "pnpm run extension:binary && node apps/vscode-extension/scripts/prepare.mjs --binaries && tsc -p apps/vscode-extension/tsconfig.json && pnpm --filter feather-cli-vscode run generate:icon && node apps/vscode-extension/scripts/package.mjs",
     "feather": "pnpm --filter @kyonru/feather run bundle:lua && pnpm run cli:build && node apps/cli/dist/index.js",
     "dev": "vite",
     "dev:tauri": "vite --force",
