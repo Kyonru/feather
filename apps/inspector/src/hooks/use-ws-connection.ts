@@ -33,12 +33,15 @@ import { sendCommand, sendBackgroundCommand } from '@/lib/send-command';
 import { base64ToUint8Array } from '@/utils/arrays';
 import { normalizePerformanceMetric } from '@/utils/performance-metrics';
 import {
+  applyLogOps,
   applyLogUpdate,
   mergeLogLists,
+  type LogOp,
   resolveLogHistoryKeys,
   useLogHistoryStore,
 } from '@/store/log-history';
 import { shouldRequestSessionConfig } from '@/utils/session-reconnect';
+import { appendPerformanceSample } from '@/lib/performance-history';
 
 // Cache key helpers — all indexed by the Rust-assigned session ID
 // Re-exported for the many modules that already import it from here.
@@ -592,29 +595,30 @@ export const useWsConnection = () => {
           }
 
           case 'logs': {
+            // One cache write and one store update for the whole batch.
             const messages = Array.isArray(data) ? data : [];
-            const history = useLogHistoryStore.getState();
+            const ops: LogOp[] = [];
             for (const entry of messages) {
               if (!isRecord(entry)) continue;
               if (entry.type === 'log') {
-                const log = entry.data as Log;
-                queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (prev) => [...(prev ?? []), log]);
-                history.appendLog(sessionId, log, history.sessionHistoryKeys[sessionId]);
+                ops.push({ kind: 'append', log: entry.data as Log });
               } else if (entry.type === 'log:update') {
-                const update = entry.data as { id: string; count: number; time: number; lastTime?: number };
-                queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (prev) => applyLogUpdate(prev ?? [], update));
-                history.updateLog(sessionId, update, history.sessionHistoryKeys[sessionId]);
+                ops.push({ kind: 'update', update: entry.data as { id: string; count: number; time: number; lastTime?: number } });
               }
+            }
+            if (ops.length > 0) {
+              queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (prev) => applyLogOps(prev ?? [], ops));
+              const history = useLogHistoryStore.getState();
+              history.applyLogBatch(sessionId, ops, history.sessionHistoryKeys[sessionId]);
             }
             break;
           }
 
           case 'performance': {
             const metric = normalizePerformanceMetric(data, { runtimeUnits: true });
-            queryClient.setQueryData<PerformanceMetrics[]>(sessionQueryKey.performance(sessionId), (prev) => [
-              ...(prev ?? []),
-              metric,
-            ]);
+            queryClient.setQueryData<PerformanceMetrics[]>(sessionQueryKey.performance(sessionId), (prev) =>
+              appendPerformanceSample(prev, metric),
+            );
             break;
           }
 

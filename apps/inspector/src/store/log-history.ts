@@ -40,6 +40,8 @@ type LogHistoryState = {
   rememberSession: (sessionId: string, historyKeys?: string[] | string | null, label?: string) => void;
   replaceSessionLogs: (sessionId: string, logs: Log[], historyKeys?: string[] | string | null, label?: string) => void;
   appendLog: (sessionId: string, log: Log, historyKeys?: string[] | string | null) => void;
+  /** A whole runtime `logs` batch as one store update. */
+  applyLogBatch: (sessionId: string, ops: LogOp[], historyKeys?: string[] | string | null) => void;
   updateLog: (sessionId: string, update: LogUpdate, historyKeys?: string[] | string | null) => void;
   removeLogs: (sessionId: string, ids?: string[], historyKeys?: string[] | string | null) => void;
   getLogsForSession: (sessionId: string) => Log[];
@@ -315,6 +317,49 @@ export function applyLogUpdate(logs: Log[], update: LogUpdate): Log[] {
   return next;
 }
 
+/** One step of a runtime `logs` batch: a new line, or a repeat-count update. */
+export type LogOp = { kind: 'append'; log: Log } | { kind: 'update'; update: LogUpdate };
+
+/**
+ * Apply a whole runtime batch to a log list with one copy.
+ *
+ * The runtime batches logs so the desktop can do one update per batch; the
+ * desktop used to split the batch back into one cache write (each copying the
+ * whole list) and one store update per entry. Equivalent, entry by entry, to
+ * appending and calling `applyLogUpdate` in order.
+ */
+export function applyLogOps(logs: Log[], ops: LogOp[]): Log[] {
+  if (ops.length === 0) return logs;
+  const next = [...logs];
+  for (const op of ops) {
+    if (op.kind === 'append') {
+      next.push(op.log);
+      continue;
+    }
+    const index = next.findLastIndex((log) => log.id === op.update.id);
+    if (index === -1) continue;
+    next[index] = {
+      ...next[index],
+      count: op.update.count,
+      time: op.update.time,
+      lastTime: op.update.lastTime ?? op.update.time,
+    };
+  }
+  return next;
+}
+
+function applyOpsToBucket(bucket: LogHistoryBucket | undefined, ops: LogOp[]): LogHistoryBucket | undefined {
+  const sanitized = ops.map((op) => (op.kind === 'append' ? { ...op, log: sanitizeLogForHistory(op.log) } : op));
+  const appends = sanitized.some((op) => op.kind === 'append');
+  // Updates alone never create a bucket, matching `updateBucket`.
+  if (!bucket && !appends) return bucket;
+  return {
+    logs: capLogs(applyLogOps(bucket?.logs ?? [], sanitized)),
+    label: bucket?.label,
+    updatedAt: Date.now(),
+  };
+}
+
 function makeBucket(logs: Log[], previous?: LogHistoryBucket, label?: string): LogHistoryBucket {
   return {
     logs: mergeLogLists(logs.map(sanitizeLogForHistory)),
@@ -418,6 +463,24 @@ export const useLogHistoryStore = create<LogHistoryState>()(
               ...state.logsBySession,
               [sessionId]: appendToBucket(state.logsBySession[sessionId], log),
             }),
+            logsByHistoryKey: pruneBuckets(logsByHistoryKey),
+          };
+        });
+      },
+      applyLogBatch: (sessionId, ops, historyKeys) => {
+        if (ops.length === 0 || !canPersistSession(sessionId)) return;
+        const keys = keysForSession(get(), sessionId, historyKeys);
+        set((state) => {
+          const logsByHistoryKey = { ...state.logsByHistoryKey };
+          for (const key of keys) {
+            const updated = applyOpsToBucket(logsByHistoryKey[key], ops);
+            if (updated) logsByHistoryKey[key] = updated;
+          }
+          const sessionBucket = applyOpsToBucket(state.logsBySession[sessionId], ops);
+          return {
+            logsBySession: sessionBucket
+              ? pruneBuckets({ ...state.logsBySession, [sessionId]: sessionBucket })
+              : state.logsBySession,
             logsByHistoryKey: pruneBuckets(logsByHistoryKey),
           };
         });

@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Added unit coverage that a batched log update is equivalent to the per-entry updates it replaces and that performance history stays bounded.
 - Added Inspector coverage that an incompatible-protocol session receives no user command (verified to fail without the guard), plus unit tests for the per-session protocol gate.
 - Added MCP gateway coverage for Studio-only startup with a published Studio token, honest backend status, the raw command tool being opt-in, backend deadlines, a private self-minted HTTP client token that rejects the Inspector token, and the HTTP body limit.
 - Added Lua transport coverage that decodes frames from a throttled fake socket: payloads survive incremental masking, each frame has its own key, a 256 KiB message spans updates within budget, the queue limit and reply reserve hold, and receive overflow closes with a named error. Added coverage that replies echo a valid `requestId` and ignore malformed ones.
@@ -81,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Inspector applies each batch of logs from the game as one update instead of re-splitting it into a full list copy and a store update per line, and keeps an hour of performance samples (3,600 at the default rate) instead of growing for the whole session.
 - The Lua runtime no longer stalls the game to send a large message. WebSocket frames were masked one byte at a time, in full, before being queued — tens of milliseconds for a few hundred KiB, outside Feather's per-frame budget. Masking and sending now happen incrementally within a per-update time budget (a 256 KiB message goes out over a handful of frames at about half a millisecond each), and every frame gets its own random masking key as RFC 6455 requires, instead of one fixed key.
 - The runtime's outbound queue is bounded (8 MiB by default). Past it, ordinary telemetry is refused and counted rather than growing memory, while replies to desktop commands keep a reserve. Queue depth, refusals and the slowest flush are reported in `featherOverhead.transport`.
 - A desktop message larger than the runtime's 1 MiB receive limit now closes the connection with a named error (the runtime reconnects) instead of silently emptying the buffer mid-frame, which corrupted every later command. The runtime also reads more than one 4 KiB chunk per frame, so bursts of commands no longer queue for seconds.
