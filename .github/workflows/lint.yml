@@ -3,15 +3,16 @@ name: Lint
 on:
   push:
     branches: [ main, next ]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   lint:
-    name: Run TypeScript Linting
+    name: Verify, lint and unit tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -28,56 +29,33 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .turbo
-          # Keyed on the lockfile, not the SHA: a per-commit key mints a new
-          # entry every push and churns the 10 GB Actions cache quota. Turbo's
-          # own input hashing decides what is stale inside the restored cache.
-          key: turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          # Keyed on the job and the lockfile, not the SHA: a per-commit key
+          # mints a new entry every push and churns the 10 GB Actions cache
+          # quota. The job is in the key because jobs run different turbo tasks;
+          # sharing one key let whichever job saved first own it for everyone.
+          # Turbo's own input hashing decides what is stale inside the cache.
+          key: turbo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            turbo-${{ runner.os }}-
+            turbo-${{ runner.os }}-${{ github.job }}-
+
+      - name: Install Lua and luacheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4 luarocks
+          luarocks install luacheck --local
+          echo "$HOME/.luarocks/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check protocol version sync
-        run: pnpm run check:protocol
+      # The same gate as `pnpm run verify` locally: every typecheck (web,
+      # protocol, host, session-bridge, ui, studio, Lua), lint, and the protocol,
+      # registry, plugin-catalog and obsolete-path drift checks.
+      - name: Verify
+        run: pnpm run verify
 
-      - name: Bridge contract tests
-        run: pnpm run test:bridge
-
-      - name: Unit tests
-        run: pnpm run test:unit
-
-      - name: Run TypeScript checks
-        run: pnpm run typecheck:web
-
-      - name: Run linting
-        run: pnpm run lint
+      - name: Unit and bridge tests
+        run: pnpm turbo run //#test:unit //#test:bridge
 
       - name: Build and test VS Code extension
         run: pnpm run extension:test
-
-  lint-lua:
-    name: Run Lua (Love2D) Linting
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    if: |
-      contains(github.event_name, 'pull_request') ||
-      contains(github.event.head_commit.message, 'packages/runtime-lua/') ||
-      github.event_name == 'push'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Lua & luarocks
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y lua5.4 luarocks
-
-      - name: Install luacheck
-        run: luarocks install luacheck --local
-
-      - name: Add local LuaRocks bin to PATH
-        run: echo "$HOME/.luarocks/bin" >> $GITHUB_PATH
-
-      - name: Run luacheck with Love2D globals
-        run: luacheck packages/runtime-lua --globals love

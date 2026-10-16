@@ -35,15 +35,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .turbo
-          # Keyed on the lockfile, not the SHA: a per-commit key mints a new
-          # entry every push and churns the 10 GB Actions cache quota. Turbo's
-          # own input hashing decides what is stale inside the restored cache.
-          key: turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          # Keyed on the job and the lockfile, not the SHA: a per-commit key
+          # mints a new entry every push and churns the 10 GB Actions cache
+          # quota. The job is in the key because jobs run different turbo tasks;
+          # sharing one key let whichever job saved first own it for everyone.
+          # Turbo's own input hashing decides what is stale inside the cache.
+          key: turbo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            turbo-${{ runner.os }}-
+            turbo-${{ runner.os }}-${{ github.job }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Run Lua E2E
-        run: pnpm run test:lua:e2e
+        run: pnpm turbo run //#test:lua:e2e

@@ -30,12 +30,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .turbo
-          # Keyed on the lockfile, not the SHA: a per-commit key mints a new
-          # entry every push and churns the 10 GB Actions cache quota. Turbo's
-          # own input hashing decides what is stale inside the restored cache.
-          key: turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          # Keyed on the job and the lockfile, not the SHA: a per-commit key
+          # mints a new entry every push and churns the 10 GB Actions cache
+          # quota. The job is in the key because jobs run different turbo tasks;
+          # sharing one key let whichever job saved first own it for everyone.
+          # Turbo's own input hashing decides what is stale inside the cache.
+          key: turbo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            turbo-${{ runner.os }}-
+            turbo-${{ runner.os }}-${{ github.job }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -43,11 +45,10 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run app E2E
-        run: pnpm run test:inspector:e2e
-
-      - name: Studio end-to-end
-        run: pnpm run test:studio:e2e
+      # Serial: the browser suites start their own servers and time each other
+      # out when run at once, which is also why `pnpm run test` is serial.
+      - name: Inspector, Studio and Showcase end-to-end
+        run: pnpm turbo run //#test:inspector:e2e //#test:studio:e2e //#test:showcase:e2e --concurrency=1
 
       # The lint guards catch source imports; this catches what actually lands
       # in a bundle, which a transitive or dynamic import can change without any
