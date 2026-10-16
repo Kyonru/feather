@@ -1,5 +1,5 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -14,7 +14,7 @@ const bundledBin = join(extensionRoot, 'bundled-bin');
 
 const luaSource = existsSync(join(cliLua, 'feather', 'init.lua')) ? cliLua : sourceLua;
 if (!existsSync(join(luaSource, 'feather', 'init.lua'))) {
-  throw new Error('Missing Lua runtime. Run `npm run bundle:lua --workspace=cli` first.');
+  throw new Error('Missing Lua runtime. Run `pnpm --filter @kyonru/feather run bundle:lua` first.');
 }
 
 // The extension vendors a whole platform snapshot rather than calling the
@@ -50,18 +50,47 @@ if (mismatches.length > 0) {
 rmSync(bundledBin, { recursive: true, force: true });
 mkdirSync(bundledBin, { recursive: true });
 
+// Platform binaries are bundled only when asked for (`--binaries`, which
+// `extension:package` passes after building them). Picking them up merely
+// because `apps/cli/bin` exists let a months-old binary left over from an
+// earlier package run shadow the CLI being developed, under a manifest that
+// claimed the current platform.
+const cliBinaries = ['feather', 'feather-darwin-x64', 'feather-linux-x64', 'feather-win-x64.exe'];
+const wantBinaries = process.argv.includes('--binaries');
+
 let bundleMode;
-if (existsSync(cliBin)) {
-  // Copy platform binaries for packaged extension builds.
+if (wantBinaries) {
+  const cliEntryTime = statSync(join(repoRoot, 'apps', 'cli', 'dist', 'index.js')).mtimeMs;
+  const problems = cliBinaries.flatMap((name) => {
+    const path = join(cliBin, name);
+    if (!existsSync(path)) return [`  ${name} is missing`];
+    if (statSync(path).mtimeMs < cliEntryTime) return [`  ${name} is older than apps/cli/dist/index.js`];
+    return [];
+  });
+  if (problems.length > 0) {
+    throw new Error(
+      `--binaries was requested but the CLI binaries are not a build of the current CLI:\n${problems.join('\n')}\n` +
+        'Run `pnpm run extension:binary` first.',
+    );
+  }
   cpSync(cliBin, bundledBin, { recursive: true });
   bundleMode = 'platform binaries';
 } else {
   // Local extension development does not require Bun-compiled binaries. The
   // extension detects this file and launches the compiled CLI with Node.
+  //
+  // The import is derived from where the CLI actually is, not written by hand:
+  // a literal path silently pointed at the pre-v4 root `cli/` after the move to
+  // `apps/cli`, and nothing ran the launcher to notice.
+  const cliEntry = join(repoRoot, 'apps', 'cli', 'dist', 'index.js');
+  if (!existsSync(cliEntry)) {
+    throw new Error(`Missing ${cliEntry}. Run \`pnpm run cli:build\` first.`);
+  }
+  const cliImport = relative(bundledBin, cliEntry).split(sep).join('/');
   writeFileSync(
     join(bundledBin, 'feather-dev.mjs'),
     `#!/usr/bin/env node
-import { runCli } from '../../../cli/dist/index.js';
+import { runCli } from '${cliImport}';
 
 process.exitCode = await runCli();
 `,

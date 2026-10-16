@@ -25,7 +25,7 @@
     "extension:binary": "pnpm run cli:build && pnpm --filter @kyonru/feather run bundle:lua && pnpm --filter @kyonru/feather run build:binary",
     "extension:test": "pnpm run extension:build && pnpm --filter feather-cli-vscode run test",
     "extension:test:integration": "pnpm run extension:build && pnpm --filter feather-cli-vscode run test:integration",
-    "extension:package": "pnpm run extension:binary && pnpm run extension:build && pnpm --filter feather-cli-vscode run generate:icon && cd apps/vscode-extension && npx @vscode/vsce package",
+    "extension:package": "pnpm run extension:binary && node apps/vscode-extension/scripts/prepare.mjs --binaries && tsc -p apps/vscode-extension/tsconfig.json && pnpm --filter feather-cli-vscode run generate:icon && cd apps/vscode-extension && npx @vscode/vsce package",
     "feather": "pnpm --filter @kyonru/feather run bundle:lua && pnpm run cli:build && node apps/cli/dist/index.js",
     "dev": "vite",
     "dev:tauri": "vite --force",

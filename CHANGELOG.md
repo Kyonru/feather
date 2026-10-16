@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Added extension tests that execute the prepared dev launcher and assert it runs the workspace CLI at the declared platform version.
+- CI now runs the showcase end-to-end suite and the full `pnpm run verify` gate (every typecheck, lint, Lua lint, protocol, registry, plugin-catalog and repository-path checks), with suites running through Turbo so unchanged work is reused.
 - Added Studio and showcase coverage for the Particle Context Lens and Texture Preview Priority workbenches, including preserved toolsets, atlas/parameter switching, preview grounds, timeline editing, and independently persisted pane sizes.
 - Added dev-session lifecycle coverage for multiple tracked process groups, malformed records, and stale PID command guards.
 - Added MCP CLI, Tauri bridge, and Settings coverage for token auth, sanitized session snapshots, command routing, and visible MCP controls.
@@ -68,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed local VS Code extension development: the generated dev launcher pointed at the CLI's pre-v4 location and could not start, and a stale CLI binary left in `apps/cli/bin` silently shadowed the CLI being developed. Extension packaging now bundles CLI binaries only when explicitly built for the package, and refuses binaries older than the CLI they claim to be.
 - Fixed local Particle Playground playback so delayed editor playhead updates no longer pull the Lua simulation clock backwards and make animated emission points stutter.
 - Fixed docked love.js previews so their game canvas keeps its native 16:9 aspect ratio, and removed the decorative grid from Particle Playground and Shader Graph preview backgrounds.
 - Fixed MCP `resources/list` so static plugin catalog and creative resource URIs remain discoverable when the desktop bridge is unavailable.
