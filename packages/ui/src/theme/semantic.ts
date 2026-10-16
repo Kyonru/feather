@@ -17,14 +17,14 @@
  * A theme that wants a specific value can still set one — `withSemanticColors`
  * never overwrites a variable the theme already defines.
  *
- * See V4.md §6.2 (C0).
+ * See skills/feather-desktop-app/references/design-rules.md §6.2 (C0).
  */
 
 /**
  * Lives in the package, with the registry it serves, so both apps read one
  * definition. The two apps must not import each other (enforced by
  * `no-restricted-imports`), and hand-porting 211 lines of contrast-solving is
- * how divergence starts. See V4.md §6.2 (C0).
+ * how divergence starts. See skills/feather-desktop-app/references/design-rules.md §6.2 (C0).
  */
 import type { AuthoredThemeVariables, ThemeVariables } from './registry/types';
 

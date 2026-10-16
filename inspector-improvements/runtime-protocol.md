@@ -19,7 +19,8 @@ round trips; the runtime behavior does not enforce that conclusion.
 ### 2. Message names are centralized; load-bearing payloads are not (`P1`)
 
 `packages/protocol` correctly owns the two message-name registries and validates the inbound
-envelope. Payloads remain `unknown`, and handlers use many assertions. `V4.md` correctly rejected a
+envelope. Payloads remain `unknown`, and handlers use many assertions. Architecture decision D14
+in [`apps/docs/decisions.md`](../apps/docs/decisions.md) correctly rejected a
 speculative schema for all heterogeneous messages. That should not prevent targeted validation for
 payloads whose corruption can mutate state or resolve a command.
 

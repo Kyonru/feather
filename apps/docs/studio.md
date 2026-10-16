@@ -14,11 +14,26 @@ Keeping them apart means a Studio update does not make you reinstall your
 debugger, and a debugger fix does not touch your creative tools. It also means
 you can install only what you use.
 
+## Application boundary
+
+Studio owns its React application, Tauri shell, bundle identifier, version,
+permissions, signing, updater feed, creative MCP backend and persisted authoring
+state. Inspector does not bundle, download or execute Studio code. The two apps
+share only versioned contracts and common interface primitives from `packages/`.
+
+The browser showcase is a thin host for Studio's public web mount. It uses the
+same creative tools without Tauri, a game session or the Inspector bridge.
+
+Studio releases independently under `studio-v*` tags. Inspector uses
+`desktop-v*`; updating either application does not imply updating the other.
+See the [architecture reference](architecture.md) for the complete boundary and
+release-train model.
+
 ## Installing
 
 Studio and Inspector install independently. Neither requires the other.
 
-- **Feather Inspector** — from a `v*` release on the
+- **Feather Inspector** — from a `desktop-v*` release on the
   [releases page](https://github.com/Kyonru/feather/releases).
 - **Feather Studio** — from a `studio-v*` release on the same page.
 

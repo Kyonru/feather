@@ -1193,7 +1193,7 @@ function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, previewGro
               data-testid="texture-lab-shape-move-handle"
               // Identity, not state: the move and resize handles are told apart by shape
               // and colour against arbitrary texture content. A semantic surface token is
-              // a pale region tint and would vanish here. See V4.md §6.2 (C0).
+              // a pale region tint and would vanish here. See skills/feather-desktop-app/references/design-rules.md §6.2 (C0).
               // eslint-disable-next-line no-restricted-syntax
               className="absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sky-500 shadow-sm cursor-move"
               style={{

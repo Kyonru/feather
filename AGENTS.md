@@ -4,20 +4,18 @@ This is the canonical repo guide for coding agents. Keep subsystem-specific deta
 
 Feather is a CLI debugger, inspector, desktop devtool, VS Code companion, and package manager for Love2D games. It injects a Lua runtime through the CLI and shows a live React + Tauri desktop app with logs, variables, performance, plugins, build tools, and creative inspectors.
 
-## Active Architecture Work
+## Architecture And Design Sources
 
-Feather is finishing a v4 architecture organized around release boundaries. **[`V4.md`](./V4.md) is
-the single v4 document.** Read it before any structural, build, release or packaging work, before
-changing an existing feature's behaviour or UI, and before touching `apps/studio/`.
+Feather's architecture is organized around release boundaries. Read
+[`apps/docs/architecture.md`](./apps/docs/architecture.md) before structural, build, release or
+packaging work, and read [`apps/docs/decisions.md`](./apps/docs/decisions.md) before reopening a
+settled architecture choice.
 
-- §3 lists the steps left before v4 is complete, each with its acceptance check. Take them in order.
-- §5 is the architecture and its invariants, which hold for every commit.
-- §6 is the design reference: the refinement rule (**refine, do not add**), the lens, Inspector's
-  direction, Studio's workbench rules, and the particle runtime's semantics.
-- §8 is the decision log. Read it before reopening anything it settles.
-
-`V4.md` governs *what is left to build and the rules it follows*. This file governs *how to work in
-this repo*. Both apply. Do not add new tracking documents; record progress in `V4.md`.
+Before changing Inspector or Studio behavior or UI, read
+[`skills/feather-desktop-app/references/design-rules.md`](./skills/feather-desktop-app/references/design-rules.md).
+Particle runtime semantics live beside their implementation in
+[`packages/runtime-lua/plugins/particle-system-playground/README.md`](./packages/runtime-lua/plugins/particle-system-playground/README.md).
+Future work belongs in [`ROADMAP.md`](./ROADMAP.md); do not create parallel tracking documents.
 
 ## Project Layout
 

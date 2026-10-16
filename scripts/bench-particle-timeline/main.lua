@@ -1,9 +1,9 @@
--- What a particle timeline costs per frame, before and after Particles P2 (V4.md §6.5).
+-- What a particle timeline costs per frame, before and after Particles P2 (packages/runtime-lua/plugins/particle-system-playground/README.md §6.5).
 --
 --   love scripts/bench-particle-timeline
 --
 -- Loads the real production modules rather than copies, so the numbers move
--- when the code does. Backs the measurements in V4.md, Particles §4.2 and §5.1.
+-- when the code does. Backs the measurements in packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §4.2 and §5.1.
 
 local function repoRoot()
   local env = os.getenv("FEATHER_REPO")

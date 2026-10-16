@@ -53,7 +53,7 @@ const queryClient = new QueryClient({
 
 // Studio follows the system theme. Whether it should instead open dark by
 // default — the argument being that you cannot judge a color against a surround
-// that has its own — is deferred; see V4.md W2.
+// that has its own — is deferred; see skills/feather-desktop-app/references/design-rules.md W2.
 const uiDependencies: UiDependencies = {
   useThemeMode: () => useResolvedTheme().mode,
   useSyntaxTheme: () => useResolvedTheme().syntax as Record<string, unknown>,

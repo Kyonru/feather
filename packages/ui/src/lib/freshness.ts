@@ -1,5 +1,5 @@
 /**
- * Is what I am looking at from this run of the game? (V4.md §6.2, C2.)
+ * Is what I am looking at from this run of the game? (skills/feather-desktop-app/references/design-rules.md §6.2, C2.)
  *
  * The honest signal is not age. It is whether the data predates the session
  * currently attached: data that arrived before this game started is from a

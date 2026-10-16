@@ -8,7 +8,7 @@ import type { TerminalPlan } from './plans';
 /**
  * The CLI this extension runs: the platform binary it bundles, or — in a
  * development build, where prepare.mjs writes no binaries — the workspace CLI
- * through `bundled-bin/feather-dev.mjs`. Never the user's PATH (V4.md D6).
+ * through `bundled-bin/feather-dev.mjs`. Never the user's PATH (apps/docs/decisions.md D6).
  */
 export function cliInvocation(extensionPath: string): CliInvocation {
   const devLauncher = join(extensionPath, 'bundled-bin', 'feather-dev.mjs');

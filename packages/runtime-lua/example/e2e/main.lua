@@ -995,7 +995,7 @@ return M
   -- --- particle timeline semantics -------------------------------------
   -- core.lua is the one definition of what a keyframe means, shared by the
   -- in-game plugin, the love.js preview and the exported file. Before it
-  -- existed each had its own copy and they had drifted. See V4.md, Particles §1.
+  -- existed each had its own copy and they had drifted. See packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §1.
   local ParticleCore = require("plugins.particle-system-playground.core")
 
   assertEqual(ParticleCore.normalizeEasing("outBounce"), "outBounce", "core keeps a known easing")
@@ -1063,7 +1063,7 @@ return M
   assertEqual(sawOpacityAboveOne, false, "an outElastic opacity lane never resolves above one")
 
   -- resolveSizes fills a caller-owned table, so the per-frame path need not
-  -- allocate one per emitter per frame (V4.md, Particles §4.2).
+  -- allocate one per emitter per frame (packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §4.2).
   local sizeBuffer = {}
   local filled, count = ParticleCore.resolveSizes({ sizes = { 2, 1 } }, 0.5, sizeBuffer)
   assertEqual(filled, sizeBuffer, "resolveSizes fills the table it is given")
@@ -1080,7 +1080,7 @@ return M
   assertEqual(manyCount, 8, "resolveSizes caps at the eight sizes LOVE accepts")
   assertEqual(manySizes[9], nil, "resolveSizes drops sizes past the cap")
 
-  -- --- compiled tracks and change detection (V4.md, Particles P2) ------
+  -- --- compiled tracks and change detection (packages/runtime-lua/plugins/particle-system-playground/README.md, Particles P2) ------
   local ParticleApply = require("plugins.particle-system-playground.apply")
 
   -- A counting stub. apply.lua calls methods on whatever it is handed and never
@@ -1198,7 +1198,7 @@ return M
   local reissued = select(2, ParticleApply.tick(applyState, stubPs, compiledConstant, 0, particleBase, tickOptions))
   assertTruthy(reissued > 0, "invalidate makes the next tick write every value again")
 
-  -- --- lifecycle: warm and pool (V4.md, Particles P3) ------------------
+  -- --- lifecycle: warm and pool (packages/runtime-lua/plugins/particle-system-playground/README.md, Particles P3) ------------------
   local ParticleLifecycle = require("plugins.particle-system-playground.lifecycle")
 
   -- An authored value always wins, including an authored zero: turning warmup

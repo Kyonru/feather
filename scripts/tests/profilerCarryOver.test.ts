@@ -12,7 +12,7 @@ import test from 'node:test';
  * not make — the baseline was dropped by the cleanup while less critical data
  * was carefully preserved.
  *
- * See V4.md §6.3 (6.3).
+ * See skills/feather-desktop-app/references/design-rules.md §6.3 (6.3).
  */
 
 const { profilerStateForNewSession, EMPTY_PROFILER_STATE } = await import(

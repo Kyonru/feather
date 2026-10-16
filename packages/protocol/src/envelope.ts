@@ -84,7 +84,7 @@ export function parseInbound(raw: string): InboundParseResult {
  * `data` is deliberately `unknown`. The 78 messages carry heterogeneous
  * payloads, and a schema that describes a shape *incorrectly* is worse than one
  * that declines to: it would make handlers trust a field the runtime never
- * sends. Deriving each shape from its handler is tracked in V4.md Phase 02b.
+ * sends. Deriving each shape from its handler is tracked in apps/docs/architecture.md Phase 02b.
  *
  * The envelope and the message set are what make skew detectable, and those are
  * exact.

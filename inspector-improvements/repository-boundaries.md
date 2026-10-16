@@ -35,7 +35,8 @@ though the catalog moved to `catalog/packages/`.
 
 ### 5. Architecture documentation contains contradictory live acceptance text (`P2`)
 
-`V4.md` deliberately preserves historical paths in its diagnosis, which should stay historical.
+The retired v4 plan deliberately preserved historical paths in its diagnosis; that record remains
+available in git history and should stay historical.
 But live verification/examples and the Phase 05 “Done when” text include stale paths or say each app
 exposes a distinct MCP server, while decision D32 says one agent-facing server routes to two
 app-owned backends. Historical record and current instruction need clearer labeling.

@@ -38,7 +38,7 @@ export const THEME_CSS_VARIABLES = [
   'plugin-active-icon',
   'plugin-active-border',
   // Semantic state colors. Derived per theme in `semantic.ts` unless a theme
-  // sets them explicitly — see V4.md §6.2 (C0) for why they are tokens
+  // sets them explicitly — see skills/feather-desktop-app/references/design-rules.md §6.2 (C0) for why they are tokens
   // rather than the Tailwind literals they replaced.
   'ok',
   'ok-surface',
@@ -153,7 +153,7 @@ export type ThemeVariables = Record<ThemeCssVariable, string>;
 /**
  * The variables a theme actually authors. The semantic state colors are derived
  * from the theme's own background by `withSemanticColors`, so registries do not
- * hand-write them — see V4.md §6.2 (C0). A theme may still author one to
+ * hand-write them — see skills/feather-desktop-app/references/design-rules.md §6.2 (C0). A theme may still author one to
  * override the derivation, which is why they are optional rather than absent.
  */
 export type SemanticCssVariable = Extract<

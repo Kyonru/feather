@@ -6,7 +6,7 @@
 --
 -- It used to *be* the semantics — 260 lines of easing maths and keyframe
 -- evaluation inside a `[=[ ]=]` string, which meant luacheck never saw them and
--- two other hosts kept their own copies. See V4.md, Particles §1.
+-- two other hosts kept their own copies. See packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §1.
 --
 -- @module particle-system-playground.timeline_runtime
 

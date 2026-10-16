@@ -14,7 +14,7 @@
  * the web, so sends become no-ops and the tools stay usable as local editors.
  */
 
-// The versioned cross-process contract (V4.md §5.4).
+// The versioned cross-process contract (apps/docs/architecture.md §5.4).
 export {
   BRIDGE_VERSION,
   BRIDGE_MIN_SUPPORTED,

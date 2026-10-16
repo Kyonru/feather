@@ -718,7 +718,7 @@ function detectLuaType(value: string): LuaValueType {
  * Value types are syntax highlighting, not state, so they deliberately keep
  * literals: `--ok` on a number would make green mean "fine" here and something
  * else everywhere else, which is the confusion the semantic channel exists to
- * remove. These belong in the theme's syntax palette — see V4.md §6.2 (C0).
+ * remove. These belong in the theme's syntax palette — see skills/feather-desktop-app/references/design-rules.md §6.2 (C0).
  */
 const typeColor: Record<LuaValueType, string> = {
   nil: 'text-muted-foreground',

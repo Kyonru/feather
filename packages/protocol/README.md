@@ -21,8 +21,10 @@ registry and the live dispatch tables disagree:
 
 This package currently describes **which messages exist**, not their payload
 shapes. Payload schemas are deliberately declined until a handler has a
-load-bearing reason to own one (V4.md D14), and Rust stays a transparent relay
-(D15). The message set alone is what makes drift mechanically detectable,
+load-bearing reason to own one
+([D14](../../apps/docs/decisions.md#d14--per-message-payload-schemas-are-declined-not-deferred-indefinitely)),
+and Rust stays a transparent relay
+([D15](../../apps/docs/decisions.md#d15--no-rust-serde-structs-are-generated)). The message set alone is what makes drift mechanically detectable,
 which is the part that matters once the release trains can ship separately.
 
 The negotiated wire protocol *version* lives separately, in

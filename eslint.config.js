@@ -45,7 +45,7 @@ export default tseslint.config(
     //
     // This covers direct imports. A few transitive paths still reach Tauri
     // through inspector hooks (notably use-ws-connection); untangling those is
-    // part of splitting the apps in V4.md Phase 05.
+    // part of splitting the apps; see apps/docs/architecture.md phase 05.
     files: [
       'src/pages/shader-graph/**',
       'src/pages/texture-lab/**',
@@ -151,7 +151,7 @@ export default tseslint.config(
     // Both apps, because Studio inherited Inspector's tools and, with them, 86
     // raw literals expressing the same four meanings. The semantic ramps are
     // derived by one shared module (`@feather/ui/theme/semantic`), so the rule
-    // that keeps colour meaningful belongs to both. See V4.md §6.2 (C0).
+    // that keeps colour meaningful belongs to both. See the desktop design rules (C0).
     files: ['apps/inspector/src/**', 'apps/studio/src/**'],
     rules: {
       'no-restricted-syntax': [
@@ -160,7 +160,7 @@ export default tseslint.config(
           selector:
             "Literal[value=/\\b(?:text|bg|border|fill|stroke|ring|from|to|via)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]{2,3}\\b/]",
           message:
-            'Raw Tailwind color literal. Colour here means state: use the ok / warn / danger / info tokens (text-ok, bg-warn-surface, border-danger-border), or muted-foreground for chrome. If the colour marks identity rather than state — a node kind, a drag handle — opt out with an inline disable that says so. See V4.md §6.2 (C0).',
+            'Raw Tailwind color literal. Colour here means state: use the ok / warn / danger / info tokens (text-ok, bg-warn-surface, border-danger-border), or muted-foreground for chrome. If the colour marks identity rather than state — a node kind, a drag handle — opt out with an inline disable that says so. See skills/feather-desktop-app/references/design-rules.md (C0).',
         },
       ],
     },

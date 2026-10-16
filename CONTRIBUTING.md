@@ -257,9 +257,12 @@ Playwright, `packages/session-bridge/test/` for the bridge, and `scripts/tests/`
 symlink to `apps/vscode-extension/README.md`. Edit the source file directly when your editor has
 trouble writing through symlinks.
 
-Architecture, release trains, the reasoning behind the split, and the design rules for Inspector,
-Studio and the particle runtime are in [`V4.md`](./V4.md), along with the steps left before v4 is
-complete.
+Architecture and release trains are in [`apps/docs/architecture.md`](./apps/docs/architecture.md),
+with settled choices preserved in [`apps/docs/decisions.md`](./apps/docs/decisions.md). Inspector
+and Studio design rules live in
+[`skills/feather-desktop-app/references/design-rules.md`](./skills/feather-desktop-app/references/design-rules.md);
+particle runtime semantics live beside the plugin in
+[`packages/runtime-lua/plugins/particle-system-playground/README.md`](./packages/runtime-lua/plugins/particle-system-playground/README.md).
 
 ## CLI-Managed Examples
 
@@ -494,7 +497,8 @@ Plugin contribution tips:
 
 Feather v4 releases each artifact on its own train. There is no single repo-wide
 version — a CLI patch must not drag the desktop app, Lua runtime, or extension
-along with it. See `V4.md` §5.6 for the full model.
+along with it. See [`apps/docs/architecture.md`](./apps/docs/architecture.md#release-trains-and-versioning)
+for the full model.
 
 | Tag | Ships | Publishes to |
 | --- | --- | --- |
@@ -544,10 +548,9 @@ Notes:
   workflow dispatch.
 - `bash scripts/release-tag-version.sh <tag>` parses a tag into its train and
   version, and rejects tags outside this vocabulary.
-- Trains are expected to drift apart. The desktop app displays both its own
-  version and the connected runtime's version; a difference is normal and is not
-  a fault. Compatibility is signalled by the API version, which Phase 02 of the
-  v4 migration replaces with a negotiated protocol version.
+- Trains are expected to drift apart. Inspector displays both its own version
+  and the connected runtime's version; a difference is normal and is not a fault.
+  Compatibility is signalled by the negotiated wire protocol version.
 
 ## Build, Upload, And Release Safety
 
@@ -647,3 +650,48 @@ Include:
 - Any checks you could not run and why.
 - Known limitations or follow-up work.
 - AI assistance disclosure when applicable.
+
+## Engineering lessons from the v4 migration
+
+Each was learned by getting it wrong during v4.
+
+- **Verify a test by breaking the thing it tests.** Make the fix, watch it pass, revert, watch it
+  fail, restore. Several v4 tests passed against unfixed code; the particle export-equivalence test
+  was vacuous until it iterated all 26 easings and asserted the count.
+- **A migration can be complete by its own definition and leave a product that does not exist.**
+  Phase 05c moved 25,500 lines into Studio, every suite went green, and Studio rendered none of it.
+  Check the product, not only the move.
+- **An app's config is part of the migration.** The love.js Vite plugin was extracted for "Studio and
+  the showcase"; only the showcase wired it up, so Studio's previews rendered Studio inside its own
+  iframe. Check the build output, not just the dev server.
+- **A test that asserts current behaviour locks in the thing you are changing** (D43). Rewrite such
+  tests to assert the property you want.
+- **Extract the judgement and test that.** Where a browser test is hard, pull the decision into a pure
+  module and unit test it (`searchableText`, `isFromPreviousRun`, `profilerStateForNewSession`,
+  `pluginNavItems`, `core.lua`).
+- **Adding a field to a persisted store is a migration.** State written before the field rehydrates
+  without it; give every new persisted field a fallback at the point of use.
+- **Measure, do not reason, about allocation.** Two allocations were found only by benchmarking, one
+  of them the benchmark's own options table.
+- **The clamp change was a behaviour change.** Projects tuned against the unclamped preview look
+  different once preview and export agree. Say so when shipping a semantic fix.
+- **`git add -A` hides things.** It swept an untracked file into history and committed a 162 MB
+  corrupted document three times. Stage deliberately and check sizes after scripted edits.
+- **Slicing backwards yields the empty string, and `str.replace('', x)` inserts between every
+  character.** That is how a planning document became 2.5 million lines. Splice on indices.
+- **`V4-PARTICLES-GPU.md` is in history** (`bb8de80`, untracked again in `db7bedb`), and `bb8de80` is
+  already on `origin/v4`. Removing it now means rewriting published history.
+
+**Ports:** `4004` game WebSocket · `4005` Inspector MCP · `4006` CLI MCP HTTP · `4007` Studio
+creative MCP · `4008` Studio↔Inspector bridge · `1420` Inspector dev · `1430` Studio dev (D33).
+
+**Commands:**
+
+```sh
+pnpm run verify             # typecheck, lint, protocol, registry and catalog drift (~5s warm)
+pnpm run verify:enhanced    # C0–C5 and S5 guards
+pnpm run test               # every lane, serially, through turbo (also the pre-push gate)
+pnpm run test:tauri:e2e     # Inspector WebSocket server (Rust)
+pnpm run check:artifact-boundary   # after building both apps
+pnpm run studio:tauri       # Studio desktop
+```

@@ -150,8 +150,8 @@ pnpm run test               # standard pre-push test lanes
 pnpm run test:ready         # full headless release-readiness gate
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide, and [V4.md](V4.md) for the
-architecture and release trains.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide and the
+[architecture reference](apps/docs/architecture.md) for application boundaries and release trains.
 
 ---
 

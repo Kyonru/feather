@@ -5,8 +5,8 @@
 - Reconciled: 2026-10-16
 - Scope: Inspector and the architecture that feeds, automates, packages, and extends it
 
-This directory records the September architecture review and the disposition of its workstreams. It complements `V4.md`
-(release boundaries) and its §6 (interface refinement); it does not replace either one.
+This directory records the September architecture review and the disposition of its workstreams. It complements the
+[architecture reference](../apps/docs/architecture.md) and [interface design rules](../skills/feather-desktop-app/references/design-rules.md); it does not replace either one.
 Studio implementation is deliberately not reviewed here because it is being changed in parallel.
 Only the Inspector-to-Studio process boundary is covered.
 
@@ -26,7 +26,7 @@ Only the Inspector-to-Studio process boundary is covered.
 | Repository boundaries | [repository-boundaries.md](./repository-boundaries.md) | Remove stale pre-v4 paths and make boundary checks executable |
 
 The detailed documents preserve the evidence and original proposals. Their findings are historical;
-use the table below for current status and `V4.md` for active v4 work.
+use the table below for current status and [`ROADMAP.md`](../ROADMAP.md) for future work.
 
 ## Current disposition
 
@@ -43,7 +43,7 @@ security boundary, or materially stall the game. `P1` is the next reliability/pe
 | MCP | Partial | Independent startup/auth, correlation cleanup, status, deadlines, request limits, raw-command gating and Studio-local particle authoring landed. Module decomposition remains. |
 | Studio bridge | Done | Narrow allowlist, session selection, revocation, limits and TypeScript/Rust drift checks are implemented and covered. |
 | VS Code extension | Partial | Launcher, managed cancellable jobs, project selection, build config and real Extension Host Doctor coverage landed. A canonical shared CLI machine contract remains. |
-| Repository boundaries | Done except release proof | Post-v4 paths, metadata, CI/Turbo and executable boundary checks landed. Owner-only release checks remain in `V4.md` step 5. |
+| Repository boundaries | Done | Post-v4 paths, metadata, CI/Turbo, executable boundary checks and independent release proofs landed. |
 | Inspector app | Partial | Per-session events, lazy routes, batching and capped history landed. Connection-hook/host decomposition and swallowed-error cleanup remain. |
 | CLI/build/release | Partial | Archive limits and package safety landed. Service extraction and owner release proofs remain. |
 
@@ -80,5 +80,6 @@ security boundary, or materially stall the game. `P1` is the next reliability/pe
 - Inspector never imports or bundles Studio code.
 - Existing log virtualization, bounded persisted log history, protocol message registry, plugin
   error isolation, registry checksums, and extension snapshot verification are good foundations.
-- `V4.md` §6 remains the source for visual, interaction, accessibility, and panel-level UX
-  refinement. This audit should not create a competing UI plan.
+- The [desktop design rules](../skills/feather-desktop-app/references/design-rules.md) remain the
+  source for visual, interaction, accessibility, and panel-level UX refinement. This audit should
+  not create a competing UI plan.

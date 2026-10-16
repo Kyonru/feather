@@ -58,7 +58,7 @@ export function TraceViewer({
       // These two are syntax highlighting inside a stack trace, not state, so they
       // deliberately keep literals rather than borrowing --ok/--info, which would
       // make green mean "fine" here and something else everywhere else. They belong
-      // in the theme's syntax palette — see V4.md §6.2 (C0).
+      // in the theme's syntax palette — see skills/feather-desktop-app/references/design-rules.md §6.2 (C0).
       /* semantic-exempt:start — syntax highlighting, not state. These live in
          template literals, which the no-restricted-syntax rule cannot see into,
          so the marker is what verify:enhanced checks instead. */

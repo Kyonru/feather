@@ -10,7 +10,7 @@
           "apps/studio/src/StudioApp.tsx"
         ],
         "createdAt": "2026-10-16T17:44:41.661Z",
-        "reason": "Agent: both matches are intentional editor-navigation selection markers on compact tool/session rows, documented inline and aligned with V4.md Studio workbench rules; they are not card accents"
+        "reason": "Agent: both matches are intentional editor-navigation selection markers on compact tool/session rows, documented inline and aligned with skills/feather-desktop-app/references/design-rules.md Studio workbench rules; they are not card accents"
       }
     ]
   }

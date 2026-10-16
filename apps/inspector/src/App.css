@@ -65,7 +65,7 @@
   /* Semantic state colors. These four are the whole signal channel: color
      anywhere else in the UI is chrome, color here means something. The values
      match what `assets/theme/registry/semantic.ts` derives for this background,
-     so an unthemed render and a themed one agree. See V4.md §6.2 (C0). */
+     so an unthemed render and a themed one agree. See skills/feather-desktop-app/references/design-rules.md §6.2 (C0). */
   --ok: #137245;
   --ok-surface: #e2f8ee;
   --ok-border: #b1e7ce;

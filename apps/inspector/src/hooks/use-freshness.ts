@@ -19,7 +19,7 @@ import { useSessionStore } from '@/store/session';
  * currently attached: data that arrived before this game started is from a
  * previous run, full stop, however recent the clock says it is.
  *
- * See V4.md §6.2 (C2).
+ * See skills/feather-desktop-app/references/design-rules.md §6.2 (C2).
  */
 
 export type Freshness = {

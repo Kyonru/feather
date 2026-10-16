@@ -18,7 +18,7 @@ import {
  *
  * These lived in the Inspector settings store, which is why that store imports
  * texture-lab and shader-graph code — the coupling that makes a shared app-state
- * package circular and blocks the application split (V4.md Phase 05).
+ * package circular and blocks the application split (apps/docs/architecture.md Phase 05).
  *
  * This stage extracts them **in place**: the tools still run inside the current
  * application, but their state now has its own store, its own storage key, and a

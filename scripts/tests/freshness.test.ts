@@ -8,7 +8,7 @@ import test from 'node:test';
  * fine when the game has been up an hour and wrong when it restarted 5 seconds
  * ago — so the comparison is against when the session connected, not the clock.
  *
- * See V4.md §6.2 (C2).
+ * See skills/feather-desktop-app/references/design-rules.md §6.2 (C2).
  */
 
 const { isFromPreviousRun, describeAge } = await import('../../apps/inspector/src/hooks/use-freshness.ts');

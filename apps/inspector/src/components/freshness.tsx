@@ -12,7 +12,7 @@ import { useFreshness } from '@/hooks/use-freshness';
  * stale case is not quiet, because it is the one that sends someone chasing a
  * bug in data that predates their fix.
  *
- * See V4.md §6.2 (C2).
+ * See skills/feather-desktop-app/references/design-rules.md §6.2 (C2).
  */
 export function Freshness({
   queryKey,

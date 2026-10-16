@@ -53,7 +53,7 @@ export default function ParticleSystemPlaygroundPage() {
   // The work is always the local workspace's. Attaching a game used to swap in
   // a game-owned controller, which in Studio has no read-back from the game —
   // so connecting replaced the user's composites with an empty "not available"
-  // screen. Connecting adds; it does not replace (V4.md §6.4, P2).
+  // screen. Connecting adds; it does not replace (skills/feather-desktop-app/references/design-rules.md §6.4, P2).
   const workspaceKey = useWorkspaceToolKey('particles');
   const playground = useLocalParticlePlayground(workspaceKey);
   const composite = playground.composite;

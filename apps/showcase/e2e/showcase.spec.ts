@@ -1658,7 +1658,7 @@ test('shader graph preview probes render texture-heavy uploads in the showcase',
   await expectTextureProbePayload(page);
 });
 
-// --- Studio preferences migration (V4.md Phase 05a) --------------------------
+// --- Studio preferences migration (apps/docs/architecture.md phase 05a) ------
 //
 // Studio-owned preferences were extracted out of the Inspector settings store so
 // the two applications can be split. That store is persisted user data —

@@ -11,7 +11,7 @@
    `currentColor`. Without this rule every `border` utility in Studio drew in the
    *text* colour — a near-black line around every container, which is exactly the
    "strong borders" that made the tools look boxed-in. shadcn assumes this rule
-   exists; the showcase had it, Studio's own entry never did. See V4.md W2b. */
+   exists; the showcase had it, Studio's own entry never did. See skills/feather-desktop-app/references/design-rules.md W2b. */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -25,7 +25,7 @@
 
 /* Preview grounds are deliberately literal colors rather than theme tokens:
    they are calibration surfaces for judging an artifact. Changing theme must
-   not change what "neutral" means. See V4.md W2. */
+   not change what "neutral" means. See skills/feather-desktop-app/references/design-rules.md W2. */
 @layer components {
   .preview-ground-dark {
     background-color: #141414;

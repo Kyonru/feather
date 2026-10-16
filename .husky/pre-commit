@@ -18,7 +18,7 @@ fi
 # so this guard is what stops the two declarations from drifting apart.
 pnpm run check:protocol
 
-# Feather v4: versions are per release train (see V4.md §5.6). The trains
+# Feather v4: versions are per release train (see apps/docs/architecture.md §5.6). The trains
 # deliberately drift apart — a CLI patch must NOT drag the desktop app, runtime,
 # or extension along with it. The only cross-file constraint left is the desktop
 # trio, which is one artifact described in three files and must agree with itself.
@@ -34,6 +34,6 @@ bash scripts/set-version.sh desktop
 TRIO_AFTER=$(cat $DESKTOP_TRIO | git hash-object --stdin)
 if [ "$TRIO_BEFORE" != "$TRIO_AFTER" ]; then
   echo "[feather] Desktop version files were out of sync — set-version has aligned them; stage them and commit again."
-  echo "[feather] Note: cli, runtime, and ext version independently. See V4.md §5.6."
+  echo "[feather] Note: cli, runtime, and ext version independently. See apps/docs/architecture.md §5.6."
   exit 1
 fi

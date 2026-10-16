@@ -6,7 +6,8 @@
 
 Keep Inspector as one session-oriented application, but separate ingestion, domain state, and UI so
 high-volume game traffic does not force every concern through one hook or one active-session global.
-Panel-level design and usability work belongs in `V4.md` §6.
+Panel-level design and usability work belongs in the
+[desktop design rules](../skills/feather-desktop-app/references/design-rules.md).
 
 ## Findings
 
@@ -140,5 +141,7 @@ This is a responsibility sketch, not a requirement to move everything at once.
 - Query keys and domain types have no dependency on the transport hook.
 - Browser entry has no eager Tauri module evaluation.
 - Existing Inspector/Studio artifact-boundary checks remain green.
-- Panel usability changes continue to be tracked only in `V4.md` §6.
+- Panel usability changes follow the
+  [desktop design rules](../skills/feather-desktop-app/references/design-rules.md); future work is
+  tracked in [`ROADMAP.md`](../ROADMAP.md).
 

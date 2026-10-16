@@ -27,7 +27,7 @@ import { persist } from 'zustand/middleware';
  * state the user did not leave it in. The rule of thumb: if the user chose it
  * and would be annoyed to choose it again, it belongs here.
  *
- * See V4.md §6.2 (C1).
+ * See skills/feather-desktop-app/references/design-rules.md §6.2 (C1).
  */
 
 type PanelStateStore = {

@@ -4,7 +4,7 @@ import { describeAge, previewFreshness, type PreviewFreshness } from '@feather/u
 import { useActiveSession } from './index.ts';
 
 /**
- * Which game each tool's live preview was last delivered to (V4.md §6.2, C2).
+ * Which game each tool's live preview was last delivered to (skills/feather-desktop-app/references/design-rules.md §6.2, C2).
  *
  * Applies only when Studio is paired with Inspector. A preview reflects one run
  * of one game; when that game restarts or disconnects the preview on screen is

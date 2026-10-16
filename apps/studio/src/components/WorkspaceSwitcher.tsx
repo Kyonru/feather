@@ -22,7 +22,7 @@ import { useActiveWorkspace, useStudioWorkspacesStore } from '@studio/store/stud
 import { WORKSPACE_NAME_MAX } from '@studio/store/workspace-registry';
 
 /**
- * The work has a name (V4.md §6.4, W6).
+ * The work has a name (skills/feather-desktop-app/references/design-rules.md §6.4, W6).
  *
  * The current workspace sits in the shell strip, next to the tool, because it
  * is the answer to "what am I working on". Switching, creating and renaming

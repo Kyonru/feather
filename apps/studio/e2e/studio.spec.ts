@@ -10,7 +10,7 @@ import { expect, test } from '@playwright/test';
  *
  * These replaced four tests that asserted the Phase 05b placeholder — its
  * heading, its subtitle, its connect button. They passed for as long as Studio
- * rendered none of the tools it ships, which is exactly the failure mode V4.md
+ * rendered none of the tools it ships, which is exactly the failure mode skills/feather-desktop-app/references/design-rules.md
  * D43 describes: a test that asserts current behaviour locks in the thing you
  * are trying to change. They now assert the property instead — that each tool is
  * reachable and usable with nothing else running.
@@ -362,7 +362,7 @@ test('the three tools share one visual language', async ({ page }) => {
     // `border-border` base rule draws every container in the *text* colour.
     // Studio shipped that way once: 172 near-black outlines in Shader Graph
     // alone, which is what "strong border on every container" looked like.
-    // See V4.md W2b.
+    // See skills/feather-desktop-app/references/design-rules.md W2b.
     expect(harsh, `${tool} draws borders in the text colour`).toEqual([]);
   }
 });

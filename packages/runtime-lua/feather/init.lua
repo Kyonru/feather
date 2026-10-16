@@ -32,7 +32,7 @@ local FEATHER_API = 5
 -- This is NOT the plugin API version above. FEATHER_API gates which plugins a
 -- runtime can load; FEATHER_PROTOCOL_VERSION gates whether the runtime and the
 -- desktop app can talk to each other at all. They are separate because the
--- runtime and the desktop now ship on separate release trains (see V4.md), so
+-- runtime and the desktop now ship on separate release trains (see apps/docs/architecture.md), so
 -- they can legitimately be at different versions.
 --
 -- Bump this ONLY on a breaking change to the message set or message shapes.

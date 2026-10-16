@@ -2,7 +2,7 @@
 #
 # This file is the only workspace inventory; root `package.json` deliberately
 # has no `workspaces` field, so the two cannot disagree. Listed explicitly
-# rather than globbed so adding a package is a visible decision (V4.md §1: a
+# rather than globbed so adding a package is a visible decision (apps/docs/architecture.md §1: a
 # directory earns package status only as a release boundary or a contract).
 # `apps/inspector` and `apps/showcase` are built from the root package.
 packages:

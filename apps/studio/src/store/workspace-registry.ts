@@ -1,5 +1,6 @@
 /**
- * The pure half of Studio's workspaces (V4.md Step 3, S4 / W6).
+ * The pure half of Studio's durable named workspaces
+ * (skills/feather-desktop-app/references/design-rules.md, W6).
  *
  * A workspace is "the thing I am working on": a name and an id. Each tool
  * already persists its own state per id — Shader Graph's `workspaces`, Texture
@@ -19,7 +20,7 @@ export type StudioWorkspace = {
    * Per-tool storage keys, present only on a workspace adopted from storage
    * written before workspaces existed. Absent means "use the workspace id".
    * A fallback at the point of use, because adding a persisted field is a
-   * migration (V4.md §7).
+   * migration (CONTRIBUTING.md, engineering lessons).
    */
   toolKeys?: Partial<Record<WorkspaceTool, string>>;
 };

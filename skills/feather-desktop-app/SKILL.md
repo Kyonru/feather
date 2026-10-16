@@ -9,7 +9,7 @@ description: Work on Feather's two React + Tauri desktop apps — Inspector (ses
 
 Use this skill when changing Inspector (session UI, settings, plugin rendering, WebSocket state), Studio (the shader, texture and particle tools), the showcase, or their app-level tests.
 
-They are separate applications (V4.md §5): Inspector owns the game session; Studio is a local authoring tool that can optionally pair with Inspector through `packages/session-bridge`. Neither imports the other — `no-restricted-imports` enforces it and `pnpm run check:artifact-boundary` checks the built bundles. Shared code goes in `packages/ui` or `packages/host`. Read V4.md §6 before changing an existing feature's behaviour or UI.
+They are separate applications ([architecture](../../apps/docs/architecture.md)): Inspector owns the game session; Studio is a local authoring tool that can optionally pair with Inspector through `packages/session-bridge`. Neither imports the other — `no-restricted-imports` enforces it and `pnpm run check:artifact-boundary` checks the built bundles. Shared code goes in `packages/ui` or `packages/host`. Read [design rules](references/design-rules.md) before changing an existing feature's behaviour or UI.
 
 ## First pass
 
@@ -17,6 +17,7 @@ They are separate applications (V4.md §5): Inspector owns the game session; Stu
 - Studio: start with `apps/studio/src/StudioApp.tsx` and the tool under `apps/studio/src/tools/`.
 - Follow data flow through `apps/inspector/src/hooks/`, `apps/inspector/src/store/`, and `apps/inspector/src/lib/send-command.ts`.
 - For architecture and session flow, load [app architecture](references/app-architecture.md).
+- For product direction, interface semantics, and the Inspector/Studio distinction, load [design rules](references/design-rules.md).
 - For UI conventions and testing, load [UI and testing](references/ui-and-testing.md).
 - For Tauri commands, WS events, auth, and the Rust layer, load [tauri and protocol](references/tauri-and-protocol.md).
 - If the change affects plugin payload rendering, also use `feather-plugin-authoring`.

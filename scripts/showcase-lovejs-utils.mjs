@@ -259,7 +259,7 @@ export async function buildShowcaseLove({ root, outDir } = {}) {
     // the easing and keyframe maths, which had already drifted from the copy
     // the game and the export use — the preview clamped nothing, so an
     // inElastic size lane rendered negative sizes here and zero everywhere
-    // else. See V4.md, Particles P1.
+    // else. See packages/runtime-lua/plugins/particle-system-playground/README.md, Particles P1.
     'plugins/particle-system-playground/core.lua': await readFile(
       path.join(root, 'packages/runtime-lua/plugins/particle-system-playground/core.lua'),
       'utf8',

@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
  * behavioural test catches a copy that has *already* drifted, and by then
  * someone has shipped the wrong thing. This catches the copy.
  *
- * See V4.md, Particles §1 and P1.
+ * See packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §1 and P1.
  */
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const read = (rel: string) => readFileSync(path.join(root, rel), 'utf8');
@@ -108,7 +108,7 @@ test('the per-frame path does not pcall calls that cannot fail', () => {
   assert.ok(
     !/pcall/.test(apply),
     'apply.lua runs per frame on a system this code constructed; pcall there allocates ' +
-      'and hides errors (V4.md, Particles §4.2)',
+      'and hides errors (packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §4.2)',
   );
 });
 
@@ -121,7 +121,7 @@ test('the generator emits particle behaviour, never defines it', () => {
   // The generator's job is to decide what to *omit* and to emit a data table.
   // Every one of these was previously written out as generated Lua, which meant
   // the file someone shipped ran a second implementation of the semantics.
-  // See V4.md, Particles P5.
+  // See packages/runtime-lua/plugins/particle-system-playground/README.md, Particles P5.
   const mustNotDefine: Array<[string, RegExp]> = [
     ['easing maths', /inSine|outBack|outElastic|easeOutBounce/],
     ['keyframe evaluation', /evaluateKeyframes|evaluatePlannedLane|sampleTimelineLane/],

@@ -9,12 +9,12 @@
 -- someone ships. They had already drifted — the plugin and the export clamped
 -- four values, the preview clamped none, so a `sizeScale` lane authored with
 -- `inElastic` drove sizes to -37% in the preview and 0 everywhere else. See
--- V4.md, Particles §1 and §4.3.
+-- packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §1 and §4.3.
 --
 -- **This module must never touch LÖVE.** It takes tables and numbers and
 -- returns tables and numbers. That is what lets it be unit-tested without a
 -- graphics context, and it is the boundary that keeps "what a keyframe means"
--- separate from "which setter gets called" (V4.md, Particles §5).
+-- separate from "which setter gets called" (packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §5).
 --
 -- @module particle-system-playground.core
 
@@ -271,7 +271,7 @@ end
 -- clamp. Doing it here means every host clamps identically by construction.
 --
 -- `out` is optional and is filled in place when given, so a caller on the
--- per-frame path can avoid allocating (V4.md, Particles §4.2 — the current code
+-- per-frame path can avoid allocating (packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §4.2 — the current code
 -- allocates ~1.4 MB/s at 50 emitters).
 function Core.resolve(track, time, base, options, out)
   base = type(base) == "table" and base or {}
@@ -356,7 +356,7 @@ end
 -- frame and the baked curve is exact where the frames land; undersample and a
 -- `hold` step smears across the gap and becomes a different animation. Measured
 -- over a 3s timeline: 64 samples puts a step 64% wrong, 180 (one per frame at
--- 60fps) puts it at 0.000%. See V4.md, Particles §5.1.
+-- 60fps) puts it at 0.000%. See packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §5.1.
 
 Core.SAMPLES_PER_SECOND = 120  -- two per frame at 60fps, headroom for jitter
 Core.MIN_SAMPLES = 8
@@ -408,7 +408,7 @@ end
 -- Constant lanes become a number; varying lanes become a lookup table. Absent
 -- lanes stay absent, so nothing is paid for a lane nobody authored. The
 -- `constant` count is what lets a caller tell whether an emitter needs any
--- per-frame work at all (V4.md, Particles §5.2, tier 0).
+-- per-frame work at all (packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §5.2, tier 0).
 function Core.compileTrack(track, duration, resolution)
   duration = Core.normalizeDuration(duration, 3)
   resolution = resolution or Core.bakeResolution(duration)

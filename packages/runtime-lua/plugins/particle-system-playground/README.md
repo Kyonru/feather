@@ -217,3 +217,71 @@ When a scratch composite is drawn, the plugin sends `u_time` with `love.timer.ge
 - It does not depend on upstream HotParticles code or assets.
 - It does not import `.hotparticles` project files.
 - Registered game composites can be edited, but exports are only complete when the plugin has enough texture/shader metadata or uploaded asset bytes.
+
+## Runtime architecture: one program, three hosts
+
+The particle tool is the only one whose output is code someone ships.
+
+Three principles:
+
+- **One program, three hosts.** The in-game plugin, the love.js preview and the exported file run
+  the same code deciding the same things.
+- **The runtime simulates; Lua orchestrates.** Lua's job per frame is to decide what changed. If
+  nothing changed, its job is nothing.
+- **Exported code is the product.** No dead branches, no `pcall` around calls that cannot fail, no
+  configuration the project does not use.
+
+The work that implemented them, all done 2026-09-10 (code comments cite these IDs):
+
+| Phase | Delivered |
+| --- | --- |
+| **P1** — One semantic core | `core.lua` is the only definition of a keyframe; all hosts require it; clamps live in `Core.resolve` |
+| **P2** — Change detection | `apply.lua` is the only setter caller and sends only what moved; lanes compiled once; `pcall` off the per-frame path. A constant composite issues 6 setter calls, not 3,600 |
+| **P3** — Lifecycle | `lifecycle.lua` warms on start in all hosts and pools with a bound; neither touches `love` |
+| **P4** — Atlas variants | The N-draw fan-out stays (a LÖVE 11 limit; see the Feather-side GPU export target in `ROADMAP.md`); its sync cost dropped 9x and is skipped when nothing moved |
+| **P5** — Generated code | The export embeds `core.lua` and `apply.lua` verbatim and defines no semantics; tier 0 exports no update loop. 2,169 frame comparisons, zero mismatches |
+
+**Particles §1 — the situation that was fixed.** Keyframe semantics existed four times: the plugin
+(`init.lua`), the preview (`showcase_preview/main.lua`), the exporter's string literals, and the
+TypeScript curve editor (`easing.ts`). They had drifted, which is why the export did not match the
+preview. Now `core.lua` is the only Lua definition, every host requires it, and `easing.ts` is held
+to it by `particleEasingContract.test.ts` (all 26 easings). `particleCoreIsSingular.test.ts` fails
+if any host re-defines the semantics.
+
+**Particles §2 — the premise.** LÖVE 11's `ParticleSystem` simulates on the CPU in C++; the GPU
+draws. There are no compute shaders. So the goals are: no per-particle work in Lua, no per-frame
+work the value does not need, and the GPU doing the varying where a shader can.
+
+**Particles §4.2 — per-frame cost is allocation, not time.** Before P2, six emitters cost 0.28% of a
+60fps frame but churned 166 KB/s of garbage, identically whether lanes were keyframed or constant —
+fresh `sizes` tables, `unpack`, and `pcall` on every setter. GC pressure is what produces hitches.
+`pcall` is gone from the per-frame path (guarded); input authored outside the repo is still
+validated. LuaJIT does not JIT on arm64 macOS, so measurements there are the pessimistic case.
+Reproduce with `love scripts/bench-particle-timeline`.
+
+**Particles §4.3 — clamps are semantics.** `emissionRate`, `speedScale` and `sizeScale` clamp to
+`≥ 0` and `opacity` to `[0, 1]`, inside `Core.resolve`. Overshoot easings are supposed to leave
+`[0, 1]` — `inElastic` reaches −37% — so without the clamps the preview drew negative sizes the export
+never would. Do not "fix" a host by copying the clamps into it; that is another implementation.
+
+**Particles §4.5 — warming.** `kickStartSteps` / `kickStartDt` are honoured on start in all three
+hosts (`lifecycle.lua`). An authored value, including zero, wins; otherwise `ambient` warms one
+particle lifetime and `loop` / `one-shot` do not. Steps are capped and `kickStartDt` is clamped to
+1/10. A prewarmed system that hits `setBufferSize` silently stops emitting.
+
+**Particles §5 — the architecture.** In `plugins/particle-system-playground/`: `core.lua` evaluates
+lanes, clamps and decides what changed, and never touches LÖVE; `apply.lua` is the only code that
+calls a setter and issues only the setters whose value changed; `lifecycle.lua` builds, pools and
+warms. The exported file embeds `core.lua` and `apply.lua` verbatim.
+
+**Particles §5.1 — curves are baked, not simplified.** A lane is a pure function of time, so it is
+sampled once into a flat array at `ceil(duration * 120)` samples — two per 60fps frame, exact as far
+as anyone can observe (a `hold` step at 64 samples is 64% wrong; at one per frame it is 0%). Constant
+lanes are a number, not an array. The editor evaluates directly while a keyframe is dragged and
+bakes on release.
+
+**Particles §5.2 — an effect pays only for the tier it uses.** Tier 0: everything is native
+properties — setters at load, zero per-frame Lua, and the export has no update loop at all (the Hot
+Particles shape). Tier 1: the effect keyframes something — one baked sample and a changed-value
+check per varying lane. The tier is derived from the effect, never chosen in the UI. Asserted both
+ways in the export tests.

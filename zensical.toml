@@ -32,6 +32,10 @@ nav = [
     { "MCP" = "mcp.md" },
     { "Agent Skills" = "skills.md" },
   ] },
+  { "Development" = [
+    { "Architecture" = "architecture.md" },
+    { "Architecture Decisions" = "decisions.md" },
+  ] },
   { "Core Debugging" = [
     { "Console" = "console.md" },
     { "Debugger" = "debugger.md" },

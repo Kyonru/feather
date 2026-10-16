@@ -47,7 +47,7 @@ local _jsEval = isLoveJs and _loveJs.eval or nil
 local PreviewRuntime = require("shader-graph.preview_runtime")
 -- Particle timeline semantics: one definition, shared with the in-game plugin
 -- and the exported file. This preview used to carry its own copy, which
--- clamped nothing. See V4.md, Particles P1.
+-- clamped nothing. See packages/runtime-lua/plugins/particle-system-playground/README.md, Particles P1.
 local ParticleCore = require("plugins.particle-system-playground.core")
 local ParticleApply = require("plugins.particle-system-playground.apply")
 local ParticleLifecycle = require("plugins.particle-system-playground.lifecycle")

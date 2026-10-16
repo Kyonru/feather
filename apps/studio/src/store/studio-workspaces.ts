@@ -19,7 +19,8 @@ import {
 } from './workspace-registry';
 
 /**
- * Studio's workspaces (V4.md Step 3, S4 / W6): named, listed, switchable, and
+ * Studio's workspaces (skills/feather-desktop-app/references/design-rules.md, W6):
+ * named, listed, switchable, and
  * saved continuously.
  *
  * This store owns only *which* workspace is current and what each is called.

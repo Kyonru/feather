@@ -12,7 +12,7 @@ import test from 'node:test';
  * Deriving the ramps is not enough on its own; the derivation has to be checked
  * against every ground it will actually render on. That is what this does.
  *
- * See V4.md §6.2 (C0).
+ * See skills/feather-desktop-app/references/design-rules.md §6.2 (C0).
  */
 
 // One registry now, in the package, read by both apps. It used to be two

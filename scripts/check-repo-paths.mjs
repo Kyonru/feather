@@ -14,7 +14,7 @@
  *   3. Workspace metadata agrees with itself: `pnpm-workspace.yaml` is the only
  *      inventory, and each package's `repository.directory` is its real path.
  *
- * Historical records (CHANGELOG.md, V4.md, inspector-improvements/) are not
+ * Historical records (CHANGELOG.md and inspector-improvements/) are not
  * checked: rewriting them would falsify what was true when they were written.
  *
  * Run: node scripts/check-repo-paths.mjs

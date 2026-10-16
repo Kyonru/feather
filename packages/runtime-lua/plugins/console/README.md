@@ -221,7 +221,8 @@ local debugger = FeatherDebugger({
 
 Set `FEATHER_KEY` in your shell and match it in Feather desktop **Settings → API Key**. This way the key is never committed to source control and the Console is inert in release builds.
 
-See [Recommendations → Level 3 — Exclude from the release build](./recommendations.md#level-3-exclude-from-the-release-build-recommended) for ways to strip Feather entirely from release builds.
+See [Recommendations → Release builds](./recommendations.md#release-builds) for ways to strip
+Feather entirely from release builds.
 
 ---
 

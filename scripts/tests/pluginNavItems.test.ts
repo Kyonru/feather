@@ -11,7 +11,7 @@ import test from 'node:test';
  * `.toLowerCase()`. This list is the sidebar, so one odd manifest took
  * navigation down for the whole app.
  *
- * See V4.md §6.3 (6.7, C5).
+ * See skills/feather-desktop-app/references/design-rules.md §6.3 (6.7, C5).
  */
 
 const { pluginNavItems } = await import('../../apps/inspector/src/components/app-sidebar/plugin-nav-items.ts');

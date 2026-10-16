@@ -204,7 +204,7 @@ export default function ShaderGraph() {
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
             {/* Mode, stated as chrome. A connection adds live preview; the
-                editor is the same either way (V4.md §6.4, P1/P2). Plugin
+                editor is the same either way (skills/feather-desktop-app/references/design-rules.md §6.4, P1/P2). Plugin
                 state lives in Inspector, which is where it is toggled. */}
             <Badge variant="secondary" className="h-6 rounded-full px-2 text-[10px]" data-testid="shader-graph-mode">
               {localMode ? 'Local' : `Live preview · ${activeSession?.name ?? 'game'}`}

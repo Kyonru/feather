@@ -82,7 +82,7 @@ function mirror(session: BridgeSessionSummary | null) {
  *
  * Studio is fully useful with no Inspector at all — that is the null bridge, not
  * an error state. Connecting is an explicit user action so Studio never probes
- * loopback on its own (V4.md §5.4). One store, not one hook per component: the
+ * loopback on its own (apps/docs/architecture.md §5.4). One store, not one hook per component: the
  * strip and the menu used to each own a separate connection.
  *
  * Connecting *adds* live preview; it never replaces local work. Disconnecting

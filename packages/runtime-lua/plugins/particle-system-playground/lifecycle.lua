@@ -10,7 +10,7 @@
 -- `kickStartDt` — were already authored, already in the project file and
 -- already in the export, and honoured by nobody: the preview did not implement
 -- them, the export wrote them and never read them, and the plugin applied them
--- only behind a manual button. See V4.md, Particles §4.5.
+-- only behind a manual button. See packages/runtime-lua/plugins/particle-system-playground/README.md, Particles §4.5.
 --
 -- **Pooling.** Reusing a finished effect instead of building a new one. It
 -- existed only inside the exporter's generated strings, so the two hosts that

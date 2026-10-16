@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /* eslint-disable no-undef */
 /**
- * `pnpm run verify:enhanced` — check the v4 refinement work (V4.md §6.2), and say how to see it.
+ * `pnpm run verify:enhanced` — check the refinement rules in
+ * skills/feather-desktop-app/references/design-rules.md, and say how to see them.
  *
  * Two audiences. For an agent or CI it is a pass/fail gate over the properties
  * each finding claims to have fixed, measured rather than asserted. For a person

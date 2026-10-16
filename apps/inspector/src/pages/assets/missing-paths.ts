@@ -16,7 +16,7 @@
  * one `stat` per asset at once on a large project exhausts file handles, so the
  * work runs in bounded batches instead of being unbounded or truncated.
  *
- * See V4.md §6.3 (6.6).
+ * See skills/feather-desktop-app/references/design-rules.md §6.3 (6.6).
  */
 
 /** Enough to keep the filesystem busy, small enough not to exhaust handles. */

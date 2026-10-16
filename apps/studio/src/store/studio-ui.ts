@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware';
  * Studio's shell state.
  *
  * Which tool you had open is something you chose and would be mildly annoyed to
- * choose again, which is the test V4.md **C1** settled on for what belongs
+ * choose again, which is the test skills/feather-desktop-app/references/design-rules.md **C1** settled on for what belongs
  * in storage. Global rather than per session, for the same reason Inspector's
  * panel state is: what you are working on outlives any particular game, and in
  * Studio there is usually no game at all.

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Parse a Feather release tag into its train and version.
 #
-# Feather v4 tag vocabulary (see V4.md §5.6):
+# Feather v4 tag vocabulary (see apps/docs/architecture.md §5.6):
 #
 #   v<semver>            platform  - runtime + cli + desktop, released together
 #   cli-v<semver>        cli       - npm only
 #   runtime-v<semver>    runtime   - LuaRocks only
 #   desktop-v<semver>    desktop   - signed desktop binaries only
 #   ext-v<semver>        ext       - VS Code extension only
-#   studio-v<semver>     studio    - reserved, see V4.md Phase 05
+#   studio-v<semver>     studio    - reserved, see apps/docs/architecture.md Phase 05
 #
 # Usage:
 #   bash scripts/release-tag-version.sh <tag>              # prints "<train> <version>"

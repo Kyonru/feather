@@ -101,3 +101,69 @@ Before promoting any parked feature, require:
 
 - LÖVE tooling market signal
 - Integrated profiling/resource visibility reference: https://defold.com/manuals/profiling/
+
+## Carried-forward architecture and product work
+
+These items were deliberately left outside the completed v4 release. They are candidates, not promised dates, and remain subject to the roadmap policy above.
+
+### Particles — the authoring model redesign
+
+*(Owner: "i'm okay with redesigning how particles are created, like the whole feature, as long as
+we achieve the same things with a more intuitive design.")* The plan is agreed; none of it is built.
+
+1. **Start from an effect, not a parameter.** Templates (`presets.ts`) become the opening screen —
+   fire, smoke, sparks, rain, snow, explosion, trail — each working the moment it is picked.
+2. **Shape it with direct manipulation.** Keep the gizmos; they are the advantage over a slider
+   panel: `DirectionSpreadGizmo`, `LinearAccelPlane`, `CircularForceGizmo`, `RotationSpinGizmo`,
+   `TextureOffsetGizmo`, `SizeCurveEditor`, `ColorGradientEditor`, `DampingRangeEditor`.
+3. **Expose the native model underneath.** Every gizmo names the LÖVE property it writes
+   (`setLinearAcceleration` …), so the export reads in the same vocabulary.
+4. **The timeline is a layer you add.** Adding a lane is explicit; an effect with none is visibly and
+   structurally simpler, including in what it exports (see the particle runtime architecture).
+
+**Must survive:** multi-emitter composites, the timeline with bursts and per-lane easing, live push
+into a running game, per-emitter shaders, atlases with animated and variant playback, project
+import/export. **Owes the export:** kick-start on start (done in P3) and the tier-0 guarantee.
+
+### Particles — GPU backend
+
+The GPU-particle specification was implemented as a standalone library,
+[Kyonru/gpuparticles](https://github.com/Kyonru/gpuparticles): analytic and stateful modes with
+derived `mode = "auto"`, closed-form forces, O(1) analytic warm-up, a native-ParticleSystem fallback
+behind the same API (`getBackend()`), numeric GPU tests and a `bench/` project. Verified 2026-10-16.
+
+What remains is Feather-side: a **second export target** in the particle tool, chosen when an effect
+needs counts or forces the native system cannot reach. Timeline lanes are pure functions of time, so
+a lane becomes a uniform or a baked LUT texture. **The rule:** an effect that does not need the GPU
+backend must not be given it. This also addresses the remaining `variants` atlas limitation: those
+atlases still draw in N calls on LÖVE 11 because `ParticleSystem` exposes no per-particle data to a
+shader (68 methods, verified). See the particle runtime architecture in
+`packages/runtime-lua/plugins/particle-system-playground/README.md`.
+
+### Inspector — refinements left partial
+
+- **C4** — 27 swallowed errors remain (44 → 27; 11 now surface, 10 named deliberate), mostly
+  clipboard and `invoke`. Each should become a decision rather than a default.
+- **6.1 Logs** — filtered-view export is implemented and covered in the Inspector browser suite.
+- **6.7 Plugins** — acceptance not yet shown: a plugin author can tell from this page alone why
+  their plugin is not appearing ("not installed" / "installed and off" / "incompatible").
+- **Design direction (see `skills/feather-desktop-app/references/design-rules.md`)** — agreed, applied only where C0 required it.
+
+### Duplication between the apps
+
+Measured 2026-09-11: `src/utils/arrays.ts` (28 lines), `cache.ts` (80) and `timers.ts` (64) are
+byte-identical between Inspector and Studio. Candidates for `packages/ui` or a small shared package,
+but only if the sharing is a contract (see `apps/docs/architecture.md`). `assets.ts` and `file.ts` differ; `lib`, `hooks`,
+`store` and `components` share no files.
+
+### The architecture audit
+
+`inspector-improvements/` (audited 2026-09-10) is a separate, proposed set of workstreams —
+connection budgets, per-session state, plugin capability enforcement, transactional package
+installs, MCP request correlation. Its repository-boundary findings that belonged to the completed
+architecture migration have already landed.
+
+The plugin audit's P0/P1 boundary is nevertheless closed: the runtime bounds plugin payload bytes,
+depth, nodes, strings and binary totals before transport, Inspector independently validates before
+rendering, and structured health plus a bounded error panel explain any rejection. Capability-scoped
+Lua contexts and manager decomposition remain post-v4 architecture work.
