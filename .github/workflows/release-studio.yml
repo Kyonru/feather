@@ -76,12 +76,18 @@ jobs:
         include:
           - platform: macos-latest
             args: "--target aarch64-apple-darwin"
+            prereleaseArgs: "--no-sign"
           - platform: macos-latest
             args: "--target x86_64-apple-darwin"
+            prereleaseArgs: "--no-sign"
           - platform: ubuntu-22.04
             args: ""
+            # RPM rejects SemVer prerelease hyphens. Keep prerelease coverage
+            # on the portable AppImage and Debian package instead.
+            prereleaseArgs: "--bundles deb,appimage"
           - platform: windows-latest
             args: ""
+            prereleaseArgs: ""
 
     runs-on: ${{ matrix.platform }}
 
@@ -113,7 +119,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Import Apple Developer Certificate
-        if: matrix.platform == 'macos-latest'
+        # Proof prereleases stay unsigned. Stable releases retain the signed,
+        # notarized path below and therefore still fail closed on Apple issues.
+        if: matrix.platform == 'macos-latest' && !contains(needs.verify.outputs.version, '-')
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -138,7 +146,7 @@ jobs:
           echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
 
       - name: Write Apple API key
-        if: matrix.platform == 'macos-latest'
+        if: matrix.platform == 'macos-latest' && !contains(needs.verify.outputs.version, '-')
         run: |
           mkdir -p "$RUNNER_TEMP/private_keys"
           echo "${{ secrets.APPLE_API_KEY_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8"
@@ -158,4 +166,5 @@ jobs:
           projectPath: apps/studio
           tagName: ${{ github.ref_name }}
           releaseName: "Feather Studio v${{ needs.verify.outputs.version }}"
-          args: ${{ matrix.args }}
+          prerelease: ${{ contains(needs.verify.outputs.version, '-') }}
+          args: ${{ matrix.args }} ${{ contains(needs.verify.outputs.version, '-') && matrix.prereleaseArgs || '' }}
