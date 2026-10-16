@@ -18,9 +18,9 @@ import { existsSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { createConnection } from 'node:net';
 import { createInterface } from 'node:readline';
 import { createDevSessionTracker } from './dev-session.mjs';
+import { probeInspector, probeStudio } from './dev-app-health.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const EXAMPLE_ROOT = join(ROOT, 'packages/runtime-lua/example');
@@ -132,25 +132,18 @@ async function pickExample(examples) {
 
 // --- readiness ------------------------------------------------------------
 
-function probe(port) {
-  return new Promise((done) => {
-    const socket = createConnection({ port, host: '127.0.0.1' });
-    const settle = (open) => {
-      socket.destroy();
-      done(open);
-    };
-    socket.once('connect', () => settle(true));
-    socket.once('error', () => settle(false));
-    socket.setTimeout(1000, () => settle(false));
-  });
-}
-
-async function waitForPort(port, label, isAlive) {
+async function waitForApp(probe, port, label, isAlive) {
   const deadline = Date.now() + READY_TIMEOUT_MS;
   let announced = false;
 
   while (Date.now() < deadline) {
-    if (await probe(port)) return true;
+    const result = await probe(port);
+    if (result.status === 'feather') return true;
+    if (result.status === 'foreign') {
+      log('up', `${label} cannot start: port ${port} is occupied by another service (${result.detail}).`);
+      log('up', `Stop that service or choose another ${label === 'Inspector' ? 'FEATHER_PORT' : 'Studio dev port'}, then retry.`);
+      return false;
+    }
     if (isAlive && !isAlive()) {
       log('up', `${label} exited before it started listening on ${port}.`);
       return false;
@@ -213,6 +206,7 @@ function start(tag, command, args, options = {}) {
 function shutdown(code) {
   if (shuttingDown) return;
   shuttingDown = true;
+  process.exitCode = code;
   process.stdout.write('\n');
   log('up', 'shutting down…');
 
@@ -330,17 +324,29 @@ async function main() {
     }
   }
 
-  const inspectorUp = await probe(INSPECTOR_PORT);
+  const inspectorHealth = await probeInspector(INSPECTOR_PORT);
+  const inspectorUp = inspectorHealth.status === 'feather';
   if (inspectorUp) {
     log('up', `Inspector already listening on ${INSPECTOR_PORT} — reusing it.`);
+  } else if (inspectorHealth.status === 'foreign') {
+    log('up', `Inspector cannot start: port ${INSPECTOR_PORT} is occupied by another service (${inspectorHealth.detail}).`);
+    log('up', 'Stop that service or set FEATHER_PORT to a free port, then retry.');
+    shutdown(1);
+    return;
   } else {
     log('up', 'starting Inspector…');
     start('inspector', 'pnpm', ['run', 'inspector:tauri'], { markers: ['inspector:tauri'] });
   }
 
   if (options.studio) {
-    if (await probe(STUDIO_PORT)) {
+    const studioHealth = await probeStudio(STUDIO_PORT);
+    if (studioHealth.status === 'feather') {
       log('up', `Studio already running on ${STUDIO_PORT} — reusing it.`);
+    } else if (studioHealth.status === 'foreign') {
+      log('up', `Studio cannot start: port ${STUDIO_PORT} is occupied by another service (${studioHealth.detail}).`);
+      log('up', 'Stop that service on Studio\'s dev port, then retry.');
+      shutdown(1);
+      return;
     } else {
       log('up', 'starting Studio…');
       start('studio', 'pnpm', ['run', 'studio:tauri'], { markers: ['studio:tauri'] });
@@ -353,7 +359,7 @@ async function main() {
   }
 
   const alive = () => children.some(({ tag, child }) => tag === 'inspector' && child.exitCode === null);
-  if (!inspectorUp && !(await waitForPort(INSPECTOR_PORT, 'Inspector', alive))) {
+  if (!inspectorUp && !(await waitForApp(probeInspector, INSPECTOR_PORT, 'Inspector', alive))) {
     shutdown(1);
     return;
   }

@@ -62,12 +62,16 @@ pnpm run up --no-game           # just the apps
 pnpm run up --list              # what can I run?
 ```
 
-It builds the CLI, starts Inspector, **waits for port 4004 to accept a connection**, then launches
-the game through the CLI with `--session-name` set to the example. Ctrl+C stops everything.
+It builds the CLI, starts Inspector, **waits for Inspector's authentication challenge on port
+4004**, then launches the game through the CLI with `--session-name` set to the example. Ctrl+C
+stops everything.
 
-Anything already listening is reused rather than started twice, so you can leave Inspector open and
-re-run `pnpm run up <other-example>` to swap games. A partial name works (`single` finds
-`session_replay/single_player`); an ambiguous one lists the matches.
+An existing Inspector or Studio is reused rather than started twice. `up` verifies Inspector's
+WebSocket protocol and Studio's application HTML before reuse; if another service owns either port,
+it stops with the port and the corrective action instead of launching a game against the wrong
+process. You can leave Inspector open and re-run `pnpm run up <other-example>` to swap games. A
+partial name works (`single` finds `session_replay/single_player`); an ambiguous one lists the
+matches.
 
 To stop every process tree owned by any active `pnpm run up` command from another terminal, run:
 
