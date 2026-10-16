@@ -1,6 +1,6 @@
 {
   "name": "@feather/studio",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "private": true,
   "description": "Feather Studio \u2014 standalone creative tooling for L\u00d6VE: shader graph, texture lab, particle playground",
   "type": "module",

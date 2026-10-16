@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Every `feather mcp` call to Inspector or Studio has a deadline and fails with "… did not answer within N ms" instead of hanging on a stalled application; HTTP request bodies are limited to 1 MiB; the server reports its real version instead of `3.3.1`.
 - Rebuilt Particle Playground and Texture Lab as resizable three-region Studio workbenches with preview-first layouts, persisted per-tool pane sizes, switchable calibration grounds, and every existing editor/export workflow retained.
 - Release tags are now per-train instead of repo-wide. `cli-v*` publishes the CLI alone, `runtime-v*` the Lua runtime alone, `desktop-v*` the desktop app alone, and `ext-v*` the VS Code extension alone. `v*` still performs a full platform release of runtime, CLI, and desktop together. Previously every tag fired all four publish paths.
+- Studio prereleases now use bundle formats that accept SemVer prerelease labels (AppImage/deb on Linux and NSIS on Windows) and unsigned macOS proof builds; stable Studio releases retain signing and notarization.
 - `scripts/set-version.sh` now takes a release train (`cli`, `runtime`, `desktop`, `ext`, or `platform`) and only writes the files that train owns, so bumping one artifact no longer rewrites the others. It is also portable now, where it previously assumed macOS `sed`.
 - The LuaRocks publish is skipped when the Lua runtime is unchanged since the previous runtime release, so a platform tag no longer burns a rock version for an unmodified runtime.
 - Session health no longer reports a mismatch when the connected Lua runtime and the desktop app report different versions. The trains ship on separate cadences, so a difference is expected; both versions are still shown, and plugin API compatibility is still checked.
@@ -45,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The CLI release entrypoint retains the workflow filename registered with npm trusted publishing, so isolated `cli-v*` releases can exchange GitHub OIDC identity and publish successfully.
 - Studio now mounts its creative MCP bridge at the application root, so live Shader Graph, Particle Playground, and Texture Lab snapshot/action requests reach the running desktop app instead of returning 404.
 - `pnpm run up` now verifies Inspector's WebSocket identity and Studio's application identity before reusing their ports, and stops with actionable guidance when another service owns one instead of launching against the wrong process.
 - VSIX packaging now resolves the post-v4 icon source, includes the canonical license, excludes obsolete pre-v4 CLI/Lua bundle directories, and restores the development launcher after producing the package.
