@@ -87,7 +87,9 @@ jobs:
             prereleaseArgs: "--bundles deb,appimage"
           - platform: windows-latest
             args: ""
-            prereleaseArgs: ""
+            # MSI accepts only numeric prerelease identifiers; NSIS preserves
+            # ordinary SemVer prerelease labels such as rc.1.
+            prereleaseArgs: "--bundles nsis"
 
     runs-on: ${{ matrix.platform }}
 
