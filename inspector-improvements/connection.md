@@ -1,5 +1,7 @@
 # Game connection performance and reliability
 
+> Status (2026-10-16): partially implemented. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+
 ## Finding
 
 The idle connection is inexpensive, but the path is not safe under a large payload, a burst, or a

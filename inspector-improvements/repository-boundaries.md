@@ -1,5 +1,7 @@
 # Repository and release-boundary hygiene
 
+> Status (2026-10-16): implemented except owner-only release proof. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+
 ## Goal
 
 Finish the v4 move operationally: source paths, package metadata, workspace configuration, agent

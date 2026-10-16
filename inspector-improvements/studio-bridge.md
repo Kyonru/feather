@@ -1,5 +1,7 @@
 # Inspector-to-Studio bridge
 
+> Status (2026-10-16): implemented. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+
 ## Scope
 
 This reviews only the process contract in `packages/session-bridge` and

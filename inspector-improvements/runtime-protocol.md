@@ -1,5 +1,7 @@
 # Lua runtime and wire protocol
 
+> Status (2026-10-16): partially implemented. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+
 ## Goal
 
 Make version skew safe in behavior, not only visible in the UI, while preserving Rust as a

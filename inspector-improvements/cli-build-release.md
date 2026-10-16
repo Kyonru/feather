@@ -1,5 +1,7 @@
 # CLI, build, and release architecture
 
+> Status (2026-10-16): partially implemented. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+
 ## Goal
 
 Keep the CLI the canonical workflow engine while making its command, build-target, and automation

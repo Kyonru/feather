@@ -1,5 +1,7 @@
 # Plugin system architecture
 
+> Status (2026-10-16): partially implemented. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+
 ## Goal
 
 Keep plugins extensible while making permissions, runtime cost, payload shape, and failure state

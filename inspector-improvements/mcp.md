@@ -1,5 +1,7 @@
 # MCP architecture
 
+> Status (2026-10-16): partially implemented. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+
 ## Goal
 
 Preserve one agent-facing `feather mcp` configuration while letting Inspector and Studio own,

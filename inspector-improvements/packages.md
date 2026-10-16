@@ -1,5 +1,7 @@
 # Package management architecture
 
+> Status (2026-10-16): partially implemented. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+
 ## Goal
 
 Make package operations atomic, ownership-aware, reproducible, and honest about where metadata came

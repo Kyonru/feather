@@ -1,10 +1,11 @@
 # Feather architecture improvement audit
 
-- Status: proposed work, not an accepted implementation plan
+- Status: reconciled implementation audit; remaining items are backlog, not v4 blockers
 - Audited: 2026-09-10
+- Reconciled: 2026-10-16
 - Scope: Inspector and the architecture that feeds, automates, packages, and extends it
 
-This directory turns the architecture review into bounded workstreams. It complements `V4.md`
+This directory records the September architecture review and the disposition of its workstreams. It complements `V4.md`
 (release boundaries) and its §6 (interface refinement); it does not replace either one.
 Studio implementation is deliberately not reviewed here because it is being changed in parallel.
 Only the Inspector-to-Studio process boundary is covered.
@@ -24,30 +25,29 @@ Only the Inspector-to-Studio process boundary is covered.
 | Inspector/Studio bridge | [studio-bridge.md](./studio-bridge.md) | Scope the bridge capability and make session choice explicit |
 | Repository boundaries | [repository-boundaries.md](./repository-boundaries.md) | Remove stale pre-v4 paths and make boundary checks executable |
 
-## Priority order
+The detailed documents preserve the evidence and original proposals. Their findings are historical;
+use the table below for current status and `V4.md` for active v4 work.
+
+## Current disposition
 
 `P0` means the current behavior can corrupt state, act on the wrong target, violate a stated
 security boundary, or materially stall the game. `P1` is the next reliability/performance pass.
 `P2` is maintainability or scale work that should follow measured bottlenecks.
 
-| Priority | Work | Why first |
+| Area | Status | Landed / remaining |
 | --- | --- | --- |
-| P0 | Fix raw-source package version overrides | `baseUrl.replace(tag, override)` does not change SHA-pinned catalog URLs, so the requested version can be mislabeled without being fetched |
-| P0 | Make package install/update/remove transactional and ownership-aware | A later download failure can leave files changed while the lockfile stays old; remove deletes modified files |
-| P0 | Enforce plugin capability allowlists | Missing capabilities currently emit a warning but do not prevent plugin activation |
-| P0 | Bound and budget the game transport | Lua and Rust queues are unbounded and WebSocket masking can consume many frame budgets |
-| P0 | Correlate command responses by request ID | One response can satisfy multiple identical MCP waits; timed-out waiters linger |
-| P0 | Make protocol incompatibility operational | Inspector displays an incompatibility but continues normal command traffic |
-| P0 | Scope the Studio bridge capability | The bridge accepts any game command even though its purpose is creative preview |
-| P1 | Gate MCP recording before parsing/cloning | Disabled MCP still pays JSON parse, redaction, snapshot, and locking costs |
-| P1 | Replace JSON-array binary Tauri events with channels/raw IPC | Binary data is inflated and copied across the native/frontend boundary |
-| P1 | Split Inspector ingestion and cap histories | The 1,031-line connection hook owns transport, decoding, state migration, UI effects, and file export |
-| P1 | Repair VS Code extension orchestration | The local dev launcher points to the removed root CLI; terminal jobs refresh through fixed timers |
-| P1 | Decouple MCP gateway auth from backend auth | The supposedly unified gateway cannot start for Studio-only use without an Inspector token |
-| P2 | Decompose large CLI, extension, plugin, and page modules | This reduces drift once the correctness boundaries above are executable |
-| P2 | Finish repository path cleanup and metadata | Stale paths now appear in agent instructions, package metadata, workspace comments, and local launch code |
+| Packages | Partial | Transactionality, ownership, lock validation, version resolution and provenance landed. Independently signed registry metadata remains backlog. |
+| Plugins | Partial | Capability/runtime policy, scheduler budgets, manifests, action correlation and health landed. UI payload byte/depth/node limits and Inspector health presentation remain. |
+| Connection | Partial | Incremental masking, bounded queues, explicit overflow, disabled-MCP gating, raw binary IPC, log batching and capped history landed. Byte-accounted Rust queues, overload UI and soak/load proof remain. |
+| Runtime/protocol | Partial | Request IDs, read-only incompatible sessions and named receive overflow landed. Feature/range negotiation and targeted payload schemas remain. |
+| MCP | Partial | Independent startup/auth, correlation cleanup, status, deadlines, request limits and raw-command gating landed. Module decomposition and Studio-local particle authoring remain. |
+| Studio bridge | Done | Narrow allowlist, session selection, revocation, limits and TypeScript/Rust drift checks are implemented and covered. |
+| VS Code extension | Partial | Launcher, managed cancellable jobs, project selection, build config and real Extension Host Doctor coverage landed. A canonical shared CLI machine contract remains. |
+| Repository boundaries | Done except release proof | Post-v4 paths, metadata, CI/Turbo and executable boundary checks landed. Owner-only release checks remain in `V4.md` step 5. |
+| Inspector app | Partial | Per-session events, lazy routes, batching and capped history landed. Connection-hook/host decomposition and swallowed-error cleanup remain. |
+| CLI/build/release | Partial | Archive limits and package safety landed. Service extraction and owner release proofs remain. |
 
-## Recommended implementation sequence
+## Original recommended implementation sequence
 
 1. Add failing tests and telemetry for the P0 behaviors. Do not refactor first.
 2. Land package correctness as one workstream; it does not depend on the live runtime.
@@ -61,15 +61,15 @@ security boundary, or materially stall the game. `P1` is the next reliability/pe
 
 ## Cross-cutting acceptance gates
 
-- A 60-second slow-consumer test has stable memory and bounded queue depth.
-- A large capture cannot spend more than the configured per-frame Feather budget before yielding.
-- Two concurrent commands of the same type receive their own responses or their own timeouts.
-- A failed package operation leaves both project files and `feather.lock.json` byte-for-byte unchanged.
-- Removing a modified package file refuses by default and prints a recovery action.
-- A plugin missing an allowed capability never reaches `init`, `update`, callbacks, or actions.
-- An incompatible runtime is visible for historical inspection but receives no mutating command.
-- Studio-only creative MCP use does not require Inspector to be running or configured.
-- All app/package metadata and agent guidance use the post-v4 `apps/*` and `catalog/*` paths.
+- Backlog: a 60-second slow-consumer test has stable memory and bounded queue depth.
+- Met: a large frame masks incrementally within the configured frame budget.
+- Met: two concurrent commands of the same type receive their own responses or their own timeouts.
+- Met: a failed package operation leaves both project files and `feather.lock.json` unchanged.
+- Met: removing a modified package file refuses by default and prints a recovery action.
+- Met: a plugin missing an allowed capability never reaches `init`, `update`, callbacks, or actions.
+- Met: an incompatible runtime is visible for historical inspection but receives no mutating command.
+- Partial: Studio-only Shader Graph and Texture Lab MCP work without Inspector; Particle Playground authoring still uses the live-game backend.
+- Met: app/package metadata and agent guidance use the post-v4 `apps/*` and `catalog/*` paths.
 
 ## Things to preserve
 

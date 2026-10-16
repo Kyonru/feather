@@ -1,5 +1,7 @@
 # Inspector application architecture
 
+> Status (2026-10-16): partially implemented. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+
 ## Goal
 
 Keep Inspector as one session-oriented application, but separate ingestion, domain state, and UI so

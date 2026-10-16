@@ -1,5 +1,7 @@
 # VS Code extension architecture
 
+> Status (2026-10-16): partially implemented. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+
 ## Goal
 
 Keep the extension a thin, hermetic companion to a pinned Feather platform snapshot. It should
