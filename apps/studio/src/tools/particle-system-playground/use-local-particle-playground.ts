@@ -537,7 +537,11 @@ export function useLocalParticlePlayground(workspaceId?: string) {
       writtenFor.current = workspaceId;
       return;
     }
-    replaceLocalParticleWorkspace(workspaceId, data);
+    // This render already owns `data`; persist it without notifying the
+    // external-owner subscription. Notifying here would feed the edit back
+    // into this hook and clear the undo stack that recorded it. MCP mutations
+    // use replaceLocalParticleWorkspace instead so an open UI still updates.
+    writeLocalParticleWorkspace(workspaceId, data);
   }, [data, workspaceId]);
 
   const currentHistorySnapshot = useCallback(() => snapshotParticleAuthoring(dataRef.current), []);
