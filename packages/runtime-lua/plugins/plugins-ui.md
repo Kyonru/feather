@@ -270,6 +270,29 @@ return feather.ui.render(feather.ui.image({
 
 The desktop resolves `feather-binary:<id>` placeholders into local blob URLs automatically.
 
+## Payload Limits And Errors
+
+Plugin output is validated twice: in the Lua runtime before JSON or attachments enter the transport,
+and again in Inspector before React renders it. The v1 UI contract accepts at most:
+
+| Resource | Limit |
+| --- | ---: |
+| Serialized JSON envelope | 1 MiB |
+| Nested table/object depth | 32 |
+| Table/object/array nodes | 5,000 |
+| One string or key | 256 KiB |
+| Binary attachments in one payload | 256 |
+| Binary attachment bytes in one payload | 16 MiB |
+
+Cycles, functions, userdata, non-finite numbers, malformed attachments, and unsupported top-level
+content types are rejected. Attachments created while building a rejected payload are discarded
+before transport. Inspector shows a bounded error panel with the violated limit, while the plugin's
+structured health records the `payload` failure. Repeated failures use the normal plugin isolation
+threshold and can stop the plugin without taking down the game or Plugins page.
+
+These are safety ceilings, not payload-size targets. Keep recurring JSON substantially smaller and
+use `feather:attachBinary(...)` for captures or file data.
+
 ## Complete Example
 
 This is a compact dashboard-style plugin:
@@ -363,3 +386,5 @@ See the built-in Runtime Snapshot plugin for a fuller example: [`runtime-snapsho
 - Use `table`, `timeline`, and `inspector` nodes for larger structured data instead of manually building huge text blocks.
 - Use binary attachments for large payloads instead of base64 JSON.
 - Avoid resending enormous UI trees every frame. Keep high-frequency data compact.
+- Treat a payload-limit error as a design signal: paginate large tables, summarize trees, or move
+  opaque bytes to attachments rather than trying to approach the ceiling.

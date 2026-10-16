@@ -30,6 +30,8 @@ function Health.new()
     lastUpdateMs = nil,
     lastPushMs = nil,
     lastPayloadBytes = nil,
+    lastBinaryBytes = nil,
+    lastRejectedPayloadBytes = nil,
     lastPushAt = nil,
     pushCount = 0,
   }
@@ -107,6 +109,8 @@ function Health.snapshot(record)
     lastUpdateMs = round(health.lastUpdateMs),
     lastPushMs = round(health.lastPushMs),
     lastPayloadBytes = health.lastPayloadBytes,
+    lastBinaryBytes = health.lastBinaryBytes,
+    lastRejectedPayloadBytes = health.lastRejectedPayloadBytes,
     lastPushAt = health.lastPushAt,
     pushCount = health.pushCount,
     refreshPending = record._refreshPending == true,

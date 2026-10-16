@@ -84,6 +84,26 @@ export interface PluginConfig {
     sampleRate?: number;
   };
   actions?: Array<Record<string, unknown>>;
+  inactiveReason?: {
+    code?: string;
+    message?: string;
+    remediation?: string;
+  };
+  health?: {
+    status?: 'active' | 'failing' | 'inactive' | 'disabled-by-errors' | string;
+    consecutiveFailures?: number;
+    totalFailures?: number;
+    lastError?: { phase?: string; message?: string; at?: number };
+    disabledReason?: string;
+    lastUpdateMs?: number;
+    lastPushMs?: number;
+    lastPayloadBytes?: number;
+    lastBinaryBytes?: number;
+    lastRejectedPayloadBytes?: number;
+    lastPushAt?: number;
+    pushCount?: number;
+    refreshPending?: boolean;
+  };
   [key: string]: unknown;
 }
 

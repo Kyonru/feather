@@ -9,6 +9,8 @@ local json = require("feather.lib.json")
 local ws = require("feather.lib.ws")
 local runtimeLog = require("feather.lib.log")
 local FeatherPluginManager = require("feather.plugin_manager")
+local PluginPayload = require("feather.plugin_payload")
+local PluginScheduler = require("feather.plugin_scheduler")
 local PluginE2EHelper = require("e2e.plugins.helper")
 
 local Suite = { id = "plugin-activation" }
@@ -312,6 +314,83 @@ local function testHealth(assertEqual, assertTruthy)
   feather:finish()
 end
 
+local function testPayloadBoundary(assertEqual, assertTruthy)
+  local limits = {
+    maxPayloadBytes = 256,
+    maxDepth = 4,
+    maxNodes = 5,
+    maxStringBytes = 16,
+    maxBinaryBytes = 12,
+    maxBinaryAttachments = 2,
+  }
+  local valid = { type = "ui", tree = { type = "text", value = "small" }, loading = false }
+  assertTruthy(PluginPayload.validate(valid, limits), "a bounded plugin UI payload is accepted")
+
+  local deep = { child = { child = { child = { child = {} } } } }
+  local deepOk, deepReason = PluginPayload.validate(deep, limits)
+  assertEqual(deepOk, false, "deep plugin data is rejected")
+  assertTruthy(deepReason:find("depth", 1, true), "depth rejection is named")
+
+  local wide = { {}, {}, {}, {}, {}, {} }
+  local wideOk, wideReason = PluginPayload.validate(wide, limits)
+  assertEqual(wideOk, false, "a plugin payload with too many nodes is rejected")
+  assertTruthy(wideReason:find("node count", 1, true), "node rejection is named")
+
+  local stringOk, stringReason = PluginPayload.validate({ value = string.rep("x", 17) }, limits)
+  assertEqual(stringOk, false, "an oversized plugin string is rejected")
+  assertTruthy(stringReason:find("string", 1, true), "string rejection is named")
+
+  local binaryOk, binaryReason = PluginPayload.validateBinaries({ { bytes = "12345678" }, { bytes = "12345678" } }, 1, limits)
+  assertEqual(binaryOk, false, "oversized binary attachment totals are rejected")
+  assertTruthy(binaryReason:find("binary attachments total", 1, true), "binary rejection is named")
+
+  local cycle = {}
+  cycle.self = cycle
+  local cycleOk, cycleReason = PluginPayload.validate(cycle, limits)
+  assertEqual(cycleOk, false, "cyclic plugin data is rejected")
+  assertTruthy(cycleReason:find("cycle", 1, true), "cycle rejection is named")
+
+  -- Exercise the actual scheduler seam: reject before either JSON or attached
+  -- bytes are queued, record structured health, and send one bounded error.
+  local Oversized = function()
+    return {
+      handleRequest = function(_, _, feather)
+        feather:attachBinary("application/octet-stream", "attachment-must-not-leak")
+        return { type = "ui", tree = { type = "text", value = string.rep("x", PluginPayload.limits.maxStringBytes + 1) } }
+      end,
+      getConfig = function()
+        return { type = "oversized", tabName = "Oversized", icon = "triangle-alert" }
+      end,
+    }
+  end
+  local feather = PluginE2EHelper.createFeather({
+    sessionName = "Plugin Payload Boundary E2E",
+    deviceId = "plugin-payload-boundary-e2e",
+    plugins = {
+      FeatherPluginManager.createPlugin(Oversized, "oversized", {}, false, {}, nil, CHEAP),
+    },
+  })
+  local messages = attachSocket(feather)
+  local record = feather.pluginManager:getPlugin("oversized")
+  PluginScheduler.pushRecord(feather.pluginManager, feather, record, "payload-boundary")
+  assertEqual(#feather._pendingBinaries, 0, "rejected payload binaries are discarded before transport")
+  local rejections = {}
+  for _, message in ipairs(messages) do
+    if message.type == "plugin" and message.plugin == "oversized" then
+      rejections[#rejections + 1] = message
+    end
+  end
+  assertEqual(#rejections, 1, "one bounded rejection reaches Inspector")
+  assertEqual(rejections[1].data.type, "error", "the rejection is a renderable plugin error")
+  assertEqual(rejections[1].data.code, "payload-rejected", "the rejection has a stable code")
+  assertEqual(rejections[1].requestId, "payload-boundary", "the rejection preserves request correlation")
+  local health = feather:__getConfig().plugins.oversized.health
+  assertEqual(health.status, "failing", "payload rejection is visible in structured health")
+  assertEqual(health.lastError.phase, "payload", "health names the failed phase")
+  assertTruthy(health.lastError.message:find("string", 1, true), "health explains the rejected limit")
+  feather:finish()
+end
+
 local function testActionCorrelation(assertEqual, assertTruthy)
   local jobs = {}
   local cancelled = {}
@@ -409,6 +488,7 @@ function Suite.run(assertEqual, assertTruthy)
   testOptionalAndInvalid(assertEqual, assertTruthy)
   testDisabledAndDefaults(assertEqual, assertTruthy)
   testHealth(assertEqual, assertTruthy)
+  testPayloadBoundary(assertEqual, assertTruthy)
   testActionCorrelation(assertEqual, assertTruthy)
 end
 

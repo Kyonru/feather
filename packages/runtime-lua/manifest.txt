@@ -22,6 +22,7 @@ core:feather/plugin_actions.lua
 core:feather/plugin_contract.lua
 core:feather/plugin_health.lua
 core:feather/plugin_manager.lua
+core:feather/plugin_payload.lua
 core:feather/plugin_policy.lua
 core:feather/plugin_scheduler.lua
 core:feather/protocol_messages.lua

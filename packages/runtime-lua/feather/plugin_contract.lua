@@ -25,6 +25,18 @@ return {
   -- Version of the plugin UI payload envelope (`type = "plugin"` messages).
   uiSchemaVersion = 1,
 
+  -- A plugin runs inside the game process, but its output is still untrusted at
+  -- the rendering boundary. These limits are deliberately generous enough for
+  -- large tables and captures while making memory/render cost finite.
+  uiLimits = {
+    maxPayloadBytes = 1048576,
+    maxDepth = 32,
+    maxNodes = 5000,
+    maxStringBytes = 262144,
+    maxBinaryBytes = 16777216,
+    maxBinaryAttachments = 256,
+  },
+
   -- Version of the plugin action request/response contract.
   actionSchemaVersion = 1,
 }

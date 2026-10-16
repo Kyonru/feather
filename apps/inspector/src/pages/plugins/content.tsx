@@ -35,7 +35,7 @@ import {
 import { downloadFile } from '@/utils/file';
 import { isWeb } from '@/utils/platform';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { Bookmark, CheckIcon, ChevronRight, DownloadIcon, ExternalLink } from 'lucide-react';
+import { Bookmark, CheckIcon, ChevronRight, DownloadIcon, ExternalLink, TriangleAlertIcon } from 'lucide-react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Badge } from '@feather/ui/badge';
 import { cn } from '@/utils/styles';
@@ -972,6 +972,25 @@ export function PluginContent(
     pendingParams?: Record<string, PluginParamValue>;
   },
 ) {
+  if (props.type === 'error') {
+    return (
+      <div
+        className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm"
+        data-testid="plugin-payload-error"
+      >
+        <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
+        <div className="min-w-0 space-y-1">
+          <p className="font-medium text-destructive">Plugin output blocked</p>
+          <p className="text-muted-foreground">{props.message}</p>
+          {props.detail ? <p className="break-words font-mono text-xs text-muted-foreground">{props.detail}</p> : null}
+          <p className="text-xs text-muted-foreground">
+            Reduce this plugin&apos;s payload or use binary attachments for large data, then refresh the page.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (props.type === 'ui') {
     return (
       <div className="space-y-3">

@@ -67,6 +67,13 @@ const describeRuntimePolicy = (plugin: { runtime?: { update?: string; push?: str
   return `${update}; ${push}${sample}.`;
 };
 
+const healthLabel = (status?: string) => {
+  if (status === 'disabled-by-errors') return 'Stopped after errors';
+  if (status === 'failing') return 'Failing';
+  if (status === 'inactive') return 'Inactive';
+  return 'Healthy';
+};
+
 const VectorInput = ({
   label,
   value,
@@ -401,6 +408,24 @@ export default function PluginPage() {
           </div>
           {/* System controls */}
           <div className="flex items-center gap-2 shrink-0">
+            {plugin.health && (
+              <Badge
+                variant="outline"
+                data-testid="plugin-health-status"
+                className={cn(
+                  plugin.health.status === 'active' && 'border-ok-border bg-ok-surface text-ok',
+                  plugin.health.status === 'failing' && 'border-warn-border bg-warn-surface text-warn',
+                  plugin.health.status === 'disabled-by-errors' && 'border-destructive/30 bg-destructive/5 text-destructive',
+                )}
+                title={
+                  plugin.health.lastPayloadBytes === undefined
+                    ? undefined
+                    : `Last payload: ${plugin.health.lastPayloadBytes.toLocaleString()} bytes`
+                }
+              >
+                {healthLabel(plugin.health.status)}
+              </Badge>
+            )}
             {docsUrl && (
               <Button variant="ghost" size="sm" onClick={() => openUrl(docsUrl)}>
                 <DynamicIcon className="size-4" name="book-open" />
@@ -429,6 +454,28 @@ export default function PluginPage() {
             </div>
           </div>
         )}
+        {!plugin.incompatible &&
+          plugin.health?.lastError &&
+          ((plugin.health.consecutiveFailures ?? 0) > 0 || plugin.health.status === 'disabled-by-errors') && (
+            <div
+              className="mb-4 flex items-start gap-3 rounded-md border border-warn-border bg-warn-surface p-3 text-sm"
+              data-testid="plugin-health-error"
+            >
+              <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-warn" />
+              <div className="min-w-0 grid gap-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">Plugin {healthLabel(plugin.health.status).toLowerCase()}</p>
+                  <Badge variant="outline">{plugin.health.lastError.phase ?? 'runtime'}</Badge>
+                </div>
+                <p className="break-words text-muted-foreground">{plugin.health.lastError.message ?? 'Unknown plugin error'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {plugin.health.status === 'disabled-by-errors'
+                    ? 'Fix the plugin, then enable it again.'
+                    : 'The plugin remains isolated; refresh after correcting its output.'}
+                </p>
+              </div>
+            </div>
+          )}
         {!plugin.disabled && !plugin.incompatible && plugin.runtime?.cost === 'high' && (
           <div className="mb-4 flex items-start gap-3 rounded-md border border-warn-border bg-warn-surface p-3 text-sm">
             <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-warn" />

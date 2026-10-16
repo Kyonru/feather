@@ -211,12 +211,27 @@ export interface PluginContentUiProps {
   loading: boolean;
 }
 
+export interface PluginContentErrorProps {
+  type: 'error';
+  code: 'payload-rejected' | 'payload-invalid' | 'payload-too-large' | string;
+  message: string;
+  detail?: string;
+  loading: false;
+  health?: {
+    status?: string;
+    consecutiveFailures?: number;
+    totalFailures?: number;
+    lastError?: { phase?: string; message?: string; at?: number };
+  };
+}
+
 export type PluginContentProps =
   | PluginContentGalleryProps
   | PluginContentTableProps
   | PluginContentTreeProps
   | PluginContentTimelineProps
-  | PluginContentUiProps;
+  | PluginContentUiProps
+  | PluginContentErrorProps;
 
 export const usePluginAction = (pluginId: string) => {
   const sessionId = useSessionStore((state) => state.sessionId);

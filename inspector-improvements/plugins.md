@@ -1,6 +1,8 @@
 # Plugin system architecture
 
-> Status (2026-10-16): partially implemented. This is the original audit; see [README.md](./README.md#current-disposition) for the reconciled status.
+> Status (2026-10-16): the P0/P1 enforcement work is implemented. Capability-scoped Lua contexts
+> and the manager decomposition remain post-v4 design work. This preserves the original findings;
+> see [README.md](./README.md#current-disposition) for the cross-audit disposition.
 
 ## Goal
 
@@ -40,11 +42,20 @@ catalog. Comments, alternate quoting, and richer nested metadata can be interpre
 
 ### 5. Plugin UI payloads lack a negotiated boundary (`P1`)
 
+**Implemented 2026-10-16.** The v1 envelope now caps serialized bytes, depth, nodes, individual
+strings, attachment count and attachment bytes before transport. Inspector independently validates
+the decoded data before rendering, replacing a rejected payload with a bounded error panel. Focused
+Lua, TypeScript and Inspector browser coverage exercises every limit.
+
 There is no common schema version, byte limit, depth limit, node-count limit, or action-response
 correlation requirement for plugin UI payloads. Third-party payloads arrive at a large generic
 renderer, and oversized/malformed trees can consume Inspector resources.
 
 ### 6. Health is mostly log text (`P1`)
+
+**Implemented 2026-10-16.** One structured record covers activation, update, callback, payload,
+action, params and config failures. Inspector shows the current health state and last actionable
+error; rejected payloads carry the same snapshot in their error response.
 
 Update failures disable a plugin after repeated errors, which is a good isolation mechanism, but
 activation/action/push failures are not represented through one structured health model. Users and
@@ -123,8 +134,8 @@ behavior while making each policy testable.
 - A denied-capability fixture proves no plugin code or callbacks execute.
 - Every built-in manifest declares explicit runtime policy and passes generated validation.
 - `req:plugins` stays within the same per-frame budget as normal pushes.
-- Oversized/deep/invalid UI fixtures render a structured plugin error with bounded memory.
-- Plugin health is available consistently to Inspector and MCP.
+- [x] Oversized/deep/invalid UI fixtures render a structured plugin error with bounded memory.
+- [x] Plugin health is available consistently to Inspector and MCP.
 - Concurrent actions use request IDs and cancellation cannot affect another request.
 - Generator output includes runtime and action/UI contract metadata.
 - The manager facade shrinks without changing the plugin API unless a version bump is deliberate.

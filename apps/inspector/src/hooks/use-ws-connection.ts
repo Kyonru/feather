@@ -30,6 +30,7 @@ import { evaluateProtocol } from '@/constants/feather-protocol';
 import { recordSessionProtocol } from '@/lib/protocol-gate';
 import { parseInbound } from '@feather/protocol';
 import { sessionQueryKey } from '@/lib/session-query-keys';
+import { validatePluginPayload } from '@/lib/plugin-payload';
 import { sendCommand, sendBackgroundCommand } from '@/lib/send-command';
 import { base64ToUint8Array } from '@/utils/arrays';
 import { normalizePerformanceMetric } from '@/utils/performance-metrics';
@@ -70,6 +71,18 @@ type BinaryTarget =
   | { type: 'sessionReplayRecording'; replayId?: string | null }
   | { type: 'debuggerPaused' }
   | { type: 'console' };
+
+const safePluginContent = (data: unknown): PluginContentProps => {
+  const validation = validatePluginPayload(data);
+  if (validation.ok) return data as PluginContentProps;
+  return {
+    type: 'error',
+    code: validation.code,
+    message: 'Inspector blocked an unsafe plugin payload.',
+    detail: validation.message,
+    loading: false,
+  };
+};
 
 type BinaryRef = {
   id: string;
@@ -745,8 +758,10 @@ export const useWsConnection = () => {
           case 'plugin': {
             const pluginId = msg.plugin;
             if (!pluginId) break;
-            const pluginData = data as PluginContentProps;
-            queueBinaryRefs(sessionId, { type: 'plugin', pluginId }, pluginData);
+            const pluginData = safePluginContent(data);
+            if (pluginData.type !== 'error') {
+              queueBinaryRefs(sessionId, { type: 'plugin', pluginId }, pluginData);
+            }
 
             queryClient.setQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId), (prev) => {
               if (pluginData?.type === 'gallery' && pluginData.persist && prev?.type === 'gallery') {
@@ -769,8 +784,10 @@ export const useWsConnection = () => {
               queryClient.setQueryData(sessionQueryKey.pluginAction(sessionId, pluginId, action), response);
             }
             if (pluginId && response.data && typeof response.data === 'object' && typeof response.data.type === 'string') {
-              const pluginData = response.data as PluginContentProps;
-              queueBinaryRefs(sessionId, { type: 'plugin', pluginId }, pluginData);
+              const pluginData = safePluginContent(response.data);
+              if (pluginData.type !== 'error') {
+                queueBinaryRefs(sessionId, { type: 'plugin', pluginId }, pluginData);
+              }
               queryClient.setQueryData<PluginContentProps>(sessionQueryKey.plugin(sessionId, pluginId), (prev) => {
                 if (pluginData?.type === 'gallery' && pluginData.persist && prev?.type === 'gallery') {
                   return {

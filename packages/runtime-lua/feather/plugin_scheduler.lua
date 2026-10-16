@@ -9,6 +9,7 @@
 local json = require(FEATHER_PATH .. ".lib.json")
 local contract = require(FEATHER_PATH .. ".plugin_contract")
 local Health = require(FEATHER_PATH .. ".plugin_health")
+local Payload = require(FEATHER_PATH .. ".plugin_payload")
 
 local Scheduler = {}
 
@@ -97,6 +98,43 @@ local function hasBudget(feather)
   return true
 end
 
+local function discardBinaries(feather, firstIndex)
+  local pending = feather._pendingBinaries or {}
+  for index = #pending, firstIndex, -1 do
+    pending[index] = nil
+  end
+end
+
+local function rejectionEnvelope(feather, record, requestId, reason)
+  return {
+    type = "plugin",
+    session = feather.sessionId,
+    plugin = record.identifier,
+    data = {
+      type = "error",
+      code = "payload-rejected",
+      message = "Inspector blocked this plugin payload because it exceeded the safe rendering contract.",
+      detail = reason,
+      loading = false,
+      health = Health.snapshot(record),
+    },
+    schemaVersion = contract.uiSchemaVersion,
+    pluginVersion = record.version,
+    generatedAt = wallClockMs(),
+    requestId = requestId,
+  }
+end
+
+local function rejectPayload(manager, feather, record, requestId, firstBinary, reason, encodedBytes)
+  discardBinaries(feather, firstBinary)
+  record.health.lastRejectedPayloadBytes = encodedBytes
+  manager:_recordFailure(record, "payload", reason, feather)
+  local ok, encoded = pcall(json.encode, rejectionEnvelope(feather, record, requestId, reason))
+  if ok and feather.__sendWs then
+    feather:__sendWs(encoded)
+  end
+end
+
 --- Build one plugin's payload and send it in the versioned envelope.
 ---@return boolean pushed  true when a payload build ran (whether or not it produced data)
 function Scheduler.pushRecord(manager, feather, record, requestId)
@@ -108,17 +146,32 @@ function Scheduler.pushRecord(manager, feather, record, requestId)
   local request = { method = "GET", params = {}, headers = {}, path = "/plugins/" .. record.identifier }
   local startedAt = Health.clock()
   local overheadStartedAt = feather and feather.overhead and feather.overhead:begin()
+  feather._pendingBinaries = feather._pendingBinaries or {}
+  local firstBinary = #feather._pendingBinaries + 1
   local ok, data = pcall(instance.handleRequest, instance, request, feather)
   if feather and feather.overhead then
     feather.overhead:recordPlugin("payload", record.identifier, overheadStartedAt)
   end
   if not ok then
+    discardBinaries(feather, firstBinary)
     manager:_recordFailure(record, "payload", data, feather)
     return true
   end
-  Health.recordSuccess(record.health, "payload")
   if data == nil then
+    discardBinaries(feather, firstBinary)
+    Health.recordSuccess(record.health, "payload")
     record.health.lastPushMs = (Health.clock() - startedAt) * 1000
+    return true
+  end
+
+  local valid, invalidReason = Payload.validate(data)
+  if not valid then
+    rejectPayload(manager, feather, record, requestId, firstBinary, invalidReason, nil)
+    return true
+  end
+  local binariesValid, binaryReason, binaryBytes = Payload.validateBinaries(feather._pendingBinaries, firstBinary)
+  if not binariesValid then
+    rejectPayload(manager, feather, record, requestId, firstBinary, binaryReason, nil)
     return true
   end
 
@@ -134,7 +187,19 @@ function Scheduler.pushRecord(manager, feather, record, requestId)
   }
   local encodedOk, encoded = pcall(json.encode, envelope)
   if not encodedOk then
-    manager:_recordFailure(record, "payload", "payload is not serializable: " .. tostring(encoded), feather)
+    rejectPayload(manager, feather, record, requestId, firstBinary, "payload is not serializable: " .. tostring(encoded), nil)
+    return true
+  end
+  if #encoded > Payload.limits.maxPayloadBytes then
+    rejectPayload(
+      manager,
+      feather,
+      record,
+      requestId,
+      firstBinary,
+      "serialized payload is " .. #encoded .. " bytes (limit " .. Payload.limits.maxPayloadBytes .. ")",
+      #encoded
+    )
     return true
   end
 
@@ -146,8 +211,11 @@ function Scheduler.pushRecord(manager, feather, record, requestId)
   end
 
   local health = record.health
+  Health.recordSuccess(health, "payload")
   health.lastPushMs = (Health.clock() - startedAt) * 1000
   health.lastPayloadBytes = #encoded
+  health.lastBinaryBytes = binaryBytes
+  health.lastRejectedPayloadBytes = nil
   health.lastPushAt = envelope.generatedAt
   health.pushCount = health.pushCount + 1
   return true
