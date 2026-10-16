@@ -1,10 +1,19 @@
 #!/usr/bin/env node
+/* eslint-disable no-undef */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
+import { LuaTableParseError, parseLuaTable } from './lib/lua-table.mjs';
+import { validateManifest } from './lib/plugin-manifest.mjs';
 
-// eslint-disable-next-line no-undef
-const root = process?.cwd();
-const pluginsRoot = join(root, 'packages/runtime-lua', 'plugins');
+// Manifests are parsed, not pattern-matched: see scripts/lib/lua-table.mjs. The
+// generator runs in pre-commit hooks and CI jobs that have Node but no Lua, so
+// it cannot evaluate them; the parser accepts exactly the literal-table subset a
+// manifest may use and names anything else as an error.
+
+const root = process.cwd();
+const runtimeRoot = join(root, 'packages/runtime-lua');
+const pluginsRoot = join(runtimeRoot, 'plugins');
+const contractFile = join(runtimeRoot, 'feather', 'plugin_contract.lua');
 const outFile = join(root, 'apps', 'cli', 'src', 'generated', 'plugin-catalog.ts');
 
 function walk(dir, files = []) {
@@ -16,45 +25,19 @@ function walk(dir, files = []) {
   return files;
 }
 
-function stringField(src, key) {
-  return src.match(new RegExp(`${key}\\s*=\\s*"([^"]*)"`))?.[1] ?? '';
-}
-
-function booleanField(src, key, fallback) {
-  const match = src.match(new RegExp(`${key}\\s*=\\s*(true|false)`));
-  return match ? match[1] === 'true' : fallback;
-}
-
-function stringArrayField(src, key) {
-  const match = src.match(new RegExp(`${key}\\s*=\\s*\\{([^}]*)\\}`));
-  if (!match) return [];
-  return [...match[1].matchAll(/"([^"]*)"/g)].map((item) => item[1]);
-}
-
-function loadManifest(path) {
-  const src = readFileSync(path, 'utf8');
-  const sourceDir = relative(pluginsRoot, dirname(path)).replace(/\\/g, '/');
-  const id = stringField(src, 'id');
-
-  if (!id) {
-    throw new Error(`Plugin manifest is missing id: ${path}`);
+function parseFile(path) {
+  try {
+    return parseLuaTable(readFileSync(path, 'utf8'));
+  } catch (error) {
+    if (error instanceof LuaTableParseError) {
+      throw new Error(`${relative(root, path)}: ${error.message}`);
+    }
+    throw error;
   }
-
-  return {
-    id,
-    sourceDir,
-    name: stringField(src, 'name') || id,
-    description: stringField(src, 'description'),
-    version: stringField(src, 'version'),
-    capabilities: stringArrayField(src, 'capabilities'),
-    optIn: booleanField(src, 'optIn', false),
-    disabled: booleanField(src, 'disabled', false),
-  };
 }
 
 function manifestExpectedPaths() {
-  const manifestPath = join(root, 'packages/runtime-lua', 'manifest.txt');
-  const lines = readFileSync(manifestPath, 'utf8')
+  const lines = readFileSync(join(runtimeRoot, 'manifest.txt'), 'utf8')
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
@@ -64,9 +47,9 @@ function manifestExpectedPaths() {
     const parts = line.split(':');
     let path;
     if (parts[0] === 'core' && parts[1]) {
-      path = join(root, 'packages/runtime-lua', parts[1]);
+      path = join(runtimeRoot, parts[1]);
     } else if (parts[0] === 'plugin' && parts[1] && parts[2]) {
-      path = join(root, 'packages/runtime-lua', 'plugins', parts[1], parts[2]);
+      path = join(pluginsRoot, parts[1], parts[2]);
     } else {
       throw new Error(`Invalid manifest.txt entry: ${line}`);
     }
@@ -80,18 +63,78 @@ function manifestExpectedPaths() {
   return paths;
 }
 
+const contract = parseFile(contractFile);
 const manifestPaths = manifestExpectedPaths();
 const pluginManifests = walk(pluginsRoot).filter((path) => path.endsWith('/manifest.lua'));
-const plugins = pluginManifests.map(loadManifest).sort((a, b) => a.id.localeCompare(b.id));
+const problems = [];
+const plugins = [];
+const seenIds = new Map();
 
-for (const manifest of pluginManifests) {
-  const rel = relative(root, manifest).replace(/\\/g, '/');
+for (const manifestPath of pluginManifests) {
+  const rel = relative(root, manifestPath).replace(/\\/g, '/');
   if (!manifestPaths.has(rel)) {
-    throw new Error(`Plugin manifest is not listed in packages/runtime-lua/manifest.txt: ${rel}`);
+    problems.push(`${rel}: not listed in packages/runtime-lua/manifest.txt (run bash scripts/generate-manifest.sh)`);
   }
+
+  const sourceDir = relative(pluginsRoot, dirname(manifestPath)).replace(/\\/g, '/');
+  let manifest;
+  try {
+    manifest = parseFile(manifestPath);
+  } catch (error) {
+    problems.push(error.message);
+    continue;
+  }
+
+  const e2eName = typeof manifest?.id === 'string' ? manifest.id.replace(/[.-]/g, '_') : '';
+  const { entry, problems: manifestProblems } = validateManifest(manifest, {
+    sourceDir,
+    contract,
+    hasReadme: existsSync(join(dirname(manifestPath), 'README.md')),
+    hasE2e: e2eName !== '' && existsSync(join(runtimeRoot, 'e2e', 'plugins', `${e2eName}.lua`)),
+  });
+  for (const problem of manifestProblems) problems.push(`${rel}: ${problem}`);
+  if (!entry) continue;
+
+  if (seenIds.has(entry.id)) {
+    problems.push(`${rel}: duplicate plugin id '${entry.id}' (also declared by ${seenIds.get(entry.id)})`);
+  }
+  seenIds.set(entry.id, rel);
+  plugins.push(entry);
 }
 
+if (problems.length > 0) {
+  console.error(`Plugin catalog was not written; ${problems.length} manifest problem(s):`);
+  for (const problem of problems) console.error(`  - ${problem}`);
+  process.exit(1);
+}
+
+plugins.sort((a, b) => a.id.localeCompare(b.id));
+
 const source = `// Generated by scripts/generate-plugin-catalog.mjs. Do not edit by hand.
+
+export type PluginCapability = ${contract.capabilities.map((token) => JSON.stringify(token)).join(' | ')};
+
+export type PluginRuntimePolicy = {
+  cost: ${contract.runtime.cost.map((value) => JSON.stringify(value)).join(' | ')};
+  update: ${contract.runtime.update.map((value) => JSON.stringify(value)).join(' | ')};
+  push: ${contract.runtime.push.map((value) => JSON.stringify(value)).join(' | ')};
+  /** Seconds between payload pushes while the plugin is active. */
+  sampleRate: number;
+};
+
+/** Plugin API compatibility: an exact list, or an inclusive min/max range. */
+export type PluginApiRange = {
+  min: number | null;
+  max: number | null;
+  exact: number[] | null;
+};
+
+export type PluginActionContract = {
+  name: string;
+  cancellable: boolean;
+  schemaVersion: number;
+  description?: string;
+};
 
 export type PluginCatalogEntry = {
   id: string;
@@ -99,9 +142,18 @@ export type PluginCatalogEntry = {
   name: string;
   description: string;
   version: string;
-  capabilities: string[];
+  /** Required: the plugin never runs unless every one is granted. */
+  capabilities: PluginCapability[];
+  /** Used when granted; the plugin still runs without them. */
+  optionalCapabilities: PluginCapability[];
   optIn: boolean;
   disabled: boolean;
+  /** null when the manifest declares no API constraint. */
+  api: PluginApiRange | null;
+  runtime: PluginRuntimePolicy;
+  /** null when the manifest declares no action contract (actions are then unchecked). */
+  actions: PluginActionContract[] | null;
+  uiSchemaVersion: number;
 };
 
 export const pluginCatalog = ${JSON.stringify(plugins, null, 2)} satisfies PluginCatalogEntry[];
@@ -109,5 +161,4 @@ export const pluginCatalog = ${JSON.stringify(plugins, null, 2)} satisfies Plugi
 
 writeFileSync(outFile, source);
 
-// eslint-disable-next-line no-undef
-console?.log(`Written ${relative(root, outFile)} (${plugins.length} plugins)`);
+console.log(`Written ${relative(root, outFile)} (${plugins.length} plugins)`);

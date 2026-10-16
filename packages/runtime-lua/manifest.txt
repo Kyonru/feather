@@ -18,6 +18,7 @@ core:feather/lib/inspect.lua
 core:feather/lib/json.lua
 core:feather/lib/log.lua
 core:feather/lib/ws.lua
+core:feather/plugin_contract.lua
 core:feather/plugin_manager.lua
 core:feather/protocol_messages.lua
 core:feather/ui.lua
