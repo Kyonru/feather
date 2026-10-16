@@ -2,10 +2,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import { readFileSync } from 'node:fs';
 import { loveJsPreviewPlugin, loveJsDevHeaders, loveJsPreviewHeaders } from '../../scripts/vite-lovejs-plugin.mjs';
 
 const root = __dirname;
 const repo = path.resolve(root, '../..');
+const studioPackage = JSON.parse(readFileSync(path.resolve(root, 'package.json'), 'utf8')) as { version: string };
 const studioPreviewHeaders = {
   ...loveJsPreviewHeaders,
   'Content-Security-Policy': loveJsPreviewHeaders['Content-Security-Policy'].replace(
@@ -21,6 +23,9 @@ const studioDevHeaders = { ...studioPreviewHeaders, 'Cache-Control': loveJsDevHe
 // build fails to resolve rather than quietly recreating the coupling.
 export default defineConfig({
   root,
+  define: {
+    __FEATHER_STUDIO_VERSION__: JSON.stringify(studioPackage.version),
+  },
   // Studio owns the shader-graph and particle previews, so it is the plugin's
   // primary consumer — its own docstring says so. It was never actually wired
   // up here, which meant every love.js preview iframe requested a path Vite did

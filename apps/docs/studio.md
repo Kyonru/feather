@@ -47,8 +47,9 @@ an error.
 
 ## Pairing with Inspector
 
-Connecting lets you push work straight into a running game — a shader, a
-particle system, a texture — and see it live.
+Connecting adds a scoped Shader Graph preview in a running game. Particle
+systems and textures remain local authoring inputs; apply them through Studio's
+particle and shader tools, then export them for the game.
 
 1. Start Feather Inspector and attach your game as usual.
 2. In Studio, open the tools menu and choose **Connect Inspector**.

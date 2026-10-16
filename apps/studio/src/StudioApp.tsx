@@ -143,8 +143,8 @@ function InspectorStatus({ compact = false }: { compact?: boolean }) {
             Connect Inspector
           </button>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            Optional. Studio works as a local editor without it; connecting lets you push work straight into a running
-            game.
+            Optional. Studio works as a local editor without it; connecting adds scoped Shader Graph previews in the
+            selected running game.
           </p>
         </>
       )}

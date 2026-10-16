@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Root development commands accept both pnpm argument-forwarding forms, so the documented `pnpm run feather -- ...` and `pnpm run up -- ...` commands work under pnpm 11 as well as older pnpm releases.
+- Studio now derives its Inspector bridge identity from its package version, preventing compatibility checks from reporting the original `0.1.0` after an independent Studio release. Pairing copy now accurately describes the currently supported scoped Shader Graph preview.
 
 ### Added
 

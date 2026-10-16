@@ -17,8 +17,6 @@ import { chooseSessionSelection, previewRequestFor } from '@studio/session/bridg
 import { usePreviewDeliveryStore } from '@studio/session/preview-delivery';
 import { useStudioPreferencesStore } from '@studio/store/studio-preferences';
 
-const STUDIO_VERSION = '0.1.0';
-
 /** Where Inspector listens for bridge requests on loopback. */
 export const INSPECTOR_BRIDGE_URL = 'http://127.0.0.1:4008/bridge';
 
@@ -155,7 +153,10 @@ export const useInspectorConnection = create<InspectorConnectionState>()((set, g
     async connect() {
       if (get().status !== 'local') return;
       set({ status: 'connecting', error: null, notice: null });
-      const client = createClientBridge(loopbackTransport, { clientVersion: STUDIO_VERSION, clientInstanceId });
+      const client = createClientBridge(loopbackTransport, {
+        clientVersion: __FEATHER_STUDIO_VERSION__,
+        clientInstanceId,
+      });
       const result = await client.connect();
       if (!result.ok) {
         set({
