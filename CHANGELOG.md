@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Existing texture recipes, saved workspaces and timeline settings move across on first pairing. The copy inside Inspector is kept, so importing twice is harmless and nothing is lost if you go back.
 - The Lua runtime now advertises a wire protocol version at connect, and the desktop app checks it against the range it supports. A game running a protocol the desktop cannot speak now says so directly, with what to do about it, instead of behaving unpredictably. Session detail shows both the game's protocol version and the desktop's.
 - A game running a Feather runtime from before protocol negotiation still connects and stays healthy; it is reported as `legacy` rather than treated as a fault.
+- Studio now has named application-level workspaces shared by Shader Graph, Particle Playground and Texture Lab, with safe migration of existing per-tool work and confirmed deletion.
+- Studio's Inspector pairing is scoped to an explicitly selected game and a narrow creative-preview capability, with session-aware preview freshness and local work preserved on disconnect.
 
 ### Changed
 
@@ -33,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/set-version.sh` now takes a release train (`cli`, `runtime`, `desktop`, `ext`, or `platform`) and only writes the files that train owns, so bumping one artifact no longer rewrites the others. It is also portable now, where it previously assumed macOS `sed`.
 - The LuaRocks publish is skipped when the Lua runtime is unchanged since the previous runtime release, so a platform tag no longer burns a rock version for an unmodified runtime.
 - Session health no longer reports a mismatch when the connected Lua runtime and the desktop app report different versions. The trains ship on separate cadences, so a difference is expected; both versions are still shown, and plugin API compatibility is still checked.
+- Package installs and updates are transactional, validate and atomically write `feather.lock.json`, protect untracked and locally modified files unless `--force` is explicit, and report whether registry data came from the network, cache or bundled snapshot.
+- Package removal preserves modified/shared files and requires `--cascade` before removing installed dependents.
+- Plugin activation now enforces declared capabilities and runtime policy, schedules work within budgets, validates action contracts, and reports plugin health.
+- The VS Code extension now runs cancellable managed jobs with explicit project selection and build configuration instead of relying on ambient workspace state.
 
 ### Added
 
@@ -68,6 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added extension tests that execute the prepared dev launcher and assert it runs the workspace CLI at the declared platform version.
 - CI now runs the showcase end-to-end suite and the full `pnpm run verify` gate (every typecheck, lint, Lua lint, protocol, registry, plugin-catalog and repository-path checks), with suites running through Turbo so unchanged work is reused.
 - Added Studio and showcase coverage for the Particle Context Lens and Texture Preview Priority workbenches, including preserved toolsets, atlas/parameter switching, preview grounds, timeline editing, and independently persisted pane sizes.
+- Added Studio coverage for named workspace persistence across every creative tool, successful Inspector pairing/live preview/disconnect, strict Shader Graph import coercion, and scoped session selection.
+- Added package coverage for transactional rollback, lockfile validation, file ownership, forced replacement, dependent removal and registry provenance.
+- Added plugin coverage for activation policy, capabilities, action schemas, scheduling budgets and health reporting, plus extension coverage for cancellable orchestration and project-scoped builds.
 - Added dev-session lifecycle coverage for multiple tracked process groups, malformed records, and stale PID command guards.
 - Added MCP CLI, Tauri bridge, and Settings coverage for token auth, sanitized session snapshots, command routing, and visible MCP controls.
 - Added CLI coverage for Codex and Claude MCP setup, dry-runs, idempotent config updates, and stale Feather MCP block replacement.
@@ -107,6 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed In-Game Overlay overhead by throttling hidden controller polling correctly and avoiding per-frame full graphics state snapshots while drawing.
 - Updated the `test_cli` example to load the generated `Effect_125` rain export by default, with hotkeys for comparing it against the older explosion effect.
 - Updated the `test_cli` example HUD and observers to show FPS while testing connected runtime performance.
+- Fixed Studio's browser security policy so its explicit loopback connection to Inspector is allowed while other network origins remain blocked.
+- Shader Graph imports now validate and coerce third-party graph data at the file boundary, reject invalid or dangling structure, and discard cached generated output.
 
 ## [v3.3.1] - 2026-06-14 - The one with fixed versions
 

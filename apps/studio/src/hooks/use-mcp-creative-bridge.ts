@@ -7,6 +7,7 @@ import { useSessionStore } from '@studio/session';
 import { sessionQueryKey } from '@studio/lib/session-query-keys';
 import { codegen } from '@studio/tools/shader-graph/codegen';
 import { diagnoseShaderGraph, hasBlockingDiagnostics } from '@studio/tools/shader-graph/diagnostics';
+import { parseShaderGraphFile, type FeatherShaderGraphFile } from '@studio/tools/shader-graph/file-format';
 import {
   DEFAULT_TEXTURE_LAB_RECIPE,
   DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS,
@@ -17,11 +18,7 @@ import {
 } from '@studio/tools/texture-lab/generator';
 import type {
   GeneratedGlsl,
-  PlaygroundTarget,
-  ShaderEdge,
-  ShaderNodeInstance,
   ShaderPreviewShape,
-  ShaderSubgraph,
 } from '@studio/types/shader-graph';
 import type { GeneratedTextureResult, TextureLabAtlasBundle } from '@studio/types/texture-lab';
 
@@ -35,19 +32,6 @@ type McpCreativeRequest = {
   tool: string;
   action: string;
   params?: unknown;
-};
-
-type ShaderGraphFile = {
-  type: 'feather.shader-graph';
-  version: number;
-  exportedAt: string;
-  shaderName: string;
-  playgroundTarget: PlaygroundTarget | null;
-  nodes: ShaderNodeInstance[];
-  edges: ShaderEdge[];
-  subgraphs: ShaderSubgraph[];
-  activeTemplateInstanceId?: string | null;
-  lastGeneratedGlsl?: GeneratedGlsl | null;
 };
 
 type TexturePayload = Omit<GeneratedTextureResult, 'dataUrl'>;
@@ -125,9 +109,9 @@ function particleSnapshot(queryClient: ReturnType<typeof useQueryClient>) {
   };
 }
 
-function exportShaderGraph(): { filename: string; graph: ShaderGraphFile; content: string } {
+function exportShaderGraph(): { filename: string; graph: FeatherShaderGraphFile; content: string } {
   const state = useShaderGraphStore.getState();
-  const graph: ShaderGraphFile = {
+  const graph: FeatherShaderGraphFile = {
     type: 'feather.shader-graph',
     version: SHADER_FILE_VERSION,
     exportedAt: new Date().toISOString(),
@@ -146,33 +130,9 @@ function exportShaderGraph(): { filename: string; graph: ShaderGraphFile; conten
   };
 }
 
-function parseShaderGraphInput(input: unknown): ShaderGraphFile {
-  const parsed = typeof input === 'string' ? JSON.parse(input) : input;
-  if (!isRecord(parsed)) throw new Error('Shader graph input must be a JSON object or string');
-  if (parsed.type !== 'feather.shader-graph' || ![1, 2, SHADER_FILE_VERSION].includes(Number(parsed.version))) {
-    throw new Error('Unsupported shader graph file');
-  }
-  if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
-    throw new Error('Shader graph file is missing nodes or edges');
-  }
-  return {
-    type: 'feather.shader-graph',
-    version: SHADER_FILE_VERSION,
-    exportedAt: typeof parsed.exportedAt === 'string' ? parsed.exportedAt : new Date().toISOString(),
-    shaderName: typeof parsed.shaderName === 'string' ? parsed.shaderName : 'my-shader',
-    playgroundTarget: (parsed.playgroundTarget ?? null) as PlaygroundTarget | null,
-    nodes: parsed.nodes as ShaderNodeInstance[],
-    edges: parsed.edges as ShaderEdge[],
-    subgraphs: Array.isArray(parsed.subgraphs) ? (parsed.subgraphs as ShaderSubgraph[]) : [],
-    activeTemplateInstanceId:
-      typeof parsed.activeTemplateInstanceId === 'string' ? parsed.activeTemplateInstanceId : null,
-    lastGeneratedGlsl: (parsed.lastGeneratedGlsl ?? null) as GeneratedGlsl | null,
-  };
-}
-
 function shaderGraphFromParams(params: Record<string, unknown>) {
-  if (params.graph !== undefined) return parseShaderGraphInput(params.graph);
-  if (params.raw !== undefined) return parseShaderGraphInput(params.raw);
+  if (params.graph !== undefined) return parseShaderGraphFile(params.graph);
+  if (params.raw !== undefined) return parseShaderGraphFile(params.raw);
   return null;
 }
 

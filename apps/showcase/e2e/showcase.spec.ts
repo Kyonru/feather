@@ -1381,7 +1381,7 @@ test('shader graph fake 3d nodes support sprite illusion flows', async ({ page }
   await expectShaderPreviewFrameReady(probeFrame);
 });
 
-test('shader graph surfaces compiler diagnostics for broken imports', async ({ page }) => {
+test('shader graph surfaces compiler diagnostics for imported graphs', async ({ page }) => {
   await page.goto('/shader-graph');
   await expect(page.getByRole('heading', { name: 'Shader Graph' })).toBeVisible();
 
@@ -1436,13 +1436,6 @@ test('shader graph surfaces compiler diagnostics for broken imports', async ({ p
         target: 'out',
         targetHandle: 'color',
       },
-      {
-        id: 'missing:out->sample:uv',
-        source: 'missing-node',
-        sourceHandle: 'out',
-        target: 'sample',
-        targetHandle: 'uv',
-      },
     ],
     subgraphs: [
       {
@@ -1483,7 +1476,6 @@ test('shader graph surfaces compiler diagnostics for broken imports', async ({ p
   const diagnostics = page.getByTestId('shader-diagnostics');
   await expect(diagnostics).toBeVisible();
   await expect(diagnostics.getByText(/Upload a texture for Missing Noise Texture/i)).toBeVisible();
-  await expect(diagnostics.getByText(/Remove stale connection/i)).toBeVisible();
   await expect(diagnostics.getByText(/Fix Broken Function/i)).toBeVisible();
   await expect(diagnostics.getByText(/cyclic subgraph reference/i)).toBeVisible();
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BlendIcon, MenuIcon, PlugZapIcon, SparklesIcon, UnplugIcon, WandSparklesIcon } from 'lucide-react';
 import type { ElementType } from 'react';
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@feather/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@feather/ui/sheet';
 import { cn } from '@feather/ui';
 
 import ParticleSystemPlayground from './tools/particle-system-playground';
@@ -177,6 +177,9 @@ function ToolMenu({ activeTool, onSelect }: { activeTool: StudioToolId; onSelect
         <SheetTitle className="px-3 pt-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
           Feather Studio
         </SheetTitle>
+        <SheetDescription className="sr-only">
+          Choose a creative tool or connect Studio to a game through Feather Inspector.
+        </SheetDescription>
 
         <nav aria-label="Studio tools" className="grid gap-0.5 p-2">
           {STUDIO_TOOLS.map((id) => {

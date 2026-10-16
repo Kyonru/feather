@@ -118,6 +118,134 @@ test('the chosen tool survives a reload', async ({ page }) => {
   await expect(page.getByTestId('studio-current-tool')).toHaveText('Texture Lab');
 });
 
+test('named workspaces switch and survive a reload', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByTestId('studio-workspace-name')).toHaveText('My workspace');
+
+  await page.getByTestId('studio-workspace-trigger').click();
+  await page.getByTestId('studio-workspace-new').click();
+  await expect(page.getByTestId('studio-workspace-name')).toHaveText('Workspace 2');
+
+  await page.getByTestId('studio-workspace-trigger').click();
+  await page.getByTestId('studio-workspace-rename').click();
+  await page.getByLabel('Workspace name').fill('Boss effect');
+  await page.getByRole('button', { name: 'Rename', exact: true }).click();
+  await expect(page.getByTestId('studio-workspace-name')).toHaveText('Boss effect');
+
+  // Mount every tool once so each tool materializes the active workspace under
+  // the same application-owned id.
+  for (const tool of TOOLS) await chooseTool(page, tool.id);
+
+  const activeId = await page.evaluate(() => {
+    const registry = JSON.parse(localStorage.getItem('feather-studio-workspaces') ?? '{}');
+    return registry.state?.activeId as string | undefined;
+  });
+  expect(activeId).toBeTruthy();
+
+  await expect.poll(() => page.evaluate((id) => {
+    const shader = JSON.parse(localStorage.getItem('feather-shader-graph') ?? '{}');
+    const texture = JSON.parse(localStorage.getItem('studio-preferences') ?? '{}');
+    const particles = JSON.parse(localStorage.getItem('feather-local-particle-workspaces') ?? '{}');
+    return {
+      shader: shader.state?.activeWorkspaceId === id,
+      texture: texture.state?.textureLabWorkspaceId === id,
+      particles: Object.hasOwn(particles, String(id)),
+    };
+  }, activeId)).toEqual({ shader: true, texture: true, particles: true });
+
+  await page.reload();
+  await expect(page.getByTestId('studio-workspace-name')).toHaveText('Boss effect');
+});
+
+test('a successful Inspector pairing adds live preview and disconnecting keeps local work', async ({ page }) => {
+  const calls: Array<{ method: string; params: Record<string, unknown> }> = [];
+  const browserErrors: string[] = [];
+  page.on('pageerror', (error) => browserErrors.push(error.message));
+  page.on('requestfailed', (request) => browserErrors.push(`${request.url()}: ${request.failure()?.errorText ?? 'failed'}`));
+  page.on('console', (message) => {
+    if (message.type() === 'error') browserErrors.push(message.text());
+  });
+  await page.route('**/bridge', async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          'access-control-allow-origin': '*',
+          'access-control-allow-methods': 'POST, OPTIONS',
+          'access-control-allow-headers': 'content-type',
+        },
+      });
+      return;
+    }
+    const request = route.request().postDataJSON() as {
+      id: string;
+      method: string;
+      params: Record<string, unknown>;
+    };
+    calls.push({ method: request.method, params: request.params });
+    const result =
+      request.method === 'handshake'
+        ? {
+            server: 'inspector',
+            serverVersion: '4.0.0',
+            bridgeVersion: 2,
+            capability: 'test-capability',
+            expiresAt: Date.now() + 60_000,
+            grant: {
+              pairingId: 'test-pairing',
+              bridgeVersion: 2,
+              methods: ['sessions.list', 'sessions.select', 'preview.send', 'preview.cancel', 'preferences.export', 'capability.release'],
+              plugins: { 'shader-graph': ['preview-shader', 'clear-preview', 'compile-shader'] },
+              sessionId: null,
+              expiresAt: Date.now() + 60_000,
+            },
+          }
+        : request.method === 'sessions.list'
+          ? { sessions: [{ id: 'game-1', name: 'Demo game', connectedAt: Date.now() - 5_000 }], selectedSessionId: null }
+          : request.method === 'sessions.select'
+            ? { id: 'game-1', name: 'Demo game', connectedAt: Date.now() - 5_000 }
+            : request.method === 'preferences.export'
+              ? { version: 1 }
+              : request.method === 'preview.send' || request.method === 'preview.cancel'
+                ? { requestId: 'game-request-1' }
+                : null;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({ id: request.id, bridgeVersion: 2, ok: true, result }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByTestId('studio-workspace-trigger').click();
+  await page.getByTestId('studio-workspace-rename').click();
+  await page.getByLabel('Workspace name').fill('Kept locally');
+  await page.getByRole('button', { name: 'Rename', exact: true }).click();
+
+  await page.getByTestId('studio-menu-trigger').click();
+  await page.getByRole('button', { name: /Connect Inspector/ }).click();
+  await expect
+    .poll(() => ({ methods: calls.map((call) => call.method), browserErrors }))
+    .toEqual({ methods: expect.arrayContaining(['sessions.list']), browserErrors: [] });
+  await expect(page.getByTestId('studio-inspector-status')).toContainText('Demo game');
+  await expect(page.getByTestId('shader-graph-mode')).toContainText('Live preview');
+
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab', { name: 'Output' }).click();
+  await page.getByRole('button', { name: 'Preview On' }).click();
+  await expect.poll(() => calls.some((call) => call.method === 'preview.send')).toBe(true);
+  await expect(page.getByTestId('shader-preview-freshness')).toHaveAttribute('data-state', 'current');
+
+  await page.getByTestId('studio-menu-trigger').click();
+  await page.getByRole('button', { name: /Disconnect Inspector/ }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('studio-inspector-status')).toContainText('Local only');
+  await expect(page.getByTestId('studio-workspace-name')).toHaveText('Kept locally');
+  await expect(page.getByTestId('studio-tool-surface')).toBeVisible();
+  expect(browserErrors).toEqual([]);
+});
+
 test('no Inspector is a neutral fact, not an error', async ({ page }) => {
   await page.goto('/');
 

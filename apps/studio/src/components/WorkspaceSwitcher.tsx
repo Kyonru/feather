@@ -107,6 +107,7 @@ export function WorkspaceSwitcher() {
           >
             <DialogHeader>
               <DialogTitle className="text-sm">Rename workspace</DialogTitle>
+              <DialogDescription className="sr-only">Choose a new name for this Studio workspace.</DialogDescription>
             </DialogHeader>
             <Input
               autoFocus

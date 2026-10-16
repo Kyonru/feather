@@ -12,7 +12,7 @@
     "verify": "turbo run //#typecheck:web //#typecheck:protocol //#typecheck:host //#typecheck:session-bridge //#typecheck:ui //#typecheck:studio //#typecheck:lua //#lint //#check:protocol //#check:registry //#check:plugin-catalog //#check:paths",
     "test": "turbo run --concurrency=1 //#test:unit //#test:bridge //#test:cli:e2e //#test:lua:e2e //#test:inspector:e2e //#test:studio:e2e //#test:showcase:e2e",
     "test:unit": "tsx --test \"scripts/tests/*.test.ts\" \"scripts/tests/*.test.mjs\"",
-    "test:bridge": "node --test packages/session-bridge/test/*.test.mts",
+    "test:bridge": "tsx --test \"packages/session-bridge/test/*.test.mts\"",
     "test:cli:e2e": "pnpm run cli:build && node --test apps/cli/test/commands/*.test.mjs",
     "test:lua:e2e": "node scripts/lua-e2e.mjs",
     "test:packages:e2e": "node scripts/package-e2e.mjs",

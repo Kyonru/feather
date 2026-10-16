@@ -74,7 +74,7 @@ feather package info anim8 --json
 
 ### `feather package install`
 
-Run with no arguments to restore all packages recorded in `feather.lock.json`. Files already on disk with the correct checksum are skipped; only missing or tampered files are re-downloaded.
+Run with no arguments to restore all packages recorded in `feather.lock.json`. Files already on disk with the correct checksum are skipped and missing files are restored. A locally modified managed file is preserved and reported; pass `--force` only when you intend to replace it with the locked bytes.
 
 ```sh
 feather package install
@@ -114,6 +114,7 @@ Options:
 | `--save-install-dir`    | Save `--install-dir` in `feather.lock.json` for future installs     |
 | `--include-licenses`    | Install catalog-declared license files alongside package files      |
 | `--offline`             | Use the bundled registry snapshot instead of fetching               |
+| `--force`               | Replace conflicting untracked files or locally modified managed files |
 | `--allow-untrusted`     | Required for `experimental` packages and version overrides          |
 | `--allow-non-lua-files` | Allow installing packages that include non-Lua files (e.g. shaders) |
 
@@ -152,6 +153,14 @@ in `feather.lock.json`, restored by `feather package install`, verified by `feat
 and removed with the owning package.
 Use `--flat-dir` only when you deliberately want all catalog files flattened by basename, such as
 `feel/init.lua` → `vendor/init.lua`.
+
+Feather plans and verifies the complete install before committing it. A failed download, checksum,
+file write or lockfile write rolls the operation back instead of leaving a partial package set.
+The lockfile is validated on every read and written atomically after package files succeed.
+
+Existing files are ownership boundaries: Feather refuses to overwrite a file it does not manage,
+or a managed file changed since installation. An untracked file with the exact expected checksum
+can be adopted safely; other conflicts require an explicit `--force`.
 
 **Example output:**
 
@@ -262,6 +271,7 @@ feather package update anim8
 feather package update          # update all
 feather package update --dry-run
 feather package update --dry-run --json
+feather package update anim8 --force  # intentionally replace local edits
 ```
 
 `experimental` packages (installed via `feather package add` or `--from-url`) cannot be updated through the registry — use `feather package add` again to replace them.
@@ -274,7 +284,19 @@ Remove an installed package and its files. Updates the lockfile.
 feather package remove anim8
 feather package remove hump.camera
 feather package remove anim8 --yes --json
+feather package remove anim8 --cascade
 ```
+
+Removal deletes only unchanged files owned by the removed package. Locally modified files and
+shared files are kept, with the removed package's ownership dropped. Feather refuses to remove a
+package that installed packages depend on unless `--cascade` is supplied; cascading removes those
+dependents in the same transaction.
+
+### Registry provenance
+
+Package commands report whether catalog data came from the network, the local cache or Feather's
+bundled snapshot, including its age. `--offline` always uses the bundled snapshot; if the network is
+unavailable, Feather chooses the newer usable cache or bundled copy and says why it fell back.
 
 ### `feather package audit`
 

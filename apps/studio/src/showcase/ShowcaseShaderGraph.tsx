@@ -6,31 +6,19 @@ import { Button } from '@feather/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@feather/ui/resizable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import { useShaderGraphStore } from '@studio/store/shader-graph';
-import type { GeneratedGlsl, PlaygroundTarget, ShaderEdge, ShaderNodeInstance, ShaderParameter, ShaderSubgraph } from '@studio/types/shader-graph';
+import type { ShaderParameter } from '@studio/types/shader-graph';
 import { NodePalette } from '@studio/tools/shader-graph/NodePalette';
 import { ShaderCanvas } from '@studio/tools/shader-graph/ShaderCanvas';
 import { ShaderRightPanel } from '@studio/tools/shader-graph/ShaderRightPanel';
 import { codegen } from '@studio/tools/shader-graph/codegen';
 import { diagnoseShaderGraph } from '@studio/tools/shader-graph/diagnostics';
 import { instantiateShaderGraphPreset, SHADER_GRAPH_PRESETS } from '@studio/tools/shader-graph/presets';
+import { parseShaderGraphFile, type FeatherShaderGraphFile } from '@studio/tools/shader-graph/file-format';
 import { LoveJsPreview } from './LoveJsPreview';
 
 const FILE_VERSION = 3;
 const FILE_EXTENSION = 'feathershgh';
 const FIRST_OPEN_PRESET_ID = 'water-shimmer';
-
-type FeatherShaderGraphFile = {
-  type: 'feather.shader-graph';
-  version: number;
-  exportedAt: string;
-  shaderName: string;
-  playgroundTarget: PlaygroundTarget | null;
-  nodes: ShaderNodeInstance[];
-  edges: ShaderEdge[];
-  subgraphs: ShaderSubgraph[];
-  activeTemplateInstanceId?: string | null;
-  lastGeneratedGlsl?: GeneratedGlsl | null;
-};
 
 function defaultFilename(shaderName: string) {
   const base =
@@ -39,28 +27,6 @@ function defaultFilename(shaderName: string) {
       .replace(/[^a-zA-Z0-9._-]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'shader-graph';
   return `${base}.${FILE_EXTENSION}`;
-}
-
-function parseShaderGraphFile(raw: string): FeatherShaderGraphFile {
-  const parsed = JSON.parse(raw) as Partial<FeatherShaderGraphFile>;
-  if (parsed.type !== 'feather.shader-graph' || ![1, 2, FILE_VERSION].includes(Number(parsed.version))) {
-    throw new Error('Unsupported shader graph file');
-  }
-  if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
-    throw new Error('Shader graph file is missing nodes or edges');
-  }
-  return {
-    type: 'feather.shader-graph',
-    version: FILE_VERSION,
-    exportedAt: typeof parsed.exportedAt === 'string' ? parsed.exportedAt : new Date().toISOString(),
-    shaderName: typeof parsed.shaderName === 'string' ? parsed.shaderName : 'my-shader',
-    playgroundTarget: parsed.playgroundTarget ?? null,
-    nodes: parsed.nodes,
-    edges: parsed.edges,
-    subgraphs: Array.isArray(parsed.subgraphs) ? parsed.subgraphs : [],
-    activeTemplateInstanceId: typeof parsed.activeTemplateInstanceId === 'string' ? parsed.activeTemplateInstanceId : null,
-    lastGeneratedGlsl: parsed.lastGeneratedGlsl ?? null,
-  };
 }
 
 export function ShowcaseShaderGraph() {

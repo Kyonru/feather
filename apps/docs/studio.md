@@ -32,9 +32,17 @@ This is the normal case, and everything works:
 
 - author shader graphs, generate textures, build particle systems
 - save and load projects from disk
-- keep workspaces, saved recipes and timeline settings
+- keep named workspaces, saved recipes and timeline settings
 
-Studio says *"Not connected"* when no Inspector is running. That is a state, not
+The workspace name in the top strip is shared by all three tools. Use it to
+create, switch or rename workspaces; Studio saves changes as you work. Deleting
+a workspace removes its shader graph, particle composites and texture recipes,
+so Studio asks for confirmation first and always keeps at least one workspace.
+
+Existing per-tool work is adopted by the first workspace after upgrading rather
+than replaced with an empty one.
+
+Studio says *"Local only"* when no Inspector is running. That is a state, not
 an error.
 
 ## Pairing with Inspector
@@ -43,7 +51,9 @@ Connecting lets you push work straight into a running game — a shader, a
 particle system, a texture — and see it live.
 
 1. Start Feather Inspector and attach your game as usual.
-2. In Studio, choose **Connect to Feather Inspector**.
+2. In Studio, open the tools menu and choose **Connect Inspector**.
+3. If Inspector has several games attached, choose the game that should receive
+   previews. Studio never guesses between multiple sessions.
 
 Pairing is explicit. Studio never searches for Inspector on its own.
 
@@ -56,6 +66,11 @@ Pairing is explicit. Studio never searches for Inspector on its own.
   every request. It expires, and Inspector can revoke it.
 - **Local only.** The connection is loopback; nothing is reachable from your
   network.
+- **Scoped preview.** A pairing sends only the creative preview actions it was
+  granted, and only to the selected game. Restarting that game makes the old
+  preview stale until Studio sends it to the new session.
+- **Local work stays local.** Disconnecting removes live preview but keeps the
+  active workspace and all of its saved work.
 
 ### Moving your settings across
 

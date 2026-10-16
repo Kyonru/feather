@@ -6,6 +6,14 @@ import { loveJsPreviewPlugin, loveJsDevHeaders, loveJsPreviewHeaders } from '../
 
 const root = __dirname;
 const repo = path.resolve(root, '../..');
+const studioPreviewHeaders = {
+  ...loveJsPreviewHeaders,
+  'Content-Security-Policy': loveJsPreviewHeaders['Content-Security-Policy'].replace(
+    "connect-src 'self'",
+    "connect-src 'self' http://127.0.0.1:4008",
+  ),
+};
+const studioDevHeaders = { ...studioPreviewHeaders, 'Cache-Control': loveJsDevHeaders['Cache-Control'] };
 
 // Feather Studio's own build. Separate output, separate dev port, and
 // deliberately no alias back into the Inspector's `src/` — Studio consumes only
@@ -44,7 +52,7 @@ export default defineConfig({
     port: 1430,
     strictPort: true,
     // love.js needs cross-origin isolation to start its WASM runtime.
-    headers: loveJsDevHeaders,
+    headers: studioDevHeaders,
   },
-  preview: { headers: loveJsPreviewHeaders },
+  preview: { headers: studioPreviewHeaders },
 });
