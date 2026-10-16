@@ -343,13 +343,14 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
     .getByRole('button', { name: /particle playground/i })
     .click();
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Emitter Properties' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Emission', exact: true })).toBeVisible();
   await expect(page.getByText('Rate', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Play$/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Emit$/ })).toHaveCount(0);
-  await expect(page.getByTestId('love-js-preview-floating')).toBeVisible();
+  const particlePreview = page.getByTestId('particle-playground-main').getByTestId('love-js-preview-frame');
+  await expect(particlePreview).toBeVisible();
   await expect(page.frameLocator('iframe[title="Particle Preview"]').locator('canvas')).toBeVisible();
-  const particlePreviewFrame = await page.getByTestId('love-js-preview-frame').boundingBox();
+  const particlePreviewFrame = await particlePreview.boundingBox();
   expect(particlePreviewFrame).not.toBeNull();
   expect(Math.abs(particlePreviewFrame!.width / particlePreviewFrame!.height - 16 / 9)).toBeLessThan(0.04);
 
