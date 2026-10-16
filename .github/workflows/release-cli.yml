@@ -13,7 +13,9 @@ jobs:
   cli:
     name: CLI
     permissions:
-      contents: read
+      # The reusable workflow creates or updates the tag's GitHub release after
+      # publishing npm and therefore cannot be called with read-only contents.
+      contents: write
       id-token: write
     uses: ./.github/workflows/_release-cli.yml
     secrets: inherit
