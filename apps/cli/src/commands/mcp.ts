@@ -1,10 +1,13 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { existsSync, readFileSync } from 'node:fs';
-import { isAbsolute, relative, resolve } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
+import packageJson from '../../package.json' with { type: 'json' };
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { fail } from '../lib/command.js';
 import {
@@ -25,6 +28,8 @@ import { printErrorLine } from '../lib/output.js';
 
 const DEFAULT_HTTP_HOST = '127.0.0.1';
 const DEFAULT_HTTP_PORT = 4006;
+/** An MCP JSON-RPC request is small; anything this large is not one. */
+const MAX_HTTP_BODY_BYTES = 1024 * 1024;
 const CREATIVE_TOOLS = ['shader-graph', 'particle-system-playground', 'texture-lab'] as const;
 const PLUGIN_ACTION_NOTES: Record<string, { actions: string[]; notes: string }> = {
   'shader-graph': {
@@ -72,6 +77,10 @@ export type McpCommandOptions = {
   studioUrl?: string;
   /** Studio mints a token per launch; it is not the Inspector token. */
   studioToken?: string;
+  /** Bearer token HTTP MCP clients present to this gateway. Not a backend token. */
+  httpToken?: string;
+  /** Register `feather_send_command`, which forwards arbitrary command objects. */
+  allowRawCommands?: boolean;
 };
 
 export async function mcpCommand(options: McpCommandOptions): Promise<void> {
@@ -84,12 +93,14 @@ export async function mcpCommand(options: McpCommandOptions): Promise<void> {
   const token = options.token || process.env.FEATHER_MCP_TOKEN || sharedConfig?.token || '';
   const desktopUrl = normalizeBaseUrl(options.desktopUrl || sharedConfig?.bridgeUrl || DEFAULT_DESKTOP_BRIDGE_URL);
 
+  // The gateway starts with whichever backends are available. It used to
+  // refuse to start without an Inspector token, which made the one MCP server
+  // useless for Studio-only creative work — the case Studio exists for.
   if (!token) {
-    fail('MCP token is required', {
-      details: [
-        'Enable MCP Access in Feather Settings → Security, pass --token, or set FEATHER_MCP_TOKEN.',
-      ],
-    });
+    printErrorLine(
+      '[feather mcp] Inspector MCP access is not configured; session and debugger tools will say so. ' +
+        'Creative tools work while Feather Studio is running. Read feather://status for details.',
+    );
   }
 
   // One MCP server, two backends. Session and debugging traffic goes to
@@ -99,7 +110,9 @@ export async function mcpCommand(options: McpCommandOptions): Promise<void> {
     url: options.studioUrl,
     token: options.studioToken,
   });
-  const server = createFeatherMcpServer(bridge);
+  const allowRawCommands =
+    options.allowRawCommands === true || process.env.FEATHER_MCP_ALLOW_RAW_COMMANDS === '1';
+  const server = createFeatherMcpServer(bridge, { transport, allowRawCommands });
 
   if (transport === 'stdio') {
     await server.connect(new StdioServerTransport());
@@ -109,17 +122,74 @@ export async function mcpCommand(options: McpCommandOptions): Promise<void> {
   await runHttpMcpServer(server, {
     host: options.host ?? DEFAULT_HTTP_HOST,
     port: options.port ?? DEFAULT_HTTP_PORT,
-    token,
+    token: resolveGatewayHttpToken(options.httpToken),
   });
 }
 
-function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
+/**
+ * The bearer token MCP clients present to this gateway over HTTP.
+ *
+ * It used to be the Inspector backend token, which made two trust boundaries
+ * one secret: rotating Inspector's token broke every HTTP client, and a client
+ * token could talk to Inspector directly. It is now the gateway's own, created
+ * once (mode 0600) and reused so client configuration survives restarts.
+ */
+function resolveGatewayHttpToken(explicit?: string): string {
+  const fromEnv = explicit || process.env.FEATHER_MCP_HTTP_TOKEN;
+  if (fromEnv) return fromEnv;
+  const path = process.env.FEATHER_MCP_GATEWAY_CONFIG || join(homedir(), '.feather', 'mcp-gateway.json');
+  try {
+    const existing = JSON.parse(readFileSync(path, 'utf8')) as { httpToken?: unknown };
+    if (typeof existing.httpToken === 'string' && existing.httpToken.length >= 32) {
+      return existing.httpToken;
+    }
+  } catch {
+    // Missing or unreadable: create one below.
+  }
+  const httpToken = `feather-gateway-${randomBytes(24).toString('hex')}`;
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify({ httpToken }, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(path, 0o600);
+  printErrorLine(`[feather mcp] Created the HTTP client token in ${path}.`);
+  return httpToken;
+}
+
+function createFeatherMcpServer(
+  bridge: DesktopBridgeClient,
+  options: { transport: McpTransport; allowRawCommands: boolean },
+): McpServer {
   const server = new McpServer(
-    { name: 'feather', version: '3.3.1' },
+    // The artifact's own version: a literal here had drifted to 3.3.1.
+    { name: 'feather', version: packageJson.version },
     {
       instructions:
-        'Expose live Feather Love2D debugging sessions. Full-control tools require the local Feather desktop MCP bridge to be enabled and token-authenticated.',
+        'Expose live Feather Love2D debugging sessions (Feather Inspector) and creative authoring (Feather Studio). ' +
+        'Each is a separate application; read feather://status or call feather_status to see which are running ' +
+        'and authorized before using their tools.',
     },
+  );
+
+  server.registerResource(
+    'status',
+    'feather://status',
+    {
+      title: 'Feather MCP status',
+      description:
+        'Which backends are reachable and authorized: Inspector (sessions, debugging) and Studio (creative tools), with versions, features and what to do about anything missing.',
+      mimeType: 'application/json',
+    },
+    async (uri) => jsonResource(uri.href, await gatewayStatus(bridge, options)),
+  );
+
+  server.registerTool(
+    'feather_status',
+    {
+      title: 'Feather MCP Status',
+      description:
+        'Report which Feather applications this server can reach — Inspector for sessions and debugging, Studio for shaders, particles and textures — and how to fix any that are missing.',
+      inputSchema: {},
+    },
+    async () => jsonTool(await gatewayStatus(bridge, options)),
   );
 
   server.registerResource(
@@ -1364,7 +1434,10 @@ function createFeatherMcpServer(bridge: DesktopBridgeClient): McpServer {
     },
   );
 
-  server.registerTool(
+  // Privileged and off by default: it forwards arbitrary command objects, so it
+  // bypasses the review the typed tools carry. The bridge still strips secrets
+  // recursively and applies its own auth.
+  if (options.allowRawCommands) server.registerTool(
     'feather_send_command',
     {
       title: 'Send Raw Feather Command',
@@ -1421,9 +1494,13 @@ async function runHttpMcpServer(
     try {
       const body = req.method === 'POST' ? await readJsonBody(req) : undefined;
       await transport.handleRequest(req, res, body);
-    } catch {
+    } catch (error) {
       if (!res.headersSent) {
-        writeJson(res, 400, { error: 'Invalid request body' });
+        if (error instanceof BodyTooLargeError) {
+          writeJson(res, 413, { error: `Request body exceeds ${MAX_HTTP_BODY_BYTES} bytes` });
+        } else {
+          writeJson(res, 400, { error: 'Invalid request body' });
+        }
       } else {
         res.end();
       }
@@ -1433,6 +1510,22 @@ async function runHttpMcpServer(
   await new Promise<void>((resolve) => httpServer.listen(options.port, options.host, resolve));
   printErrorLine(`Feather MCP HTTP server listening on http://${options.host}:${options.port}/mcp`);
   await new Promise<void>((resolve) => httpServer.once('close', resolve));
+}
+
+async function gatewayStatus(
+  bridge: DesktopBridgeClient,
+  options: { transport: McpTransport; allowRawCommands: boolean },
+) {
+  const backends = await bridge.status();
+  return {
+    gateway: {
+      name: 'feather',
+      version: packageJson.version,
+      transport: options.transport,
+      rawCommands: options.allowRawCommands,
+    },
+    ...backends,
+  };
 }
 
 async function listSessionsForResourceDiscovery(bridge: DesktopBridgeClient): Promise<SessionSummary[]> {
@@ -1842,10 +1935,23 @@ function originAllowed(req: IncomingMessage): boolean {
     || origin === 'http://localhost';
 }
 
+class BodyTooLargeError extends Error {}
+
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  const declared = Number(req.headers['content-length']);
+  if (Number.isFinite(declared) && declared > MAX_HTTP_BODY_BYTES) {
+    throw new BodyTooLargeError();
+  }
   const chunks: Buffer[] = [];
+  let received = 0;
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    received += buffer.length;
+    if (received > MAX_HTTP_BODY_BYTES) {
+      // Stop buffering at the limit rather than reading a client's whole stream.
+      throw new BodyTooLargeError();
+    }
+    chunks.push(buffer);
   }
   const text = Buffer.concat(chunks).toString('utf8');
   return text ? JSON.parse(text) : undefined;

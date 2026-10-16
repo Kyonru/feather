@@ -32,15 +32,25 @@ For clients that require Streamable HTTP:
 feather mcp --transport http
 ```
 
-HTTP listens on `127.0.0.1:4006/mcp` by default and requires the same bearer token as the desktop bridge.
+HTTP listens on `127.0.0.1:4006/mcp` by default. HTTP clients authenticate to this server with its **own** bearer token, not with Inspector's: on first HTTP start it creates one in `~/.feather/mcp-gateway.json` (readable by you only) and reuses it, so client configuration survives restarts. Pass `--http-token` or set `FEATHER_MCP_HTTP_TOKEN` to choose it yourself.
+
+## One Server, Two Applications
+
+`feather mcp` is the one server you configure, but the state behind it lives in two separate applications: **Feather Inspector** (live sessions, logs, debugging, plugins) and **Feather Studio** (shaders, particles, textures). The server starts with either, both, or neither running, and routes each tool to the application that owns it. A tool whose application is not running or not authorized says which one and what to do.
+
+Read `feather://status` or call `feather_status` to see what is available: each backend's reachability, version, features, and a remedy for anything missing.
 
 ## Tokens And Options
 
-The desktop writes MCP settings to `~/.feather/mcp.json`. The CLI resolves the bridge token in this order:
+Each connection has its own credential, so rotating one never breaks another:
 
-1. `--token`
-2. `FEATHER_MCP_TOKEN`
-3. `~/.feather/mcp.json`
+| Credential | Authenticates | Where it comes from |
+| --- | --- | --- |
+| Inspector bridge token | the server → Inspector (`127.0.0.1:4005`) | `--token`, then `FEATHER_MCP_TOKEN`, then `~/.feather/mcp.json` (written by Inspector when **Settings → Security → MCP Access** is on) |
+| Studio token | the server → Studio (`127.0.0.1:4007`) | `--studio-token`, then `FEATHER_STUDIO_MCP_TOKEN`, then `~/.feather/studio-mcp.json` (written by Studio at every launch) |
+| Gateway HTTP token | HTTP clients → this server (`127.0.0.1:4006`) | `--http-token`, then `FEATHER_MCP_HTTP_TOKEN`, then `~/.feather/mcp-gateway.json` (created on first HTTP start) |
+
+Every call to a backend has a deadline (the game wait it carries plus a margin), so a stalled application fails with `… did not answer within N ms` instead of hanging. HTTP request bodies are limited to 1 MiB.
 
 Useful options:
 
@@ -50,7 +60,11 @@ Useful options:
 | `--host <host>` | `127.0.0.1` | HTTP host. Only localhost hosts are accepted. |
 | `--port <port>` | `4006` | HTTP MCP port. |
 | `--desktop-url <url>` | `http://127.0.0.1:4005` | Desktop MCP bridge URL. |
-| `--token <token>` | | Bridge and HTTP bearer token. |
+| `--token <token>` | `~/.feather/mcp.json` | Inspector bridge token. |
+| `--studio-url <url>` | `http://127.0.0.1:4007` | Studio creative endpoint. |
+| `--studio-token <token>` | `~/.feather/studio-mcp.json` | Studio token. |
+| `--http-token <token>` | `~/.feather/mcp-gateway.json` | Bearer token HTTP clients present to this server. |
+| `--allow-raw-commands` | off | Expose `feather_send_command` (see Security). |
 
 Example local client config:
 
@@ -232,13 +246,21 @@ Both are localhost-only by default and token-protected. The desktop bridge rejec
 
 Console eval remains separately gated by the existing Console plugin, `evalEnabled`, and matching `apiKey`. MCP does not bypass those gates.
 
-`feather_send_command` is an advanced escape hatch. The bridge strips caller-supplied `appId`, `apiKey`, token, authorization, password, and secret fields before forwarding commands through the same desktop authorization path.
+`feather_send_command` is an advanced escape hatch that forwards arbitrary command objects, bypassing the review the typed tools carry, so it is **off unless you pass `--allow-raw-commands`** (or set `FEATHER_MCP_ALLOW_RAW_COMMANDS=1`). The bridge strips caller-supplied `appId`, `apiKey`, token, authorization, password, and secret fields — at any depth — before forwarding commands through the same desktop authorization path.
 
 ## Troubleshooting
 
-### `MCP token is required`
+### `Feather Inspector MCP access is not configured`
 
-Enable **Settings → Security → MCP Access**, pass `--token`, or set `FEATHER_MCP_TOKEN`.
+Session and debugger tools need Inspector. Enable **Settings → Security → MCP Access**, pass `--token`, or set `FEATHER_MCP_TOKEN`. Creative tools keep working without it while Studio runs.
+
+### `Feather Studio is not running` / `invalid or missing Studio MCP token`
+
+Start Feather Studio; it publishes a fresh token to `~/.feather/studio-mcp.json` at each launch. If Studio runs elsewhere, pass `--studio-url` and `--studio-token`.
+
+### `… did not answer within N ms`
+
+The application accepted the request but did not respond in time — it may be busy, paused in a debugger, or stuck. The game's own wait is reported separately.
 
 ### `Desktop bridge 403: MCP bridge is disabled`
 

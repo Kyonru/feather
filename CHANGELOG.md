@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `feather mcp` no longer requires Inspector to start. It starts with Inspector, Studio, both or neither available and reports which through the new `feather://status` resource and `feather_status` tool, with a remedy for anything missing; Studio-only creative work now uses the same single server. Studio publishes its per-launch token to `~/.feather/studio-mcp.json`, so `--studio-token` is no longer needed locally.
+- HTTP MCP clients now authenticate to `feather mcp` with the gateway's own token (`--http-token`, `FEATHER_MCP_HTTP_TOKEN`, or `~/.feather/mcp-gateway.json`, created on first HTTP start) instead of Inspector's bridge token. **Existing HTTP client configs need the new token**; stdio setups are unaffected.
+- `feather_send_command`, which forwards arbitrary command objects, is now off unless `feather mcp` is started with `--allow-raw-commands`.
+- Every `feather mcp` call to Inspector or Studio has a deadline and fails with "… did not answer within N ms" instead of hanging on a stalled application; HTTP request bodies are limited to 1 MiB; the server reports its real version instead of `3.3.1`.
 - Rebuilt Particle Playground and Texture Lab as resizable three-region Studio workbenches with preview-first layouts, persisted per-tool pane sizes, switchable calibration grounds, and every existing editor/export workflow retained.
 - Release tags are now per-train instead of repo-wide. `cli-v*` publishes the CLI alone, `runtime-v*` the Lua runtime alone, `desktop-v*` the desktop app alone, and `ext-v*` the VS Code extension alone. `v*` still performs a full platform release of runtime, CLI, and desktop together. Previously every tag fired all four publish paths.
 - `scripts/set-version.sh` now takes a release train (`cli`, `runtime`, `desktop`, `ext`, or `platform`) and only writes the files that train owns, so bumping one artifact no longer rewrites the others. It is also portable now, where it previously assumed macOS `sed`.
@@ -52,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Added MCP gateway coverage for Studio-only startup with a published Studio token, honest backend status, the raw command tool being opt-in, backend deadlines, a private self-minted HTTP client token that rejects the Inspector token, and the HTTP body limit.
 - Added Lua transport coverage that decodes frames from a throttled fake socket: payloads survive incremental masking, each frame has its own key, a 256 KiB message spans updates within budget, the queue limit and reply reserve hold, and receive overflow closes with a named error. Added coverage that replies echo a valid `requestId` and ignore malformed ones.
 - Added Rust coverage for MCP request correlation (concurrent identical commands, legacy oldest-first matching, waiter cleanup after timeout, send failure and cancellation), the disabled-bridge fast path, oversized snapshot messages, nested secret stripping, and the bounded outbound game queue.
 - Added extension tests that execute the prepared dev launcher and assert it runs the workspace CLI at the declared platform version.

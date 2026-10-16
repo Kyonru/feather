@@ -521,11 +521,13 @@ feather mcp setup --client codex    # install Codex MCP client config
 feather mcp setup --client claude   # install Claude Code MCP client config
 ```
 
-Enable **Settings → Security → MCP Access** in the Feather desktop app first. The desktop writes a token to `~/.feather/mcp.json`, which the CLI reads automatically. You can also pass a token explicitly:
+One server routes to two applications: Feather Inspector for live sessions and debugging, Feather Studio for shaders, particles and textures. It starts with either or both running; `feather://status` and the `feather_status` tool report which are reachable and how to fix the rest.
+
+For Inspector tools, enable **Settings → Security → MCP Access** in Inspector; it writes a token to `~/.feather/mcp.json`, which the CLI reads automatically. Studio publishes its own per-launch token to `~/.feather/studio-mcp.json`. HTTP clients authenticate to this server with a separate gateway token, created on first HTTP start in `~/.feather/mcp-gateway.json`. Any of them can be passed explicitly:
 
 ```bash
 FEATHER_MCP_TOKEN=feather-mcp-... feather mcp
-feather mcp --token feather-mcp-... --transport http
+feather mcp --transport http --http-token my-client-token
 ```
 
 **Options:**
@@ -536,7 +538,11 @@ feather mcp --token feather-mcp-... --transport http
 | `--host <host>`       | HTTP host. Defaults to `127.0.0.1`; only localhost hosts are accepted.      |
 | `--port <port>`       | HTTP port. Defaults to `4006`.                                              |
 | `--desktop-url <url>` | Feather desktop MCP bridge URL. Defaults to `http://127.0.0.1:4005`.       |
-| `--token <token>`     | MCP bridge token; overrides `FEATHER_MCP_TOKEN` and `~/.feather/mcp.json`. |
+| `--token <token>`     | Inspector bridge token; overrides `FEATHER_MCP_TOKEN` and `~/.feather/mcp.json`. |
+| `--studio-url <url>`  | Studio creative endpoint. Defaults to `http://127.0.0.1:4007`.              |
+| `--studio-token <token>` | Studio token; overrides `FEATHER_STUDIO_MCP_TOKEN` and `~/.feather/studio-mcp.json`. |
+| `--http-token <token>` | Bearer token HTTP clients present; overrides `FEATHER_MCP_HTTP_TOKEN` and `~/.feather/mcp-gateway.json`. |
+| `--allow-raw-commands` | Expose `feather_send_command`, which forwards arbitrary command objects. Off by default. |
 
 Use `feather mcp setup` to add or refresh the Feather server in a local MCP client config. The setup command writes only the client launch command, not the MCP token; `feather mcp` reads the token from `~/.feather/mcp.json` at runtime. Restart the client after setup so the new MCP server is loaded.
 
@@ -549,7 +555,7 @@ feather mcp setup --client codex --dry-run --json
 
 Codex setup updates `~/.codex/config.toml`. Claude setup defaults to user scope and updates `~/.claude.json`; use `--scope project` to write `.mcp.json` in the current project, or `--scope local` to add a project-local entry under `~/.claude.json`. Use `--codex-config` or `--claude-config` to write a specific config path.
 
-Resources include `feather://sessions` and `feather://sessions/{id}/{section}` for `config`, `logs`, `performance`, `debugger`, `plugins`, `assets`, `observers`, and `session-replay`; `feather://plugins/catalog` and `feather://plugins/{id}` for built-in plugin metadata; live `feather://sessions/{id}/plugins/{pluginId}` payloads; and creative snapshots for Shader Graph, Particles Playground, and Texture Lab. Tools cover session snapshots, refresh requests, runtime suspend/resume, agent-friendly step debugging with breakpoints/source context/logs, Console eval/globals/pins, plugin catalog/live state/actions/params/enabling, high-level shader/particle/texture creation, Shader Graph compile/preview/import/export, Particle Playground authoring/export actions, Texture Lab recipe/generation actions, Time Travel, Session Replay state/record/playback/import/delete workflows, and the advanced `feather_send_command` escape hatch.
+Resources include `feather://sessions` and `feather://sessions/{id}/{section}` for `config`, `logs`, `performance`, `debugger`, `plugins`, `assets`, `observers`, and `session-replay`; `feather://plugins/catalog` and `feather://plugins/{id}` for built-in plugin metadata; live `feather://sessions/{id}/plugins/{pluginId}` payloads; and creative snapshots for Shader Graph, Particles Playground, and Texture Lab. Tools cover session snapshots, refresh requests, runtime suspend/resume, agent-friendly step debugging with breakpoints/source context/logs, Console eval/globals/pins, plugin catalog/live state/actions/params/enabling, high-level shader/particle/texture creation, Shader Graph compile/preview/import/export, Particle Playground authoring/export actions, Texture Lab recipe/generation actions, Time Travel, Session Replay state/record/playback/import/delete workflows, `feather_status`, and — only with `--allow-raw-commands` — the advanced `feather_send_command` escape hatch.
 
 > [!WARNING]
 > MCP full-control tools can execute powerful live-debug actions. The desktop bridge is disabled by default, binds only to localhost, requires a bearer token, and still relies on existing runtime gates such as Console `evalEnabled` and `apiKey`.

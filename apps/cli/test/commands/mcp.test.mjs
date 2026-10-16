@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { assert, envWithPath, existsSync, outputOf, readFileSync, run, spawnCli, stopChild, test, waitForOutput, writeFakeCommand } from './helpers.mjs';
 
 const TOKEN = 'test-mcp-token';
+const GATEWAY_TOKEN = 'test-gateway-token-0123456789abcdef0123';
 
 function startFakeBridge() {
   const commands = [];
@@ -906,7 +907,7 @@ test('mcp: HTTP transport requires bearer auth and accepts an authorized initial
   const bridge = await startFakeBridge();
   const port = await freePort();
   const child = spawnCli(
-    ['mcp', '--transport', 'http', '--port', String(port), '--desktop-url', bridge.url, '--studio-url', bridge.url, '--token', TOKEN],
+    ['mcp', '--transport', 'http', '--port', String(port), '--desktop-url', bridge.url, '--studio-url', bridge.url, '--token', TOKEN, '--http-token', GATEWAY_TOKEN],
     { env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' } },
   );
 
@@ -920,12 +921,24 @@ test('mcp: HTTP transport requires bearer auth and accepts an authorized initial
     });
     assert.equal(rejected.status, 401);
 
-    const accepted = await fetch(`http://127.0.0.1:${port}/mcp`, {
+    // The Inspector backend token is not a client credential for the gateway.
+    const backendToken = await fetch(`http://127.0.0.1:${port}/mcp`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         accept: 'application/json, text/event-stream',
         authorization: `Bearer ${TOKEN}`,
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }),
+    });
+    assert.equal(backendToken.status, 401);
+
+    const accepted = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json, text/event-stream',
+        authorization: `Bearer ${GATEWAY_TOKEN}`,
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
@@ -942,5 +955,188 @@ test('mcp: HTTP transport requires bearer auth and accepts an authorized initial
   } finally {
     await stopChild(child);
     await bridge.close();
+  }
+});
+
+
+// --- Gateway independence: one server, two optional backends ----------------
+
+const STUDIO_TOKEN = 'test-studio-token';
+
+function startFakeStudio({ stall = false } = {}) {
+  const server = createServer((req, res) => {
+    if (req.url === '/health') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ app: 'studio', ok: true, version: '9.9.9', features: ['creative-snapshots'] }));
+      return;
+    }
+    if (req.headers.authorization !== `Bearer ${STUDIO_TOKEN}`) {
+      res.writeHead(401, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: 'invalid or missing Studio MCP token' }));
+      return;
+    }
+    if (stall) return; // accept the request and never answer
+    if (req.method === 'GET' && req.url === '/creative/texture-lab') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ type: 'texture-lab', recipe: { generator: 'soft-circle' } }));
+      return;
+    }
+    res.writeHead(404, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ error: 'not found' }));
+  });
+  return new Promise((resolve) => {
+    server.listen(0, '127.0.0.1', () => {
+      resolve({
+        url: `http://127.0.0.1:${server.address().port}`,
+        close: () => new Promise((done) => { server.closeAllConnections?.(); server.close(done); }),
+      });
+    });
+  });
+}
+
+/** An environment with no Inspector token anywhere and a published Studio token. */
+function studioOnlyEnv(studio) {
+  const dir = mkdtempSync(join(tmpdir(), 'feather-mcp-studio-only-'));
+  const studioConfig = join(dir, 'studio-mcp.json');
+  writeFileSync(studioConfig, JSON.stringify({ token: STUDIO_TOKEN, url: studio.url, pid: 1 }));
+  const env = { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' };
+  delete env.FEATHER_MCP_TOKEN;
+  delete env.FEATHER_STUDIO_MCP_TOKEN;
+  delete env.FEATHER_MCP_ALLOW_RAW_COMMANDS;
+  return {
+    dir,
+    env: {
+      ...env,
+      FEATHER_MCP_CONFIG: join(dir, 'missing-inspector-mcp.json'),
+      FEATHER_STUDIO_MCP_CONFIG: studioConfig,
+      FEATHER_MCP_GATEWAY_CONFIG: join(dir, 'mcp-gateway.json'),
+    },
+  };
+}
+
+async function initialize(child) {
+  sendRpc(child, {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'initialize',
+    params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'feather-test', version: '1.0.0' } },
+  });
+  const init = await waitForRpc(child, 1);
+  sendRpc(child, { jsonrpc: '2.0', method: 'notifications/initialized' });
+  return init;
+}
+
+test('mcp: starts for Studio-only use, finds the published Studio token, and reports honest status', async () => {
+  const studio = await startFakeStudio();
+  const { env, dir } = studioOnlyEnv(studio);
+  const child = spawnCli(['mcp', '--transport', 'stdio', '--desktop-url', 'http://127.0.0.1:9', '--studio-url', studio.url], { env });
+  try {
+    const init = await initialize(child);
+    const cliVersion = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
+    assert.equal(init.result.serverInfo.version, cliVersion, 'server version comes from the package, not a literal');
+
+    sendRpc(child, { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'feather_status', arguments: {} } });
+    const status = JSON.parse((await waitForRpc(child, 2)).result.content[0].text);
+    assert.equal(status.inspector.configured, false);
+    assert.equal(status.inspector.reachable, false);
+    assert.match(status.inspector.remedy, /MCP Access/);
+    assert.equal(status.studio.configured, true, 'the token Studio published is found without --studio-token');
+    assert.equal(status.studio.reachable, true);
+    assert.equal(status.studio.version, '9.9.9');
+
+    sendRpc(child, { jsonrpc: '2.0', id: 3, method: 'resources/read', params: { uri: 'feather://creative/texture-lab' } });
+    assert.match(JSON.stringify(await waitForRpc(child, 3)), /soft-circle/, 'creative reads work with no Inspector');
+
+    sendRpc(child, { jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'feather_list_sessions', arguments: {} } });
+    assert.match(JSON.stringify(await waitForRpc(child, 4)), /Inspector MCP access is not configured/);
+
+    sendRpc(child, { jsonrpc: '2.0', id: 5, method: 'tools/list' });
+    const tools = (await waitForRpc(child, 5)).result.tools.map((tool) => tool.name);
+    assert.ok(!tools.includes('feather_send_command'), 'the raw command tool is off by default');
+  } finally {
+    await stopChild(child);
+    await studio.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('mcp: --allow-raw-commands exposes the raw command tool', async () => {
+  const studio = await startFakeStudio();
+  const { env, dir } = studioOnlyEnv(studio);
+  const child = spawnCli(['mcp', '--transport', 'stdio', '--studio-url', studio.url, '--allow-raw-commands'], { env });
+  try {
+    await initialize(child);
+    sendRpc(child, { jsonrpc: '2.0', id: 2, method: 'tools/list' });
+    const tools = (await waitForRpc(child, 2)).result.tools.map((tool) => tool.name);
+    assert.ok(tools.includes('feather_send_command'));
+  } finally {
+    await stopChild(child);
+    await studio.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('mcp: a stalled backend fails within its deadline, naming the application', async () => {
+  const studio = await startFakeStudio({ stall: true });
+  const { env, dir } = studioOnlyEnv(studio);
+  const child = spawnCli(['mcp', '--transport', 'stdio', '--studio-url', studio.url], {
+    env: { ...env, FEATHER_MCP_BACKEND_TIMEOUT_MS: '300' },
+  });
+  try {
+    await initialize(child);
+    const startedAt = Date.now();
+    sendRpc(child, { jsonrpc: '2.0', id: 2, method: 'resources/read', params: { uri: 'feather://creative/texture-lab' } });
+    const response = JSON.stringify(await waitForRpc(child, 2));
+    assert.match(response, /Feather Studio did not answer within 300 ms/);
+    assert.ok(Date.now() - startedAt < 5_000, 'the request is bounded by the backend deadline');
+  } finally {
+    await stopChild(child);
+    await studio.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('mcp: HTTP gateway mints its own private client token and limits request bodies', async () => {
+  const studio = await startFakeStudio();
+  const { env, dir } = studioOnlyEnv(studio);
+  const port = await freePort();
+  const child = spawnCli(['mcp', '--transport', 'http', '--port', String(port), '--studio-url', studio.url], { env });
+  try {
+    await waitForOutput(child, /MCP HTTP server listening/);
+    const configPath = env.FEATHER_MCP_GATEWAY_CONFIG;
+    const { httpToken } = JSON.parse(readFileSync(configPath, 'utf8'));
+    assert.match(httpToken, /^feather-gateway-[0-9a-f]{48}$/);
+    if (process.platform !== 'win32') {
+      const { statSync } = await import('node:fs');
+      assert.equal(statSync(configPath).mode & 0o777, 0o600, 'the client token file is owner-only');
+    }
+
+    const headers = {
+      'content-type': 'application/json',
+      accept: 'application/json, text/event-stream',
+      authorization: `Bearer ${httpToken}`,
+    };
+    const initialize = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'feather-test', version: '1.0.0' } },
+      }),
+    });
+    assert.notEqual(initialize.status, 401);
+
+    const tooLarge = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'ping', params: { pad: 'x'.repeat(2 * 1024 * 1024) } }),
+    });
+    assert.equal(tooLarge.status, 413);
+  } finally {
+    await stopChild(child);
+    await studio.close();
+    rmSync(dir, { recursive: true, force: true });
   }
 });
