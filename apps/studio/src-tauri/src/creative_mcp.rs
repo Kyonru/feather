@@ -18,6 +18,7 @@
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -157,7 +158,58 @@ async fn health(State(state): State<CreativeMcpState>) -> Response {
         .keys()
         .cloned()
         .collect();
-    Json(json!({ "app": "studio", "ok": true, "tools": tools })).into_response()
+    // Unauthenticated, so it says what this is and nothing about the work.
+    Json(json!({
+        "app": "studio",
+        "ok": true,
+        "version": env!("CARGO_PKG_VERSION"),
+        "tools": tools,
+        "features": ["creative-snapshots", "creative-actions"],
+        "limits": { "actionTimeoutMs": ACTION_TIMEOUT.as_millis() as u64 },
+    }))
+    .into_response()
+}
+
+/// Where Studio publishes its per-launch token for the `feather mcp` gateway.
+///
+/// The token used to be readable only from inside Studio, so creative MCP use
+/// meant copying it by hand into `--studio-token` after every launch. Inspector
+/// already publishes its bridge token the same way (`~/.feather/mcp.json`).
+pub fn published_config_path() -> PathBuf {
+    if let Some(path) = std::env::var_os("FEATHER_STUDIO_MCP_CONFIG") {
+        return PathBuf::from(path);
+    }
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
+    match home {
+        Some(home) => PathBuf::from(home).join(".feather").join("studio-mcp.json"),
+        None => PathBuf::from(".feather").join("studio-mcp.json"),
+    }
+}
+
+/// Write `{ token, url, pid }` readable by the user only. Failure is reported
+/// and otherwise harmless: Studio works without MCP, and `--studio-token` still
+/// works without the file.
+fn publish_token(state: &CreativeMcpState, port: u16, path: &PathBuf) -> std::io::Result<()> {
+    use std::io::Write;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let content = serde_json::to_string_pretty(&json!({
+        "token": state.token(),
+        "url": format!("http://127.0.0.1:{port}"),
+        "pid": std::process::id(),
+    }))
+    .map_err(std::io::Error::other)?;
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options.open(path)?;
+    file.write_all(content.as_bytes())?;
+    file.write_all(b"\n")
 }
 
 async fn get_snapshot(
@@ -274,6 +326,13 @@ pub fn start(state: CreativeMcpState, port: u16) {
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
         match tokio::net::TcpListener::bind(addr).await {
             Ok(listener) => {
+                let path = published_config_path();
+                if let Err(error) = publish_token(&state, port, &path) {
+                    eprintln!(
+                        "[feather-studio] could not publish the MCP token to {}: {error}",
+                        path.display()
+                    );
+                }
                 if let Err(error) = axum::serve(listener, router(state)).await {
                     eprintln!("[feather-studio] creative MCP endpoint stopped: {error}");
                 }
@@ -322,6 +381,23 @@ mod tests {
     #[test]
     fn each_launch_gets_its_own_token() {
         assert_ne!(CreativeMcpState::new().token(), CreativeMcpState::new().token());
+    }
+
+    #[test]
+    fn the_published_token_is_the_running_token_and_private() {
+        let state = CreativeMcpState::new();
+        let path = std::env::temp_dir().join(format!("studio-mcp-test-{}.json", uuid::Uuid::new_v4()));
+        publish_token(&state, 4007, &path).expect("publishing should succeed");
+        let published: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(published["token"], state.token());
+        assert_eq!(published["url"], "http://127.0.0.1:4007");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+            assert_eq!(mode, 0o600, "the token file must be readable by its owner only");
+        }
+        let _ = std::fs::remove_file(path);
     }
 
     #[test]
