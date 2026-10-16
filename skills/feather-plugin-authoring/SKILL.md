@@ -35,9 +35,9 @@ Use this skill when adding or changing built-in plugins, plugin manifests, plugi
 - Base class: `packages/runtime-lua/feather/core/base.lua`.
 - Plugin manager: `packages/runtime-lua/feather/plugin_manager.lua`.
 - UI helpers: `packages/runtime-lua/feather/ui.lua`.
-- Generated catalog: `cli/src/generated/plugin-catalog.ts`.
+- Generated catalog: `apps/cli/src/generated/plugin-catalog.ts`.
 - Catalog generator: `scripts/generate-plugin-catalog.mjs`.
-- CLI plugin commands: `cli/src/commands/plugin.ts`.
+- CLI plugin commands: `apps/cli/src/commands/plugin.ts`.
 
 ## Verification
 
@@ -51,10 +51,10 @@ Use this skill when adding or changing built-in plugins, plugin manifests, plugi
 
 - Update docs for user-facing plugin behavior, options, manifests, or UI nodes in the same change as the implementation.
 - Update `CHANGELOG.md` for new plugins, changed plugin behavior, capability/security changes, plugin UI changes, or plugin e2e coverage changes.
-- Plugin authoring behavior belongs in `docs/plugins.md`.
+- Plugin authoring behavior belongs in `apps/docs/plugins.md`.
 - Declarative plugin UI details belong in `packages/runtime-lua/plugins/plugins-ui.md`.
 - Per-plugin behavior belongs in that plugin's `packages/runtime-lua/plugins/<plugin-id>/README.md`.
-- Prefer source-side docs under `packages/runtime-lua/plugins/`; expose them through `docs/` symlinks such as `docs/plugins.md`, `docs/plugins-ui.md`, or `docs/plugins/<plugin-id>.md`.
+- Prefer source-side docs under `packages/runtime-lua/plugins/`; expose them through `apps/docs/` symlinks such as `apps/docs/plugins.md`, `apps/docs/plugins-ui.md`, or `apps/docs/plugins/<plugin-id>.md`.
 
 ## Avoid
 

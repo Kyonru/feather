@@ -15,7 +15,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Kyonru/feather.git",
-    "directory": "cli"
+    "directory": "apps/cli"
   },
   "bugs": {
     "url": "https://github.com/Kyonru/feather/issues"

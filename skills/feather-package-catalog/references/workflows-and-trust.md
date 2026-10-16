@@ -43,7 +43,7 @@ Use the package helpers instead of hand-writing entries from scratch:
 - `pnpm run package:add` for GitHub-hosted packages.
 - `pnpm run package:add-url` for direct file URL packages.
 
-The wizard should produce `packages/<id>.json` and regenerate `cli/src/generated/registry.json`. Commit both when the diff is expected.
+The wizard should produce `catalog/packages/<id>.json` and regenerate `apps/cli/src/generated/registry.json`. Commit both when the diff is expected.
 
 Checklist:
 
@@ -54,7 +54,7 @@ Checklist:
 - Recompute checksums when file URLs, pinned refs, or target files change.
 - Verify with `pnpm run check:registry`, `pnpm run cli:build`, `pnpm run feather -- package info <id>`, and `pnpm run feather -- package install <id> --dir <temp-game>`.
 - Add or update package e2e coverage for install, update, audit, trust, lockfile, or CLI flow changes.
-- Update `packages/README.md` and `CHANGELOG.md` for new or changed user-visible catalog entries.
+- Update `catalog/packages/README.md` and `CHANGELOG.md` for new or changed user-visible catalog entries.
 
 ## Safety expectations
 

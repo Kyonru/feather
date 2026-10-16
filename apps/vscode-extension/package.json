@@ -13,7 +13,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Kyonru/feather.git",
-    "directory": "vscode-extension"
+    "directory": "apps/vscode-extension"
   },
   "engines": {
     "vscode": "^1.101.0"

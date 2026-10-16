@@ -52,10 +52,10 @@ Use this skill when changing `packages/runtime-lua/feather`, bundled Lua plugins
 
 - Update docs for user-facing runtime, config, debugger, or transport behavior in the same change as the implementation.
 - Update `CHANGELOG.md` for runtime, config, protocol, debugger, security, or Lua e2e coverage changes that affect users.
-- Runtime config fields belong in `docs/configuration.md`.
-- User workflows around observers, logging, console, debugger, or replay belong in `docs/usage.md` and related focused docs.
-- Production/security posture belongs in `docs/recommendations.md`.
-- When runtime docs are plugin- or feature-specific, prefer a source-side README under `packages/runtime-lua/` and expose it through `docs/` with a symlink.
+- Runtime config fields belong in `apps/docs/configuration.md`.
+- User workflows around observers, logging, console, debugger, or replay belong in `apps/docs/usage.md` and related focused docs.
+- Production/security posture belongs in `apps/docs/recommendations.md`.
+- When runtime docs are plugin- or feature-specific, prefer a source-side README under `packages/runtime-lua/` and expose it through `apps/docs/` with a symlink.
 
 ## Avoid
 

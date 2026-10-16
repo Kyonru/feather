@@ -38,7 +38,7 @@ Packaging:
 - `pnpm run extension:binary` builds packaged CLI binaries.
 - `pnpm run extension:package` prepares, builds, generates the icon, and packages with `vsce`.
 
-The packaged extension should use bundled assets. Local development should use `vscode-extension/bundled-bin/feather-dev.mjs` or the workspace CLI path prepared by scripts.
+The packaged extension should use bundled assets. Local development should use `apps/vscode-extension/bundled-bin/feather-dev.mjs` or the workspace CLI path prepared by scripts.
 
 ## Testing
 

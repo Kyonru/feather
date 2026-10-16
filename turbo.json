@@ -87,6 +87,20 @@
     "//#check:registry": {
       "inputs": ["catalog/packages/*.json", "scripts/generate-registry.mjs"]
     },
+    "//#check:paths": {
+      "inputs": [
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        "README.md",
+        "skills/**",
+        "package.json",
+        "pnpm-workspace.yaml",
+        "apps/*/package.json",
+        "packages/*/package.json",
+        "apps/docs/**",
+        "scripts/check-repo-paths.mjs"
+      ]
+    },
     "//#check:plugin-catalog": {
       "inputs": ["packages/runtime-lua/plugins/**", "scripts/generate-plugin-catalog.mjs"]
     }

@@ -18,13 +18,22 @@ fi
 # so this guard is what stops the two declarations from drifting apart.
 pnpm run check:protocol
 
-# Feather v4: versions are per release train (see V4.md section 6). The trains
+# Feather v4: versions are per release train (see V4.md §5.6). The trains
 # deliberately drift apart — a CLI patch must NOT drag the desktop app, runtime,
 # or extension along with it. The only cross-file constraint left is the desktop
 # trio, which is one artifact described in three files and must agree with itself.
+#
+# Compare the trio before and after set-version rather than against the index:
+# package.json routinely carries other unstaged edits, and `git diff` on it made
+# every such commit fail as "out of sync" when set-version had changed nothing.
+DESKTOP_TRIO="package.json apps/inspector/src-tauri/Cargo.toml apps/inspector/src-tauri/tauri.conf.json"
+# shellcheck disable=SC2086
+TRIO_BEFORE=$(cat $DESKTOP_TRIO | git hash-object --stdin)
 bash scripts/set-version.sh desktop
-if ! git diff --exit-code package.json apps/inspector/src-tauri/Cargo.toml apps/inspector/src-tauri/tauri.conf.json; then
-  echo "[feather] Desktop version files are out of sync — they have been updated, please stage them and commit again."
-  echo "[feather] Note: cli, runtime, and ext version independently. See V4.md."
+# shellcheck disable=SC2086
+TRIO_AFTER=$(cat $DESKTOP_TRIO | git hash-object --stdin)
+if [ "$TRIO_BEFORE" != "$TRIO_AFTER" ]; then
+  echo "[feather] Desktop version files were out of sync — set-version has aligned them; stage them and commit again."
+  echo "[feather] Note: cli, runtime, and ext version independently. See V4.md §5.6."
   exit 1
 fi

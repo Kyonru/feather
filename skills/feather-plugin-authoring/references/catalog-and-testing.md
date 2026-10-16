@@ -46,12 +46,12 @@ Checklist:
 - Return serializable data or `feather.ui.render(...)` payloads; do not return functions, userdata, or React-specific concepts.
 - Add a Lua e2e fixture under `packages/runtime-lua/e2e/plugins/` for runtime behavior.
 - Add desktop or showcase e2e coverage when the plugin changes rendered UI behavior.
-- Add or update the plugin README and any docs symlink target under `docs/plugins/`.
+- Add or update the plugin README and any docs symlink target under `apps/docs/plugins/`.
 - Update `CHANGELOG.md` for new plugin behavior, capability changes, UI changes, or meaningful e2e coverage.
 
 ## Generated catalog
 
-`scripts/generate-plugin-catalog.mjs` reads plugin manifests and writes `cli/src/generated/plugin-catalog.ts`.
+`scripts/generate-plugin-catalog.mjs` reads plugin manifests and writes `apps/cli/src/generated/plugin-catalog.ts`.
 
 Use:
 
@@ -76,7 +76,7 @@ pnpm run test:lua:e2e
 ## Tests and smoke checks
 
 - Lua plugin logic: `pnpm run test:lua:e2e`.
-- CLI plugin commands: `node --test cli/test/commands/*.test.mjs`.
+- CLI plugin commands: `node --test apps/cli/test/commands/*.test.mjs`.
 - Desktop rendering changes: Playwright tests or targeted app smoke checks.
 - Catalog-only manifest changes: `pnpm run check:plugin-catalog`.
 
@@ -84,7 +84,7 @@ Each built-in plugin should have a matching Lua e2e fixture under `packages/runt
 
 ## Docs update rules
 
-Update `docs/plugins/` and `packages/runtime-lua/plugins/plugins-ui.md` when plugin capabilities, UI nodes, lifecycle methods, or manifest fields change. The `docs/plugins-ui.md` is the user-facing reference for declarative UI — keep it in sync with `packages/runtime-lua/feather/ui.lua`.
+Update `apps/docs/plugins/` and `packages/runtime-lua/plugins/plugins-ui.md` when plugin capabilities, UI nodes, lifecycle methods, or manifest fields change. The `apps/docs/plugins-ui.md` is the user-facing reference for declarative UI — keep it in sync with `packages/runtime-lua/feather/ui.lua`.
 
 ## Common mistakes
 

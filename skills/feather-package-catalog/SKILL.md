@@ -11,8 +11,8 @@ Use this skill when adding or updating catalog packages, changing package trust/
 
 ## First pass
 
-- Start with `packages/README.md` for user-facing package manager behavior.
-- Inspect an existing package JSON such as `packages/anim8.json`.
+- Start with `catalog/packages/README.md` for user-facing package manager behavior.
+- Inspect an existing package JSON such as `catalog/packages/anim8.json`.
 - For schema and registry details, load [registry schema](references/registry-schema.md).
 - For adding packages, workflows, trust, and lockfiles, load [workflows and trust](references/workflows-and-trust.md).
 
@@ -20,7 +20,7 @@ Use this skill when adding or updating catalog packages, changing package trust/
 
 - The catalog is curated, not a general package registry.
 - Catalog packages live in root `packages/*.json`; this folder already has a project meaning, so do not mix agent skills into it.
-- Registry output is generated at `cli/src/generated/registry.json`; do not edit it by hand.
+- Registry output is generated at `apps/cli/src/generated/registry.json`; do not edit it by hand.
 - Checksums must be SHA-256 values for every installed file.
 - `verified` and `known` packages install normally; `experimental` and version overrides require explicit untrusted consent in CLI flows.
 - Lockfiles record exact installed files and checksums so projects can restore and audit.
@@ -30,12 +30,12 @@ Use this skill when adding or updating catalog packages, changing package trust/
 ## Common implementation map
 
 - Catalog source: `packages/*.json`.
-- User docs: `packages/README.md`.
+- User docs: `catalog/packages/README.md`.
 - Registry generator: `scripts/generate-registry.mjs`.
 - Checksum helper: `scripts/compute-checksums.mjs`.
-- Generated registry: `cli/src/generated/registry.json`.
-- Package CLI entry: `cli/src/commands/package.ts` and `cli/src/commands/package/`.
-- Interactive package scripts: `cli/scripts/add-package.tsx`, `add-package-url.tsx`, `update-package.tsx`, `remove-package.tsx`.
+- Generated registry: `apps/cli/src/generated/registry.json`.
+- Package CLI entry: `apps/cli/src/commands/package.ts` and `apps/cli/src/commands/package/`.
+- Interactive package scripts: `apps/cli/scripts/add-package.tsx`, `add-package-url.tsx`, `update-package.tsx`, `remove-package.tsx`.
 
 ## Verification
 
@@ -50,11 +50,11 @@ Use this skill when adding or updating catalog packages, changing package trust/
 
 - Update docs for user-facing package manager behavior, trust policy, package commands, or catalog changes in the same change as the implementation.
 - Update `CHANGELOG.md` for new/changed catalog entries, trust policy changes, package CLI behavior, lockfile/audit changes, or package e2e coverage changes.
-- Package manager behavior belongs in `packages/README.md`.
-- `docs/packages.md` points to `packages/README.md`; edit the canonical source file.
-- CLI command summaries may also need `cli/README.md`.
-- Trust or release-safety implications may need `docs/recommendations.md`.
-- Prefer source-side package docs under `packages/`, exposed through `docs/` with symlinks when practical.
+- Package manager behavior belongs in `catalog/packages/README.md`.
+- `apps/docs/packages.md` points to `catalog/packages/README.md`; edit the canonical source file.
+- CLI command summaries may also need `apps/cli/README.md`.
+- Trust or release-safety implications may need `apps/docs/recommendations.md`.
+- Prefer source-side package docs under `packages/`, exposed through `apps/docs/` with symlinks when practical.
 
 ## Avoid
 

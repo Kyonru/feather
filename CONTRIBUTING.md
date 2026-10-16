@@ -92,7 +92,7 @@ Studio). Stop the standalone server first, or just use the Tauri command, which 
 `pnpm run dev` is still Inspector's web server, and `inspector:dev` is an alias for it.
 
 **Do not use a bare `pnpm run tauri ...` any more.** The Tauri CLI discovers a project by searching
-for a `src-tauri/` directory, and there are now two — so from the repo root it resolves to Studio,
+for a directory named `src-tauri`, and there are now two — so from the repo root it resolves to Studio,
 whatever you meant. The `inspector:*` and `studio:*` scripts pin the project directory, and CI does
 the same with an explicit `projectPath`. Use them instead.
 
@@ -202,8 +202,8 @@ cache hit and silently skips work that would have failed. Force a lane to re-run
 
 ```txt
 apps/
-  inspector/          Inspector desktop app: React UI + src-tauri/ shell and WebSocket server
-  studio/             Feather Studio: shader graph, particle playground, texture lab (+ src-tauri/)
+  inspector/          Inspector desktop app: React UI + Tauri shell and WebSocket server
+  studio/             Feather Studio: shader graph, particle playground, texture lab (+ its own Tauri shell)
   showcase/           public web showcase
   cli/                the Feather CLI: build/upload/release, package manager, Ink workflows
   vscode-extension/   the VS Code extension
@@ -401,7 +401,7 @@ out of habit. `bash scripts/set-version.sh desktop` is Inspector; `studio` is St
 
 `pnpm run check:plugin-catalog`, `pnpm run check:registry`, and `pnpm run check:protocol` intentionally fail when generated output differs from git. If the generated diff is expected, commit it. All three run as part of `pnpm run verify`.
 
-Generated or local-only folders such as `apps/vscode-extension/bundled-cli/`, `apps/vscode-extension/bundled-bin/`, `src-tauri/target/`, build outputs, caches, and replay/debug artifacts should not be committed.
+Generated or local-only folders such as `apps/vscode-extension/bundled-cli/`, `apps/vscode-extension/bundled-bin/`, `apps/inspector/src-tauri/target/`, build outputs, caches, and replay/debug artifacts should not be committed.
 
 ## Lua Runtime Guidelines
 
@@ -459,7 +459,7 @@ Plugin contribution tips:
 - Preserve config and generated Lua in a form users can understand and remove.
 - Follow skip-on-exists behavior for file installers. Use `--force` when overwriting is intentional.
 - Keep `doctor` useful. New setup requirements should have a doctor check and a clear remediation message.
-- When adding setup options, update `cli/README.md`, `docs/configuration.md`, and generated config templates.
+- When adding setup options, update `apps/cli/README.md`, `apps/docs/configuration.md`, and generated config templates.
 - Build and upload commands must run production safety checks before shipping user-facing artifacts.
 
 ## Release Trains
@@ -516,22 +516,22 @@ Production paths should be boringly strict.
 - The extension is a UI controller for the CLI. It should spawn the bundled CLI and avoid re-implementing CLI logic.
 - Keep extension commands mapped closely to CLI commands. If behavior does not exist in the CLI, add it there first.
 - Workspace-scoped settings should use `ConfigurationTarget.Workspace`, not `Global`, when they are project-specific.
-- Register new commands in both `vscode-extension/src/extension.ts` and `vscode-extension/package.json`.
-- Build/package flows should use the bundled CLI/binary prepared by `vscode-extension/scripts/prepare.mjs`.
+- Register new commands in both `apps/vscode-extension/src/extension.ts` and `apps/vscode-extension/package.json`.
+- Build/package flows should use the bundled CLI/binary prepared by `apps/vscode-extension/scripts/prepare.mjs`.
 - Do not commit generated extension bundles.
 
 ## Documentation Guidelines
 
-- User-facing CLI behavior belongs in `cli/README.md` and, when broader, in `docs/usage.md` or a dedicated page.
-- Runtime config belongs in `docs/configuration.md`.
-- Plugin behavior belongs in `packages/runtime-lua/plugins/<plugin-id>/README.md`; major workflows may also need a `docs/<feature>.md` page and a `zensical.toml` nav entry.
-- VS Code extension behavior belongs in `vscode-extension/README.md`.
+- User-facing CLI behavior belongs in `apps/cli/README.md` and, when broader, in `apps/docs/usage.md` or a dedicated page.
+- Runtime config belongs in `apps/docs/configuration.md`.
+- Plugin behavior belongs in `packages/runtime-lua/plugins/<plugin-id>/README.md`; major workflows may also need a `apps/docs/<feature>.md` page and a `zensical.toml` nav entry.
+- VS Code extension behavior belongs in `apps/vscode-extension/README.md`.
 - Prefer copy-pasteable commands and small guarded Lua examples.
 - Be explicit about what Feather does not do. For example, Session Replay records inputs and developer-selected state; it does not serialize an entire game.
 
 ## Package Catalog Contributions
 
-Use helper scripts instead of hand-writing package entries whenever possible. They fetch metadata, pin source commits or URLs, calculate SHA-256 checksums, write `catalog/packages/<id>.json`, and regenerate `cli/src/generated/registry.json`.
+Use helper scripts instead of hand-writing package entries whenever possible. They fetch metadata, pin source commits or URLs, calculate SHA-256 checksums, write `catalog/packages/<id>.json`, and regenerate `apps/cli/src/generated/registry.json`.
 
 For GitHub-hosted packages:
 
@@ -560,7 +560,7 @@ Package contribution tips:
 - Keep install targets narrow and predictable, usually under `lib/<package-id>/`.
 - Include a realistic `require` path and a small usage example.
 - Use `verified` only for packages reviewed and pinned with checksums. Use `known` for checksum-pinned sources that still need extra review.
-- Commit both `catalog/packages/<id>.json` and `cli/src/generated/registry.json`.
+- Commit both `catalog/packages/<id>.json` and `apps/cli/src/generated/registry.json`.
 
 ## Commit Messages
 

@@ -26,7 +26,7 @@ Important fields:
 - `debugger` and `debugger.hotReload`
 - `assetPreview`, `binaryTextThreshold`
 
-CLI parsing/writing lives in `cli/src/lib/config.ts`. Lua consumption lives in `packages/runtime-lua/feather/auto.lua` and runtime setup code.
+CLI parsing/writing lives in `apps/cli/src/lib/config.ts`. Lua consumption lives in `packages/runtime-lua/feather/auto.lua` and runtime setup code.
 
 ## Transport modes
 

@@ -5,16 +5,11 @@
   "version": "4.0.0",
   "type": "module",
   "packageManager": "pnpm@11.18.0",
-  "workspaces": [
-    "cli",
-    "packages/protocol",
-    "vscode-extension"
-  ],
   "scripts": {
     "cli:build": "pnpm --filter @kyonru/feather run build",
     "cli:dev": "pnpm --filter @kyonru/feather run dev",
     "verify:enhanced": "node scripts/verify-enhancements.mjs",
-    "verify": "turbo run //#typecheck:web //#typecheck:protocol //#typecheck:host //#typecheck:session-bridge //#typecheck:ui //#typecheck:studio //#typecheck:lua //#lint //#check:protocol //#check:registry //#check:plugin-catalog",
+    "verify": "turbo run //#typecheck:web //#typecheck:protocol //#typecheck:host //#typecheck:session-bridge //#typecheck:ui //#typecheck:studio //#typecheck:lua //#lint //#check:protocol //#check:registry //#check:plugin-catalog //#check:paths",
     "test": "turbo run --concurrency=1 //#test:unit //#test:bridge //#test:cli:e2e //#test:lua:e2e //#test:inspector:e2e //#test:studio:e2e //#test:showcase:e2e",
     "test:unit": "tsx --test \"scripts/tests/*.test.ts\" \"scripts/tests/*.test.mjs\"",
     "test:bridge": "node --test packages/session-bridge/test/*.test.mts",
@@ -68,6 +63,7 @@
     "generate:platform-manifest": "node scripts/build-platform-manifest.mjs",
     "check:artifact-boundary": "node scripts/check-artifact-boundary.mjs",
     "check:protocol": "node scripts/check-protocol.mjs",
+    "check:paths": "node scripts/check-repo-paths.mjs",
     "package:add": "pnpm --filter @kyonru/feather run package:add",
     "package:add-url": "pnpm --filter @kyonru/feather run package:add-url",
     "package:update": "pnpm --filter @kyonru/feather run package:update",

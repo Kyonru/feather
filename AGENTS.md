@@ -24,7 +24,7 @@ this repo*. Both apply. Do not add new tracking documents; record progress in `V
 Everything that ships lives under `apps/`; `packages/` holds only what those
 applications consume.
 
-- `apps/inspector/` - Tauri desktop debugger. `src/` (React) and `src-tauri/` (Rust WS server).
+- `apps/inspector/` - Tauri desktop debugger. React in `apps/inspector/src/`, Rust WS server in `apps/inspector/src-tauri/`.
 - `apps/studio/` - Feather Studio: shader graph, texture lab, particle playground. Separate
   application with its own binary, bundle identifier, version and release feed.
 - `apps/showcase/` - Thin shell hosting Studio for the web. No page code of its own.
@@ -64,7 +64,7 @@ New packages:
 
 - Read `skills/feather-package-catalog/SKILL.md` and its workflow reference before editing catalog data.
 - Prefer `pnpm run package:add` for GitHub-hosted packages and `pnpm run package:add-url` for direct file URL packages.
-- Commit both the source `catalog/packages/<id>.json` file and the generated `cli/src/generated/registry.json` update.
+- Commit both the source `catalog/packages/<id>.json` file and the generated `apps/cli/src/generated/registry.json` update.
 - Verify with `pnpm run check:registry`, `pnpm run cli:build`, `pnpm run feather -- package info <id>`, and a package install into a temp or fixture project.
 - Update package docs, e2e coverage, and `CHANGELOG.md` when the package is user-visible.
 
@@ -92,12 +92,15 @@ New features:
 pnpm install
 pnpm run cli:build
 pnpm run feather --help
-pnpm run dev
-pnpm run tauri dev
+pnpm run up -- --studio    # Inspector + Studio + an example game, in order; Ctrl+C stops all
+pnpm run inspector:tauri   # or one app at a time
+pnpm run studio:tauri
 pnpm run docs
 ```
 
-`pnpm run cli:build` is required before local `pnpm run feather -- ...` smoke checks.
+`pnpm run cli:build` is required before local `pnpm run feather -- ...` smoke checks. Never run a bare
+`pnpm run tauri ...`: there are two `src-tauri` directories, and the Tauri CLI picks one by search
+order rather than by intent. The `inspector:*` and `studio:*` scripts pin the project.
 
 ## Generated Files
 
@@ -105,8 +108,8 @@ Do not edit generated files by hand.
 
 | File                                  | Generator/check                                                    |
 | ------------------------------------- | ------------------------------------------------------------------ |
-| `cli/src/generated/registry.json`     | `pnpm run generate:registry` / `pnpm run check:registry`             |
-| `cli/src/generated/plugin-catalog.ts` | `pnpm run generate:plugin-catalog` / `pnpm run check:plugin-catalog` |
+| `apps/cli/src/generated/registry.json`     | `pnpm run generate:registry` / `pnpm run check:registry`             |
+| `apps/cli/src/generated/plugin-catalog.ts` | `pnpm run generate:plugin-catalog` / `pnpm run check:plugin-catalog` |
 
 When source catalog or manifest files change, run the generator and include the generated result.
 

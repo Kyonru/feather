@@ -16,14 +16,14 @@ The VS Code extension keeps common Feather workflows in the editor:
 
 ## Source map
 
-- `vscode-extension/src/extension.ts`: activation and command registration.
-- `vscode-extension/src/cli.ts`: resolves and invokes Feather CLI.
-- `vscode-extension/src/command.ts`: command execution helpers.
-- `vscode-extension/src/project.ts`: project detection and status.
-- `vscode-extension/src/featherPanel.ts`: activity bar tree/webview surface.
-- `vscode-extension/src/buildConfigPanel.ts`: `feather.build.json` editing.
-- `vscode-extension/src/vendor.ts`: vendor flows.
-- `vscode-extension/src/catalog.ts`: package catalog support.
+- `apps/vscode-extension/src/extension.ts`: activation and command registration.
+- `apps/vscode-extension/src/cli.ts`: resolves and invokes Feather CLI.
+- `apps/vscode-extension/src/command.ts`: command execution helpers.
+- `apps/vscode-extension/src/project.ts`: project detection and status.
+- `apps/vscode-extension/src/featherPanel.ts`: activity bar tree/webview surface.
+- `apps/vscode-extension/src/buildConfigPanel.ts`: `feather.build.json` editing.
+- `apps/vscode-extension/src/vendor.ts`: vendor flows.
+- `apps/vscode-extension/src/catalog.ts`: package catalog support.
 
 ## CLI boundary
 
@@ -39,7 +39,7 @@ Business rules such as production safety, package trust, build config resolution
 
 CLI resolution follows this pattern:
 
-- Local development uses `vscode-extension/bundled-bin/feather-dev.mjs` when present.
+- Local development uses `apps/vscode-extension/bundled-bin/feather-dev.mjs` when present.
 - Packaged builds use the platform-specific bundled binary in `bundled-bin`.
 - Terminal commands quote shell text; background commands use `spawn(..., { shell: false })`.
 
@@ -48,12 +48,12 @@ Do not duplicate CLI behavior in the extension just to avoid invoking the CLI. A
 ## Adding an extension feature
 
 - Add business behavior to the CLI first when the workflow is not VS Code-specific, then invoke it from the extension.
-- Register new commands in `vscode-extension/src/extension.ts` and keep `vscode-extension/package.json` contributions in sync.
-- Route command execution through `vscode-extension/src/cli.ts` and `vscode-extension/src/command.ts`; keep shell quoting and background process behavior consistent with existing helpers.
+- Register new commands in `apps/vscode-extension/src/extension.ts` and keep `apps/vscode-extension/package.json` contributions in sync.
+- Route command execution through `apps/vscode-extension/src/cli.ts` and `apps/vscode-extension/src/command.ts`; keep shell quoting and background process behavior consistent with existing helpers.
 - Respect `feather.projectDir` and multi-root workspaces instead of assuming the first workspace folder is the game.
 - Refresh the project view after commands that change config, packages, plugins, vendors, build config, or project status.
 - Add extension integration coverage for command workflows and packaging-sensitive behavior.
-- Update `vscode-extension/README.md`, any docs symlink target, and `CHANGELOG.md`.
+- Update `apps/vscode-extension/README.md`, any docs symlink target, and `CHANGELOG.md`.
 - Run `pnpm run extension:build`, `pnpm run extension:test`, and `pnpm run extension:test:integration` when command flow changes.
 
 ## Settings

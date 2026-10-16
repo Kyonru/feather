@@ -1,8 +1,10 @@
 # Feather v4 workspace.
 #
-# Listed explicitly rather than with a `packages/*` glob: `packages/` also holds
-# the Love2D catalog entries as bare *.json files, which are data, not packages.
-# The catalog moves to `catalog/packages/` in V4.md Phase 06.
+# This file is the only workspace inventory; root `package.json` deliberately
+# has no `workspaces` field, so the two cannot disagree. Listed explicitly
+# rather than globbed so adding a package is a visible decision (V4.md §1: a
+# directory earns package status only as a release boundary or a contract).
+# `apps/inspector` and `apps/showcase` are built from the root package.
 packages:
   - apps/studio
   - apps/cli
