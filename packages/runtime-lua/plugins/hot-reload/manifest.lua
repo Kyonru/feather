@@ -4,6 +4,7 @@ return {
   description = "Development-only Lua module hot reload over Feather WebSocket",
   version = "1.0.0",
   capabilities = { "filesystem" },
+  runtime = { cost = "low", update = "active", push = "manual", sampleRate = 1 },
   opts = {
     enabled = true,
     allow = {},
