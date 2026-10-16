@@ -1,7 +1,7 @@
 import { auditLockfile } from '../../lib/package/audit.js';
 import { readCompatibleLockfile } from '../../lib/package/compat.js';
-import { installFromUrl, installPackage, restorePackage } from '../../lib/package/install.js';
-import { writeLockfile } from '../../lib/package/lockfile.js';
+import { installFromUrl, installPackages, restorePackages } from '../../lib/package/install.js';
+import { registryStatusJson } from '../../lib/package/registry.js';
 import { lockfileEntryRequiresUntrustedRepair, lockfileEntrySourceSummary } from '../../lib/package/provenance.js';
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { planPackageTarget, resolveProjectTarget } from '../../lib/package/target.js';
@@ -27,7 +27,7 @@ import { trustBadge } from '../../lib/trust.js';
 import { confirmAction } from '../../ui/confirm.js';
 import { showInstallProgress } from '../../ui/package/index.js';
 import { resolvedPackageJson } from './json.js';
-import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
+import { loadRegistryStatusOrExit, resolvePackageProjectDir } from './shared.js';
 
 export type PackageInstallOptions = {
   dryRun?: boolean;
@@ -44,6 +44,8 @@ export type PackageInstallOptions = {
   yes?: boolean;
   registryUrl?: string;
   json?: boolean;
+  /** Overwrite untracked files and locally modified package files at install targets. */
+  force?: boolean;
 };
 
 export async function packageInstallCommand(names: string[], opts: PackageInstallOptions = {}): Promise<void> {
@@ -112,6 +114,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       url: opts.fromUrl,
       target: opts.targetPath,
       dryRun: opts.dryRun,
+      force: opts.force,
     });
 
     if (!result.ok) {
@@ -130,8 +133,8 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
         size: result.size,
         installed: opts.dryRun ? [] : [{ url: opts.fromUrl, target: result.target }],
         planned: [{ url: opts.fromUrl, target: result.target }],
+        warnings: result.warnings ?? [],
       });
-      if (!opts.dryRun) writeLockfile(projectDir, lockfile);
       return;
     }
 
@@ -156,7 +159,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       ['Target', result.target],
       ['Trust', style.warning('experimental; not reviewed by the Feather team')],
     ]);
-    writeLockfile(projectDir, lockfile);
+    for (const warning of result.warnings ?? []) printWarning(warning);
     return;
   }
 
@@ -205,29 +208,29 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
       }
     }
 
-    let failed = false;
     for (const [id, entry] of entries) {
-      if (!broken.has(id)) {
-        printMuted(`  ${id} @ ${entry.version} — up to date`);
-        continue;
-      }
-      const spinner = createSpinner(`  ${id} @ ${entry.version}`).start();
-      const result = await restorePackage(id, entry, { projectDir, dryRun: opts.dryRun });
-      if (result.ok) {
-        spinner.succeed(`  ${id} @ ${entry.version}`);
-      } else {
-        spinner.fail(`  ${id}: ${result.error}`);
-        failed = true;
-      }
+      if (!broken.has(id)) printMuted(`  ${id} @ ${entry.version} — up to date`);
     }
+    // Every broken package is restored in one transaction: all of them or none.
+    const toRestore = entries.filter(([id]) => broken.has(id));
+    const spinner = createSpinner(`  Restoring ${toRestore.length} package(s)…`).start();
+    const batch = await restorePackages(toRestore, lockfile, { projectDir, dryRun: opts.dryRun, force: opts.force });
+    spinner.stop();
+    for (const result of batch.results) {
+      const entry = lockfile.packages[result.id];
+      if (result.ok) printStatus('success', `  ${result.id} @ ${entry?.version ?? ''}`);
+      else printStatus('error', `  ${result.id}: ${result.error}`);
+    }
+    for (const warning of batch.warnings) printWarning(warning);
 
     printBlank();
-    if (failed) fail('', { silent: true });
+    if (!batch.ok) fail('', { silent: true });
     return;
   }
 
-  const registry = await loadRegistryOrExit({ offline: opts.offline, registryUrl: opts.registryUrl });
-  if (!registry) return;
+  const load = await loadRegistryStatusOrExit({ offline: opts.offline, registryUrl: opts.registryUrl, json: opts.json });
+  if (!load) return;
+  const { registry } = load;
 
   const lockfile = readCompatibleLockfile(projectDir);
   const { resolved, errors } = resolveMany(names, registry);
@@ -273,6 +276,7 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
           reason: 'already-installed',
           version: lockfile.packages[pkg.id]?.version,
         })),
+        registry: registryStatusJson(load),
       });
     }
     return;
@@ -324,25 +328,21 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
           reason: 'already-installed',
           version: lockfile.packages[pkg.id]?.version,
         })),
+        registry: registryStatusJson(load),
       });
       return;
     }
 
-    const results = [];
-    for (const pkg of toInstall) {
-      results.push(
-        await installPackage(pkg, lockfile, {
-          projectDir,
-          targetOverride: opts.flatDir,
-          installDir: opts.installDir,
-          saveInstallDir: opts.saveInstallDir,
-          includeLicenses,
-        }),
-      );
-    }
-    if (results.every((result) => result.ok)) {
-      writeLockfile(projectDir, lockfile);
-    }
+    // One transaction for every package; it writes feather.lock.json last, only on success.
+    const batch = await installPackages(toInstall, lockfile, {
+      projectDir,
+      targetOverride: opts.flatDir,
+      installDir: opts.installDir,
+      saveInstallDir: opts.saveInstallDir,
+      includeLicenses,
+      force: opts.force,
+    });
+    const results = batch.results;
     printJson({
       projectDir,
       dryRun: false,
@@ -355,8 +355,10 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
         reason: 'already-installed',
         version: lockfile.packages[pkg.id]?.version,
       })),
+      warnings: batch.warnings,
+      registry: registryStatusJson(load),
     });
-    if (results.some((result) => !result.ok)) fail('', { silent: true });
+    if (!batch.ok) fail('', { silent: true });
     return;
   }
 
@@ -401,10 +403,8 @@ export async function packageInstallCommand(names: string[], opts: PackageInstal
     installDir: opts.installDir,
     saveInstallDir: opts.saveInstallDir,
     includeLicenses,
+    force: opts.force,
   });
-  if (results.every((r) => r.ok)) {
-    writeLockfile(projectDir, lockfile);
-  } else {
-    fail('', { silent: true });
-  }
+  // The install transaction already wrote feather.lock.json, and only if every package succeeded.
+  if (!results.every((r) => r.ok)) fail('', { silent: true });
 }

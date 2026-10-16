@@ -7,10 +7,10 @@ import {
   readFileSync,
   rmSync,
   statSync,
-  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
+import { writeJsonAtomicSync } from '../atomic-write.js';
 import type { ResolvedBuildConfig } from './config.js';
 import { writeZip, type ZipEntry } from './archive.js';
 
@@ -138,9 +138,9 @@ export function copyDirectory(source: string, dest: string): void {
   });
 }
 
+/** Atomic: an interrupted build never leaves a truncated manifest for `upload` to read. */
 export function writeJson(path: string, value: unknown): void {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+  writeJsonAtomicSync(path, value);
 }
 
 export function latestManifestPath(outDir: string): string {

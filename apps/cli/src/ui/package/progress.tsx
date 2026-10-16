@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, render, useApp } from "ink";
 import { SPINNER_FRAMES } from "../components.js";
-import { installPackage } from "../../lib/package/install.js";
+import { installPackages } from "../../lib/package/install.js";
 import { formatRequireHint } from "../../lib/package/resolve.js";
 import { planPackageTarget } from "../../lib/package/target.js";
 import { planPackageLicenses } from "../../lib/package/licenses.js";
@@ -115,6 +115,7 @@ function InstallProgress({
   saveInstallDir,
   dryRun,
   includeLicenses,
+  force,
   onComplete,
 }: {
   packages: ResolvedPackage[];
@@ -125,6 +126,7 @@ function InstallProgress({
   saveInstallDir?: boolean;
   dryRun?: boolean;
   includeLicenses?: boolean;
+  force?: boolean;
   onComplete: (results: InstallResult[]) => void;
 }) {
   const { exit } = useApp();
@@ -179,6 +181,7 @@ function InstallProgress({
 
   const [done, setDone] = useState(false);
   const [allResults, setAllResults] = useState<InstallResult[]>([]);
+  const [warnings, setWarnings] = useState<string[]>([]);
 
   const update = (i: number, patch: Partial<PkgState>) =>
     setStates((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
@@ -192,40 +195,41 @@ function InstallProgress({
 
   useEffect(() => {
     let cancelled = false;
-    const results: InstallResult[] = [];
 
     (async () => {
-      for (let i = 0; i < packages.length; i++) {
-        if (cancelled) break;
-        const pkg = packages[i];
-
-        update(i, { status: "installing" });
-
-        const result = await installPackage(pkg, lockfile, {
-          projectDir,
-          targetOverride,
-          installDir,
-          saveInstallDir,
-          dryRun,
-          includeLicenses,
-          onFileStart: (name) => {
-            if (!cancelled) updateFile(i, name, { status: "downloading" });
-          },
-          onFileComplete: (fileResult) => {
-            if (!cancelled)
-              updateFile(i, fileResult.name, {
-                status: fileResult.ok ? "ok" : "error",
-                error: fileResult.error,
-              });
-          },
-        });
-
-        results.push(result);
-        update(i, { status: result.ok ? "ok" : "error", error: result.error });
-      }
+      // One transaction for the whole command: files are only swapped in once every package has
+      // downloaded and verified, so a failure part-way leaves the project untouched.
+      const indexOf = (id: string) => packages.findIndex((pkg) => pkg.id === id);
+      const batch = await installPackages(packages, lockfile, {
+        projectDir,
+        targetOverride,
+        installDir,
+        saveInstallDir,
+        dryRun,
+        includeLicenses,
+        force,
+        onPackageStart: (id) => {
+          if (!cancelled) update(indexOf(id), { status: "installing" });
+        },
+        onFileStart: (id, name) => {
+          if (!cancelled) updateFile(indexOf(id), name, { status: "downloading" });
+        },
+        onFileComplete: (id, fileResult) => {
+          if (!cancelled)
+            updateFile(indexOf(id), fileResult.name, {
+              status: fileResult.ok ? "ok" : "error",
+              error: fileResult.error,
+            });
+        },
+      });
+      const results = batch.results;
+      results.forEach((result) => {
+        if (!cancelled) update(indexOf(result.id), { status: result.ok ? "ok" : "error", error: result.error });
+      });
 
       if (!cancelled) {
         setAllResults(results);
+        setWarnings(batch.warnings);
         setDone(true);
         onComplete(results);
         exit();
@@ -246,6 +250,9 @@ function InstallProgress({
           <PkgRow key={s.id} pkg={s} spinner={spinner} />
         ))}
       </Box>
+      {done && warnings.map((warning) => (
+        <Text key={warning} color="yellow">⚠ {warning}</Text>
+      ))}
       {done && succeededPkgs.length > 0 && (
         <Box flexDirection="column" gap={1} marginTop={1}>
           <Text color="gray">Add to your code:</Text>
@@ -267,6 +274,7 @@ export async function showInstallProgress(input: {
   saveInstallDir?: boolean;
   dryRun?: boolean;
   includeLicenses?: boolean;
+  force?: boolean;
 }): Promise<InstallResult[]> {
   return new Promise((resolve) => {
     render(<InstallProgress {...input} onComplete={resolve} />);

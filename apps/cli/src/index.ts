@@ -955,6 +955,7 @@ export function createProgram(): Command {
     .option('--save-install-dir', 'Save --install-dir in feather.lock.json for future installs and updates')
     .option('--include-licenses', 'Install catalog-declared license files alongside packages')
     .option('--from-url <url>', 'Install a single file from an arbitrary URL (requires --allow-untrusted)')
+    .option('--force', 'Overwrite untracked files and locally modified package files at install targets')
     .addOption(new Option('--target <path>', 'Deprecated alias for --target-path with --from-url or --flat-dir for catalog installs').hideHelp())
     .option('--offline', 'Use bundled registry snapshot')
     .option('--dir <path>', 'Project directory')
@@ -978,6 +979,7 @@ export function createProgram(): Command {
           yes: opts.yes as boolean | undefined,
           registryUrl: opts.registry as string | undefined,
           json: opts.json as boolean | undefined,
+          force: opts.force as boolean | undefined,
         }),
       ),
     );
@@ -990,6 +992,7 @@ export function createProgram(): Command {
     .option('--dir <path>', 'Project directory')
     .option('--registry <url>', 'Override registry URL')
     .option('--json', 'Output machine-readable JSON')
+    .option('--force', 'Overwrite locally modified package files with the updated versions')
     .action((name: string | undefined, opts) =>
       runCliAction(() =>
         packageUpdateCommand(name, {
@@ -998,6 +1001,7 @@ export function createProgram(): Command {
           dir: opts.dir as string | undefined,
           registryUrl: opts.registry as string | undefined,
           json: opts.json as boolean | undefined,
+          force: opts.force as boolean | undefined,
         }),
       ),
     );
@@ -1008,12 +1012,14 @@ export function createProgram(): Command {
     .option('--dir <path>', 'Project directory')
     .option('-y, --yes', 'Skip confirmation prompt')
     .option('--json', 'Output machine-readable JSON')
+    .option('--cascade', 'Also remove installed packages that depend on this one')
     .action((name: string, opts) =>
       runCliAction(() =>
         packageRemoveCommand(name, {
           dir: opts.dir as string | undefined,
           yes: opts.yes as boolean | undefined,
           json: opts.json as boolean | undefined,
+          cascade: opts.cascade as boolean | undefined,
         }),
       ),
     );

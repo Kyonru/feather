@@ -1,10 +1,10 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
 import { sha256Buffer } from "./checksum.js";
 import { PACKAGE_LOCK_FEATURE_REQUIREMENT, PACKAGE_LOCK_FEATURES } from "./compat.js";
 import { fetchGitPackageFiles } from "./git-source.js";
-import { addToLockfile, markLockfileFeature, type Lockfile, writeLockfile } from "./lockfile.js";
+import { addToLockfile, cloneLockfile, markLockfileFeature, type Lockfile } from "./lockfile.js";
+import { buildOwnershipIndex, checkInstallTarget, type DiskState } from "./ownership.js";
 import { resolveProjectTarget } from "./target.js";
+import { commitPackageTransaction, type TransactionHooks } from "./transaction.js";
 
 export type CustomPackageFile = {
   name: string;
@@ -31,6 +31,7 @@ export type CustomRepoPackageInput = {
   projectDir: string;
   lockfile: Lockfile;
   onFileStart?: (name: string) => void;
+  hooks?: TransactionHooks;
 };
 
 const COMMIT_SHA_RE = /^[a-f0-9]{40}$/i;
@@ -48,16 +49,49 @@ export type CustomUrlPackageInput = {
   urlFiles: CustomUrlFileInput[];
   projectDir: string;
   lockfile: Lockfile;
+  hooks?: TransactionHooks;
 };
 
-function validateTargets(projectDir: string, files: Array<{ target: string }>): string[] | { error: string } {
-  const targets: string[] = [];
+type CheckedTarget = { absTarget: string; disk: DiskState };
+
+/** Path safety plus ownership: refuse other packages' files, untracked files and symlinks before any fetch. */
+function validateTargets(
+  projectDir: string,
+  lockfile: Lockfile,
+  id: string,
+  files: Array<{ target: string }>,
+): CheckedTarget[] | { error: string } {
+  const index = buildOwnershipIndex(lockfile);
+  const targets: CheckedTarget[] = [];
+  const seen = new Set<string>();
   for (const file of files) {
-    const absoluteTarget = resolveProjectTarget(projectDir, file.target);
-    if (!absoluteTarget) return { error: `Target path escapes project root: ${file.target}` };
-    targets.push(absoluteTarget);
+    if (!resolveProjectTarget(projectDir, file.target)) return { error: `Target path escapes project root: ${file.target}` };
+    if (seen.has(file.target)) return { error: `Two selected files target ${file.target}` };
+    seen.add(file.target);
+    const check = checkInstallTarget({ projectDir, lockfile, index, packageId: id, target: file.target });
+    if (!check.ok) return { error: check.error };
+    targets.push({ absTarget: check.absTarget, disk: check.disk });
   }
   return targets;
+}
+
+/** Swap every file in and replace the lockfile last; on success `input.lockfile` becomes `next`. */
+function commitCustomInstall(
+  input: { projectDir: string; lockfile: Lockfile; hooks?: TransactionHooks },
+  targets: CheckedTarget[],
+  files: Array<{ target: string; buffer: Buffer; sha256: string }>,
+  next: Lockfile,
+): string | null {
+  const writes = files.flatMap((file, index) => {
+    const target = targets[index]!;
+    if (target.disk.kind === "file" && target.disk.sha256 === file.sha256) return [];
+    return [{ target: file.target, absTarget: target.absTarget, content: file.buffer }];
+  });
+  const commit = commitPackageTransaction({ projectDir: input.projectDir, writes, lockfile: next, hooks: input.hooks });
+  if (!commit.ok) return commit.error;
+  for (const key of Object.keys(input.lockfile) as Array<keyof Lockfile>) delete input.lockfile[key];
+  Object.assign(input.lockfile, next);
+  return null;
 }
 
 export async function installCustomRepoPackage(input: CustomRepoPackageInput): Promise<CustomPackageInstallResult> {
@@ -69,10 +103,11 @@ export async function installCustomRepoPackage(input: CustomRepoPackageInput): P
     name,
     target: input.targetMap[name] ?? name,
   }));
-  const targets = validateTargets(input.projectDir, plannedFiles);
+  const targets = validateTargets(input.projectDir, input.lockfile, input.id, plannedFiles);
   if ("error" in targets) return { ok: false, files: [], error: targets.error };
 
   const lockedFiles: CustomPackageFile[] = [];
+  const fetchedFiles: Array<{ target: string; buffer: Buffer; sha256: string }> = [];
 
   if (input.transport === "git") {
     const result = fetchGitPackageFiles(
@@ -87,13 +122,11 @@ export async function installCustomRepoPackage(input: CustomRepoPackageInput): P
     for (const [index, file] of plannedFiles.entries()) {
       input.onFileStart?.(file.name);
       const fetched = result.files[index]!;
-      const absoluteTarget = targets[index]!;
-      mkdirSync(dirname(absoluteTarget), { recursive: true });
-      writeFileSync(absoluteTarget, fetched.buffer);
+      fetchedFiles.push({ target: file.target, buffer: fetched.buffer, sha256: fetched.sha256 });
       lockedFiles.push({ name: file.name, target: file.target, sha256: fetched.sha256 });
     }
   } else {
-    for (const [index, file] of plannedFiles.entries()) {
+    for (const file of plannedFiles) {
       input.onFileStart?.(file.name);
 
       const url = input.baseUrl + file.name;
@@ -101,23 +134,22 @@ export async function installCustomRepoPackage(input: CustomRepoPackageInput): P
       try {
         res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
       } catch (err) {
-        return { ok: false, files: lockedFiles, error: `Network error: ${(err as Error).message}` };
+        return { ok: false, files: [], error: `Network error: ${(err as Error).message}` };
       }
-      if (!res.ok) return { ok: false, files: lockedFiles, error: `HTTP ${res.status} fetching ${url}` };
+      if (!res.ok) return { ok: false, files: [], error: `HTTP ${res.status} fetching ${url}` };
 
       const buffer = Buffer.from(await res.arrayBuffer());
       const sha256 = sha256Buffer(buffer);
-      const absoluteTarget = targets[index]!;
-      mkdirSync(dirname(absoluteTarget), { recursive: true });
-      writeFileSync(absoluteTarget, buffer);
+      fetchedFiles.push({ target: file.target, buffer, sha256 });
       lockedFiles.push({ name: file.name, url, target: file.target, sha256 });
     }
   }
 
+  const next = cloneLockfile(input.lockfile);
   if (input.transport === "git") {
-    markLockfileFeature(input.lockfile, PACKAGE_LOCK_FEATURES.gitPackageSources, PACKAGE_LOCK_FEATURE_REQUIREMENT);
+    markLockfileFeature(next, PACKAGE_LOCK_FEATURES.gitPackageSources, PACKAGE_LOCK_FEATURE_REQUIREMENT);
   }
-  addToLockfile(input.lockfile, input.id, {
+  addToLockfile(next, input.id, {
     version: input.tag,
     trust: "experimental",
     source: {
@@ -128,7 +160,8 @@ export async function installCustomRepoPackage(input: CustomRepoPackageInput): P
     },
     files: lockedFiles,
   });
-  writeLockfile(input.projectDir, input.lockfile);
+  const error = commitCustomInstall(input, targets, fetchedFiles, next);
+  if (error) return { ok: false, files: [], error };
 
   return { ok: true, files: lockedFiles };
 }
@@ -136,26 +169,18 @@ export async function installCustomRepoPackage(input: CustomRepoPackageInput): P
 export async function installCustomUrlPackage(input: CustomUrlPackageInput): Promise<CustomPackageInstallResult> {
   if (input.urlFiles.length === 0) return { ok: false, files: [], error: "No URL files selected" };
 
-  const targets = validateTargets(input.projectDir, input.urlFiles);
+  const targets = validateTargets(input.projectDir, input.lockfile, input.id, input.urlFiles);
   if ("error" in targets) return { ok: false, files: [], error: targets.error };
 
-  const lockedFiles = input.urlFiles.map((file) => {
-    const actualSha256 = sha256Buffer(file.buffer);
-    return {
-      name: file.name,
-      url: file.url,
-      target: file.target,
-      sha256: actualSha256,
-    };
-  });
+  const lockedFiles = input.urlFiles.map((file) => ({
+    name: file.name,
+    url: file.url,
+    target: file.target,
+    sha256: sha256Buffer(file.buffer),
+  }));
 
-  for (const [index, file] of input.urlFiles.entries()) {
-    const absoluteTarget = targets[index]!;
-    mkdirSync(dirname(absoluteTarget), { recursive: true });
-    writeFileSync(absoluteTarget, file.buffer);
-  }
-
-  addToLockfile(input.lockfile, input.id, {
+  const next = cloneLockfile(input.lockfile);
+  addToLockfile(next, input.id, {
     version: "url",
     trust: "experimental",
     source: {
@@ -165,7 +190,13 @@ export async function installCustomUrlPackage(input: CustomUrlPackageInput): Pro
     },
     files: lockedFiles,
   });
-  writeLockfile(input.projectDir, input.lockfile);
+  const error = commitCustomInstall(
+    input,
+    targets,
+    input.urlFiles.map((file, index) => ({ target: file.target, buffer: file.buffer, sha256: lockedFiles[index]!.sha256 })),
+    next,
+  );
+  if (error) return { ok: false, files: [], error };
 
   return { ok: true, files: lockedFiles };
 }

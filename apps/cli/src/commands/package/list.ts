@@ -1,5 +1,4 @@
 import { readCompatibleLockfile } from '../../lib/package/compat.js';
-import { writeLockfile } from '../../lib/package/lockfile.js';
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
 import { icon, printJson, printLine, printMuted, style } from '../../lib/output.js';
@@ -7,7 +6,8 @@ import { trustBadge } from '../../lib/trust.js';
 import { showInstallProgress, showPackageBrowser } from '../../ui/package/index.js';
 import { packageRemoveCommand } from './remove.js';
 import { packageCatalogJson, packageLockJson } from './json.js';
-import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
+import { registryStatusJson } from '../../lib/package/registry.js';
+import { loadRegistryStatusOrExit, resolvePackageProjectDir } from './shared.js';
 
 export type PackageListOptions = {
   installed?: boolean;
@@ -44,12 +44,14 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
     return;
   }
 
-  const registry = await loadRegistryOrExit({
+  const load = await loadRegistryStatusOrExit({
     offline: opts.offline,
     refresh: opts.refresh,
     registryUrl: opts.registryUrl,
+    json: opts.json,
   });
-  if (!registry) return;
+  if (!load) return;
+  const { registry } = load;
 
   const lockfile = readCompatibleLockfile(projectDir);
   const entries = Object.entries(registry.packages).filter(([, e]) => !e.parent);
@@ -62,6 +64,7 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
       packages: entries
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([id, entry]) => packageCatalogJson(id, entry, lockfile.packages[id])),
+      registry: registryStatusJson(load),
     });
     return;
   }
@@ -103,10 +106,7 @@ export async function packageListCommand(opts: PackageListOptions = {}): Promise
     }
   }
 
+  // The install transaction writes feather.lock.json itself, and only when every package succeeded.
   const installResults = await showInstallProgress({ packages: resolved, lockfile, projectDir });
-  if (installResults.every((r) => r.ok)) {
-    writeLockfile(projectDir, lockfile);
-  } else {
-    fail('', { silent: true });
-  }
+  if (!installResults.every((r) => r.ok)) fail('', { silent: true });
 }

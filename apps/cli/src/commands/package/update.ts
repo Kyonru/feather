@@ -1,13 +1,13 @@
 import { readCompatibleLockfile } from '../../lib/package/compat.js';
-import { writeLockfile } from '../../lib/package/lockfile.js';
-import { installPackage } from '../../lib/package/install.js';
+import { installPackages } from '../../lib/package/install.js';
+import { registryStatusJson } from '../../lib/package/registry.js';
 import { dependencyInstallConflicts, resolveMany } from '../../lib/package/resolve.js';
 import { fail } from '../../lib/command.js';
 import { loadConfig } from '../../lib/config.js';
 import { printJson, printLine, printMuted, printWarning, style } from '../../lib/output.js';
 import { showInstallProgress } from '../../ui/package/index.js';
 import { resolvedPackageJson } from './json.js';
-import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
+import { loadRegistryStatusOrExit, resolvePackageProjectDir } from './shared.js';
 
 export type PackageUpdateOptions = {
   dryRun?: boolean;
@@ -15,6 +15,8 @@ export type PackageUpdateOptions = {
   offline?: boolean;
   registryUrl?: string;
   json?: boolean;
+  /** Overwrite locally modified package files with the updated versions. */
+  force?: boolean;
 };
 
 export async function packageUpdateCommand(name: string | undefined, opts: PackageUpdateOptions = {}): Promise<void> {
@@ -33,8 +35,10 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
     return;
   }
 
-  const registry = await loadRegistryOrExit({ offline: opts.offline, registryUrl: opts.registryUrl });
-  if (!registry) return;
+  const load = await loadRegistryStatusOrExit({ offline: opts.offline, registryUrl: opts.registryUrl, json: opts.json });
+  if (!load) return;
+  const { registry } = load;
+  const registryJson = registryStatusJson(load);
 
   const targets = name ? installed.filter(([id]) => id === name) : installed;
 
@@ -70,7 +74,7 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
 
   if (opts.dryRun || updateIds.length === 0) {
     if (opts.json) {
-      printJson({ projectDir, dryRun: opts.dryRun === true, updates, skipped, installed: [] });
+      printJson({ projectDir, dryRun: opts.dryRun === true, updates, skipped, installed: [], registry: registryJson });
     }
     return;
   }
@@ -92,17 +96,15 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
     return true;
   });
   if (toUpdate.length === 0) {
-    if (opts.json) printJson({ projectDir, dryRun: false, updates, skipped, installed: [] });
+    if (opts.json) printJson({ projectDir, dryRun: false, updates, skipped, installed: [], registry: registryJson });
     return;
   }
 
   if (opts.json) {
     const planned = toUpdate.map((pkg) => resolvedPackageJson(pkg, lockfile, { includeLicenses }));
-    const results = [];
-    for (const pkg of toUpdate) {
-      results.push(await installPackage(pkg, lockfile, { projectDir, includeLicenses }));
-    }
-    if (results.every((result) => result.ok)) writeLockfile(projectDir, lockfile);
+    // One transaction for every update; feather.lock.json is replaced last, only on success.
+    const batch = await installPackages(toUpdate, lockfile, { projectDir, includeLicenses, force: opts.force });
+    const results = batch.results;
     printJson({
       projectDir,
       dryRun: false,
@@ -111,15 +113,13 @@ export async function packageUpdateCommand(name: string | undefined, opts: Packa
       planned,
       installed: results.filter((result) => result.ok),
       failed: results.filter((result) => !result.ok),
+      warnings: batch.warnings,
+      registry: registryJson,
     });
-    if (results.some((result) => !result.ok)) fail('', { silent: true });
+    if (!batch.ok) fail('', { silent: true });
     return;
   }
 
-  const results = await showInstallProgress({ packages: toUpdate, lockfile, projectDir, includeLicenses });
-  if (results.every((r) => r.ok)) {
-    writeLockfile(projectDir, lockfile);
-  } else {
-    fail('', { silent: true });
-  }
+  const results = await showInstallProgress({ packages: toUpdate, lockfile, projectDir, includeLicenses, force: opts.force });
+  if (!results.every((r) => r.ok)) fail('', { silent: true });
 }

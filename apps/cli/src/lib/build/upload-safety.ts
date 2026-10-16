@@ -11,6 +11,37 @@ export type UploadSafetyResult = {
   reason?: string;
 };
 
+/**
+ * Resource limits for one inspection, shared across every nested archive. Exceeding any of them
+ * makes the result `unknown` (which blocks upload unless explicitly overridden) instead of letting
+ * a malformed or hostile archive exhaust memory.
+ */
+export type ArchiveInspectionLimits = {
+  /** Entries read across the artifact and every nested archive. */
+  maxEntries: number;
+  /** Archive bytes read: the artifact itself, nested archive files, and compressed nested entries. */
+  maxCompressedBytes: number;
+  /** Bytes inflated from nested archive entries. */
+  maxExpandedBytes: number;
+  /** Largest expanded/compressed ratio allowed for a nested archive entry above `ratioFloorBytes`. */
+  maxCompressionRatio: number;
+  /** Entries that expand to less than this are exempt from the ratio check. */
+  ratioFloorBytes: number;
+};
+
+const MiB = 1024 * 1024;
+export const DEFAULT_ARCHIVE_INSPECTION_LIMITS: ArchiveInspectionLimits = {
+  maxEntries: 200_000,
+  maxCompressedBytes: 2048 * MiB,
+  maxExpandedBytes: 1024 * MiB,
+  maxCompressionRatio: 200,
+  ratioFloorBytes: 1 * MiB,
+};
+
+export type UploadInspectionOptions = {
+  limits?: Partial<ArchiveInspectionLimits>;
+};
+
 const FEATHER_PATTERNS = [
   /(?:^|\/)feather(?:\/|$)/,
   /(?:^|\/)plugins(?:\/|$)/,
@@ -31,6 +62,48 @@ type ZipEntry = {
   compressionMethod: number;
   data?: Buffer;
 };
+
+class InspectionBudget {
+  entries = 0;
+  compressedBytes = 0;
+  expandedBytes = 0;
+
+  constructor(readonly limits: ArchiveInspectionLimits) {}
+
+  addEntry(): void {
+    this.entries += 1;
+    if (this.entries > this.limits.maxEntries) {
+      throw new Error(`archive inspection limit exceeded: more than ${this.limits.maxEntries} entries`);
+    }
+  }
+
+  addCompressed(bytes: number, what: string): void {
+    this.compressedBytes += bytes;
+    if (this.compressedBytes > this.limits.maxCompressedBytes) {
+      throw new Error(`archive inspection limit exceeded: ${what} brings archive data read past ${formatBytes(this.limits.maxCompressedBytes)}`);
+    }
+  }
+
+  reserveExpanded(name: string, compressedSize: number, uncompressedSize: number): void {
+    if (
+      uncompressedSize >= this.limits.ratioFloorBytes
+      && uncompressedSize > compressedSize * this.limits.maxCompressionRatio
+    ) {
+      throw new Error(
+        `archive inspection limit exceeded: ${name} expands ${compressedSize} → ${uncompressedSize} bytes ` +
+          `(ratio above ${this.limits.maxCompressionRatio}:1)`,
+      );
+    }
+    this.expandedBytes += uncompressedSize;
+    if (this.expandedBytes > this.limits.maxExpandedBytes) {
+      throw new Error(`archive inspection limit exceeded: nested archives expand past ${formatBytes(this.limits.maxExpandedBytes)}`);
+    }
+  }
+}
+
+function formatBytes(bytes: number): string {
+  return bytes >= MiB ? `${Math.round(bytes / MiB)} MiB` : `${bytes} bytes`;
+}
 
 function isFeatherPath(path: string): boolean {
   const normalized = path.replace(/\\/g, '/').replace(/^\/+/, '');
@@ -53,16 +126,22 @@ function inspectNames(artifact: string, names: string[]): UploadSafetyResult {
   };
 }
 
-function listInspectableDirectoryNames(root: string): string[] {
+function readArchiveFile(path: string, budget: InspectionBudget, label: string): Buffer {
+  budget.addCompressed(statSync(path).size, label);
+  return readFileSync(path);
+}
+
+function listInspectableDirectoryNames(root: string, budget: InspectionBudget): string[] {
   const names: string[] = [];
   const visit = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const abs = join(dir, entry.name);
       const rel = relative(root, abs).replace(/\\/g, '/');
+      budget.addEntry();
       names.push(entry.isDirectory() ? `${rel}/` : rel);
       if (entry.isDirectory()) visit(abs);
       else if (isZipLikePath(entry.name)) {
-        names.push(...zipEntryNames(readFileSync(abs), rel, 1));
+        names.push(...zipEntryNames(readArchiveFile(abs, budget, rel), budget, rel, 1));
       }
     }
   };
@@ -70,12 +149,12 @@ function listInspectableDirectoryNames(root: string): string[] {
   return names;
 }
 
-function zipEntryNames(zip: Buffer, prefix = '', depth = 0): string[] {
+function zipEntryNames(zip: Buffer, budget: InspectionBudget, prefix = '', depth = 0): string[] {
   if (depth > MAX_NESTED_ARCHIVE_DEPTH) {
     throw new Error(`nested archive depth exceeded ${MAX_NESTED_ARCHIVE_DEPTH}`);
   }
   const names: string[] = [];
-  for (const entry of zipEntries(zip)) {
+  for (const entry of zipEntries(zip, budget, prefix)) {
     const archiveName = prefix ? `${prefix}!${entry.name}` : entry.name;
     names.push(archiveName);
     if (!entry.name.endsWith('/') && isZipLikePath(entry.name)) {
@@ -84,18 +163,19 @@ function zipEntryNames(zip: Buffer, prefix = '', depth = 0): string[] {
           `could not inspect nested archive ${archiveName}: unsupported compression method ${entry.compressionMethod}`,
         );
       }
-      names.push(...zipEntryNames(entry.data, archiveName, depth + 1));
+      names.push(...zipEntryNames(entry.data, budget, archiveName, depth + 1));
     }
   }
   return names;
 }
 
-function zipEntries(zip: Buffer): ZipEntry[] {
+function zipEntries(zip: Buffer, budget: InspectionBudget, prefix: string): ZipEntry[] {
   const entries: ZipEntry[] = [];
   let offset = centralDirectoryOffset(zip);
   while (offset + 46 <= zip.length) {
     const signature = zip.readUInt32LE(offset);
     if (signature !== 0x02014b50) break;
+    budget.addEntry();
     const flags = zip.readUInt16LE(offset + 8);
     const compressionMethod = zip.readUInt16LE(offset + 10);
     const compressedSize = zip.readUInt32LE(offset + 20);
@@ -115,7 +195,7 @@ function zipEntries(zip: Buffer): ZipEntry[] {
       compressedSize,
       compressionMethod,
       data: shouldReadData
-        ? readZipEntryData(zip, {
+        ? readZipEntryData(zip, budget, prefix ? `${prefix}!${name}` : name, {
             compressedSize,
             compressionMethod,
             encrypted: (flags & 0x0001) !== 0,
@@ -131,6 +211,8 @@ function zipEntries(zip: Buffer): ZipEntry[] {
 
 function readZipEntryData(
   zip: Buffer,
+  budget: InspectionBudget,
+  label: string,
   entry: {
     compressedSize: number;
     compressionMethod: number;
@@ -148,8 +230,22 @@ function readZipEntryData(
   const dataStart = entry.localHeaderOffset + 30 + nameLength + extraLength;
   const dataEnd = dataStart + entry.compressedSize;
   if (dataEnd > zip.length) throw new Error('ZIP entry data extends past archive end');
+  budget.addCompressed(entry.compressedSize, label);
   const compressed = zip.subarray(dataStart, dataEnd);
-  const data = entry.compressionMethod === 8 ? inflateRawSync(compressed) : Buffer.from(compressed);
+  if (entry.compressionMethod === 0) return Buffer.from(compressed);
+
+  // Check the declared size before inflating, then cap the inflater at that size so an entry that
+  // lies about its size cannot expand further than the budget already accounted for.
+  budget.reserveExpanded(label, entry.compressedSize, entry.uncompressedSize);
+  let data: Buffer;
+  try {
+    data = inflateRawSync(compressed, { maxOutputLength: Math.max(1, entry.uncompressedSize) });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ERR_BUFFER_TOO_LARGE') {
+      throw new Error(`archive inspection limit exceeded: ${label} expands beyond its declared size`, { cause: error });
+    }
+    throw error;
+  }
   if (data.length !== entry.uncompressedSize) {
     throw new Error('ZIP entry size mismatch');
   }
@@ -166,7 +262,7 @@ function centralDirectoryOffset(zip: Buffer): number {
   throw new Error('central directory not found');
 }
 
-export function inspectUploadArtifact(artifact: string): UploadSafetyResult {
+export function inspectUploadArtifact(artifact: string, options: UploadInspectionOptions = {}): UploadSafetyResult {
   if (!existsSync(artifact)) {
     return {
       status: 'unknown',
@@ -176,10 +272,11 @@ export function inspectUploadArtifact(artifact: string): UploadSafetyResult {
     };
   }
 
+  const budget = new InspectionBudget({ ...DEFAULT_ARCHIVE_INSPECTION_LIMITS, ...options.limits });
   const stat = statSync(artifact);
   if (stat.isDirectory()) {
     try {
-      return inspectNames(artifact, listInspectableDirectoryNames(artifact));
+      return inspectNames(artifact, listInspectableDirectoryNames(artifact, budget));
     } catch (error) {
       return {
         status: 'unknown',
@@ -193,7 +290,7 @@ export function inspectUploadArtifact(artifact: string): UploadSafetyResult {
   const ext = extname(artifact).toLowerCase();
   if (ZIP_LIKE_EXTENSIONS.has(ext)) {
     try {
-      return inspectNames(artifact, zipEntryNames(readFileSync(artifact)));
+      return inspectNames(artifact, zipEntryNames(readArchiveFile(artifact, budget, artifact), budget));
     } catch (error) {
       return {
         status: 'unknown',

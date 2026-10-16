@@ -21,6 +21,7 @@ import {
 } from './config.js';
 import { removePath } from './files.js';
 import { assertNoSymlinkEscape, assertSafeRelativePath, isPathInside } from '../path-safety.js';
+import { writeJsonAtomicSync } from '../atomic-write.js';
 
 export const buildVendorTargets = ['web', 'android', 'ios', 'mobile', 'desktop', 'windows', 'macos', 'linux', 'steamos', 'all'] as const;
 export type BuildVendorTargetInput = typeof buildVendorTargets[number];
@@ -684,8 +685,8 @@ function updateVendorConfig(
       },
     },
   };
-  mkdirSync(dirname(configPath), { recursive: true });
-  writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`);
+  // Atomic: feather.build.json is a user project file; an interrupted write must not truncate it.
+  writeJsonAtomicSync(configPath, next);
 }
 
 function vendorConfigKey(target: ConcreteBuildVendorTarget): 'loveJsDir' | 'loveAndroidDir' | 'loveIosDir' | 'loveRuntimeDir' {
