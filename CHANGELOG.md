@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `feather_send_command`, which forwards arbitrary command objects, is now off unless `feather mcp` is started with `--allow-raw-commands`.
 - Every `feather mcp` call to Inspector or Studio has a deadline and fails with "… did not answer within N ms" instead of hanging on a stalled application; HTTP request bodies are limited to 1 MiB; the server reports its real version instead of `3.3.1`.
 - Rebuilt Particle Playground and Texture Lab as resizable three-region Studio workbenches with preview-first layouts, persisted per-tool pane sizes, switchable calibration grounds, and every existing editor/export workflow retained.
-- Release tags are now per-train instead of repo-wide. `cli-v*` publishes the CLI alone, `runtime-v*` the Lua runtime alone, `desktop-v*` the desktop app alone, and `ext-v*` the VS Code extension alone. `v*` still performs a full platform release of runtime, CLI, and desktop together. Previously every tag fired all four publish paths.
+- Release tags are now per-train instead of repo-wide. `cli-v*` publishes the CLI alone, `runtime-v*` the Lua runtime alone, `desktop-v*` the desktop app alone, and `ext-v*` the VS Code extension alone. The first independent runtime release is [runtime-v4.0.0]. `v*` still performs a full platform release of runtime, CLI, and desktop together. Previously every tag fired all four publish paths.
 - Studio prereleases now use bundle formats that accept SemVer prerelease labels (AppImage/deb on Linux and NSIS on Windows) and unsigned macOS proof builds; stable Studio releases retain signing and notarization.
 - Repository releases now have dry-run-first `release:*` commands for every train, with version consistency, clean-worktree, tag-vocabulary, and local/remote collision checks before an explicit `--push` creates the tag.
 - `scripts/set-version.sh` now takes a release train (`cli`, `runtime`, `desktop`, `ext`, or `platform`) and only writes the files that train owns, so bumping one artifact no longer rewrites the others. It is also portable now, where it previously assumed macOS `sed`.
@@ -921,6 +921,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI.
 
 [v4.0.0]: https://github.com/Kyonru/feather/compare/v3.3.1...v4.0.0
+[runtime-v4.0.0]: https://github.com/Kyonru/feather/releases/tag/runtime-v4.0.0
 [v3.3.1]: https://github.com/Kyonru/feather/compare/v3.3.0...v3.3.1
 [v3.3.0]: https://github.com/Kyonru/feather/compare/v3.2.0...v3.3.0
 [v3.2.0]: https://github.com/Kyonru/feather/compare/v3.1.0...v3.2.0
