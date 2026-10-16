@@ -146,7 +146,8 @@ pnpm run inspector:tauri    # or just the Inspector desktop app
 pnpm run studio:tauri       # or just Feather Studio
 pnpm run feather --help     # the CLI
 pnpm run verify             # typecheck, lint, and drift checks
-pnpm run test               # every test lane
+pnpm run test               # standard pre-push test lanes
+pnpm run test:ready         # full headless release-readiness gate
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide, and [V4.md](V4.md) for the

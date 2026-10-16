@@ -33,8 +33,20 @@ Feather is a pnpm + Turborepo monorepo. Install once from the repo root:
 pnpm install
 ```
 
-Node 22 or newer is required. Everything below runs from the **repo root** — you should rarely need
-to `cd` into an app.
+Node 22 or newer and Corepack/pnpm 11 are required. Desktop development also
+needs the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) and a
+Rust toolchain. The full verification gates additionally use LÖVE, Lua with
+luacheck, and Playwright's Chromium build:
+
+```sh
+corepack enable
+pnpm install
+pnpm exec playwright install chromium
+```
+
+Install LÖVE and Lua/luacheck with your platform package manager before running
+the Lua lane. Everything below runs from the **repo root** — you should rarely
+need to `cd` into an app.
 
 ### Bring up a whole session
 
@@ -108,16 +120,15 @@ pnpm run feather doctor packages/runtime-lua/example/test_cli
 
 `pnpm run feather` rebuilds the Lua bundle and the CLI first, then forwards the rest to it.
 
-Note the missing `--`. A subcommand works either way (`pnpm run feather -- run <dir>` is fine), but
-when the first forwarded token is a flag, pnpm mangles it — `pnpm run feather -- --help` fails with
-`unknown command '--help'`. Leaving `--` out works in both cases, so prefer it.
+The root wrapper accepts both `pnpm run feather -- <args>` and
+`pnpm run feather <args>`, including when the first forwarded token is a flag.
 
 To skip the rebuild and iterate faster, run `pnpm run cli:build` once and then call
 `node apps/cli/dist/index.js <args>` directly.
 
 ## Testing
 
-Two aggregate commands cover most of what you want, and both run through Turborepo, so an unchanged
+Two fast aggregate commands cover the normal edit loop, and both run through Turborepo, so an unchanged
 lane is a cache hit instead of a rerun:
 
 ```sh
@@ -127,6 +138,15 @@ pnpm run test       # unit, bridge, CLI e2e, Lua e2e, and the three Playwright s
 
 `pnpm run verify` is the fast one — run it constantly. `pnpm run test` is what the pre-push hook
 runs, so a clean `pnpm run test` means your push will not be rejected.
+
+Before handing the whole product to a tester, run the broader readiness gate:
+
+```sh
+pnpm run test:ready      # verify + all standard lanes + packages + both Rust apps + extension + production builds
+pnpm run test:ready:gui  # the same gate, then the VS Code Extension Host integration suite
+```
+
+The GUI variant downloads/opens VS Code and therefore needs a desktop session.
 
 `pnpm run test` runs its lanes **one at a time** (`--concurrency=1`), which takes about three
 minutes. That is deliberate: three Playwright suites and the CLI e2e suite all spawn real browsers,
@@ -144,9 +164,13 @@ pnpm run test:lua:e2e            # Lua runtime against real LÖVE
 pnpm run test:inspector:e2e      # Playwright, Inspector
 pnpm run test:studio:e2e         # Playwright, Studio
 pnpm run test:showcase:e2e       # Playwright, showcase
-pnpm run test:tauri:e2e          # Rust, Inspector WebSocket server
+pnpm run test:inspector:rust      # all Inspector Rust tests
+pnpm run test:studio:rust         # all Studio Rust tests
+pnpm run test:rust                # both Rust applications
+pnpm run test:tauri:e2e          # compatibility alias for test:rust
 pnpm run test:packages:e2e       # package-catalog install flows
 pnpm run extension:test          # VS Code extension
+pnpm run extension:test:integration # VS Code Extension Host (desktop required)
 ```
 
 ### Testing while a dev server is already running

@@ -15,17 +15,27 @@ const tests = [
       assert.ok(commands.includes(command), `${command} should be registered`);
     }
   }],
+  ['runs Doctor as a managed job through the bundled CLI', async (api) => {
+    const result = await vscode.commands.executeCommand('feather.doctor');
+    assert.ok(result, 'Doctor should return a job result');
+    assert.equal(api.jobs.lastResult, result, 'the managed job service should retain the completed result');
+    assert.equal(result.title, 'Feather doctor');
+    assert.equal(result.steps.length, 1);
+    assert.deepEqual(result.steps[0].args.slice(0, 2), ['doctor', process.env.FEATHER_E2E_WORKSPACE]);
+    assert.ok(['succeeded', 'failed'].includes(result.status), 'Doctor should complete rather than hang or cancel');
+    assert.ok(result.json, 'Doctor should return structured CLI output');
+  }],
 ];
 
 async function run() {
   const extension = vscode.extensions.all.find((item) => item.packageJSON.name === 'feather-cli-vscode');
   assert.ok(extension, 'the development extension is loaded');
-  await extension.activate();
+  const api = await extension.activate();
 
   const failures = [];
   for (const [name, fn] of tests) {
     try {
-      await fn();
+      await fn(api);
       console.log(`  ✔ ${name}`);
     } catch (err) {
       failures.push(name);

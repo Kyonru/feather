@@ -4,6 +4,9 @@
   "private": true,
   "version": "4.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "packageManager": "pnpm@11.18.0",
   "scripts": {
     "cli:build": "pnpm --filter @kyonru/feather run build",
@@ -19,12 +22,17 @@
     "test:inspector:e2e": "playwright test -c apps/inspector/playwright.config.ts",
     "test:showcase:e2e": "playwright test -c apps/showcase/playwright.config.ts",
     "test:studio:e2e": "playwright test -c apps/studio/playwright.config.ts",
-    "test:tauri:e2e": "cargo test --manifest-path apps/inspector/src-tauri/Cargo.toml ws_server",
+    "test:inspector:rust": "cargo test --manifest-path apps/inspector/src-tauri/Cargo.toml",
+    "test:studio:rust": "cargo test --manifest-path apps/studio/src-tauri/Cargo.toml",
+    "test:rust": "pnpm run test:inspector:rust && pnpm run test:studio:rust",
+    "test:tauri:e2e": "pnpm run test:rust",
     "extension:prepare": "pnpm run cli:build && pnpm --filter @kyonru/feather run bundle:lua && node apps/vscode-extension/scripts/prepare.mjs",
     "extension:build": "pnpm run extension:prepare && tsc -p apps/vscode-extension/tsconfig.json",
     "extension:binary": "pnpm run cli:build && pnpm --filter @kyonru/feather run bundle:lua && pnpm --filter @kyonru/feather run build:binary",
     "extension:test": "pnpm run extension:build && pnpm --filter feather-cli-vscode run test",
     "extension:test:integration": "pnpm run extension:build && pnpm --filter feather-cli-vscode run test:integration",
+    "test:ready": "pnpm run verify && pnpm run verify:enhanced && pnpm run test && pnpm run test:packages:e2e && pnpm run test:rust && pnpm run extension:test && pnpm run build && pnpm run studio:build && pnpm run check:artifact-boundary",
+    "test:ready:gui": "pnpm run test:ready && pnpm run extension:test:integration",
     "extension:package": "pnpm run extension:binary && node apps/vscode-extension/scripts/prepare.mjs --binaries && tsc -p apps/vscode-extension/tsconfig.json && pnpm --filter feather-cli-vscode run generate:icon && cd apps/vscode-extension && npx @vscode/vsce package",
     "feather": "pnpm --filter @kyonru/feather run bundle:lua && pnpm run cli:build && node apps/cli/dist/index.js",
     "dev": "vite",
