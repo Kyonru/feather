@@ -16,6 +16,9 @@ on:
       - "studio-v*"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     name: Verify Studio version

@@ -1421,9 +1421,9 @@ async function runHttpMcpServer(
     try {
       const body = req.method === 'POST' ? await readJsonBody(req) : undefined;
       await transport.handleRequest(req, res, body);
-    } catch (error) {
+    } catch {
       if (!res.headersSent) {
-        writeJson(res, 400, { error: error instanceof Error ? error.message : String(error) });
+        writeJson(res, 400, { error: 'Invalid request body' });
       } else {
         res.end();
       }
