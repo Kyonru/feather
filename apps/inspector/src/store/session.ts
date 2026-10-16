@@ -39,11 +39,47 @@ export function sessionCanOpenRuntimePages(session?: SessionInfo | null): boolea
   return !!session;
 }
 
+/**
+ * Should a session's `feather:hello` make it the one being viewed?
+ *
+ * Every hello used to, so a second game connecting pulled the view — and the
+ * global config — away from the game being debugged. A hello takes over only
+ * when nothing usable is active: no session, the same session, or one that is
+ * disconnected or still waiting for its own hello.
+ */
+export function shouldActivateOnHello(
+  activeSessionId: string | null,
+  sessions: Record<string, SessionInfo>,
+  helloSessionId: string,
+): boolean {
+  if (!activeSessionId || activeSessionId === helloSessionId) return true;
+  const active = sessions[activeSessionId];
+  return !active || !active.connected || active.pendingConfig === true;
+}
+
+/**
+ * The session store after `endedId` disconnects.
+ *
+ * The end event names a session; it used to be treated as "the active one
+ * ended" whichever game it was, so a background game quitting disconnected the
+ * game being viewed.
+ */
+export function endSessionState(
+  state: Pick<SessionStore, 'sessionId' | 'sessions'>,
+  endedId: string,
+): Pick<SessionStore, 'sessionId' | 'sessions'> {
+  const ended = state.sessions[endedId];
+  const sessions = ended ? { ...state.sessions, [endedId]: { ...ended, connected: false } } : state.sessions;
+  return { sessions, sessionId: state.sessionId === endedId ? null : state.sessionId };
+}
+
 type SessionStore = {
   sessionId: string | null;
   sessions: Record<string, SessionInfo>;
   setSession: (sessionId: string) => void;
   clearSession: () => void;
+  /** Mark one session disconnected; clears the active session only if it was that one. */
+  endSession: (sessionId: string) => void;
   addSession: (info: SessionInfo) => void;
   removeSession: (sessionId: string) => void;
   setActiveSession: (sessionId: string | null) => void;
@@ -78,6 +114,7 @@ export const useSessionStore = create<SessionStore>()(
           }
           return { sessionId: null, sessions };
         }),
+      endSession: (endedId) => set((state) => endSessionState(state, endedId)),
       addSession: (info) =>
         set((state) => {
           const sessions = { ...state.sessions };

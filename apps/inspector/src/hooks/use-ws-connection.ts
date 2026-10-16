@@ -6,7 +6,7 @@ import { writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { useQueryClient } from '@tanstack/react-query';
 import { zipSync, strToU8 } from 'fflate';
 import { useConfigStore } from '@/store/config';
-import { PENDING_SESSION_NAME, useSessionStore } from '@/store/session';
+import { PENDING_SESSION_NAME, shouldActivateOnHello, useSessionStore } from '@/store/session';
 import { useSettingsStore } from '@/store/settings';
 import type { Log } from './use-logs';
 import type { PerformanceMetrics } from './use-performance';
@@ -215,6 +215,7 @@ export const useWsConnection = () => {
   const setDisconnected = useConfigStore((state) => state.setDisconnected);
   const setSession = useSessionStore((state) => state.setSession);
   const clearSession = useSessionStore((state) => state.clearSession);
+  const endSession = useSessionStore((state) => state.endSession);
   const addSession = useSessionStore((state) => state.addSession);
   const setRuntimeSuspended = useSessionStore((state) => state.setRuntimeSuspended);
   const connectionTimeout = useSettingsStore((state) => state.connectionTimeout);
@@ -223,7 +224,9 @@ export const useWsConnection = () => {
   const sessionApiKeys = useSettingsStore((state) => state.sessionApiKeys);
   const setPausedState = useDebuggerStore((state) => state.setPausedState);
   const setDebuggerEnabled = useDebuggerStore((state) => state.setEnabled);
-  const lastMessageRef = useRef<number>(Date.now());
+  // Last message time per session. One shared timestamp let a chatty
+  // background game keep a silent active one looking alive.
+  const lastMessageAtRef = useRef<Map<string, number>>(new Map());
   const warnedUnknownTypesRef = useRef<Set<string>>(new Set());
   const pendingBinaryRef = useRef<Record<string, PendingBinary[]>>({});
 
@@ -244,8 +247,9 @@ export const useWsConnection = () => {
       const sessionId = useSessionStore.getState().sessionId;
       if (!sessionId) return;
       const session = useSessionStore.getState().sessions[sessionId];
-      if (session?.runtimeSuspended) return;
-      const elapsed = (Date.now() - lastMessageRef.current) / 1000;
+      if (!session || session.runtimeSuspended || session.kind) return;
+      const lastMessageAt = lastMessageAtRef.current.get(sessionId) ?? session.connectedAt ?? Date.now();
+      const elapsed = (Date.now() - lastMessageAt) / 1000;
       if (elapsed >= connectionTimeout) {
         setDisconnected(true);
       }
@@ -384,10 +388,10 @@ export const useWsConnection = () => {
         }
         const msg = parsed.message;
 
-        // Any message from the game resets the health timer
-        lastMessageRef.current = Date.now();
-
         const { _session: sessionId, type, data } = msg;
+
+        // Any message from a game resets that game's health timer.
+        lastMessageAtRef.current.set(sessionId, Date.now());
 
         // If we receive a message from an unknown session (e.g. frontend restarted while
         // game was connected), ask the game to resend its config. The game is already in
@@ -510,9 +514,15 @@ export const useWsConnection = () => {
               logHistory.rememberSession(sessionId, historyKeys, sessionLabel);
             }
 
-            setSession(sessionId);
-            setConfig(config);
-            setDisconnected(false);
+            // A second game connecting must not take the view, or the global
+            // config, from the game being debugged; its config is cached below
+            // and applied when its tab is selected.
+            const { sessionId: activeSessionId, sessions: knownSessions } = useSessionStore.getState();
+            if (shouldActivateOnHello(activeSessionId, knownSessions, sessionId)) {
+              setSession(sessionId);
+              setConfig(config);
+              setDisconnected(false);
+            }
             queryClient.setQueryData(sessionQueryKey.config(sessionId), config);
             if (config.debugger?.hotReload) {
               queryClient.setQueryData(sessionQueryKey.hotReload(sessionId), config.debugger.hotReload);
@@ -954,8 +964,11 @@ export const useWsConnection = () => {
             // Graceful disconnect — preserve cached data (logs, perf history) so user
             // doesn't lose context. Only mark as disconnected and clear session routing.
             setPausedState(sessionId, null);
-            setDisconnected(true);
-            clearSession();
+            if (useSessionStore.getState().sessionId === sessionId) {
+              setDisconnected(true);
+            }
+            endSession(sessionId);
+            lastMessageAtRef.current.delete(sessionId);
             break;
           }
         }
@@ -969,10 +982,20 @@ export const useWsConnection = () => {
 
       // TCP-level disconnect (no feather:bye was sent)
       // Preserve cached data — the game may reconnect momentarily (e.g. lag spike)
-      const unlistenEnd = await listen<string>('feather://session-end', () => {
+      const unlistenEnd = await listen<string>('feather://session-end', (event) => {
         if (cancelled) return;
-        setDisconnected(true);
-        clearSession();
+        const endedId = event.payload;
+        if (typeof endedId !== 'string' || !endedId) {
+          // An end event that names no session: keep the old behaviour.
+          setDisconnected(true);
+          clearSession();
+          return;
+        }
+        if (useSessionStore.getState().sessionId === endedId) {
+          setDisconnected(true);
+        }
+        endSession(endedId);
+        lastMessageAtRef.current.delete(endedId);
       });
 
       if (cancelled) {
@@ -1035,5 +1058,5 @@ export const useWsConnection = () => {
       cancelled = true;
       unlisteners.forEach((fn) => fn());
     };
-  }, [queryClient, setConfig, setDisconnected, setSession, clearSession, addSession, setRuntimeSuspended]);
+  }, [queryClient, setConfig, setDisconnected, setSession, clearSession, endSession, addSession, setRuntimeSuspended]);
 };
