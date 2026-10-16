@@ -145,7 +145,10 @@ test('named workspaces switch and survive a reload', async ({ page }) => {
   await expect.poll(() => page.evaluate((id) => {
     const shader = JSON.parse(localStorage.getItem('feather-shader-graph') ?? '{}');
     const texture = JSON.parse(localStorage.getItem('studio-preferences') ?? '{}');
-    const particles = JSON.parse(localStorage.getItem('feather-local-particle-workspaces') ?? '{}');
+    const particles = JSON.parse(localStorage.getItem('feather-local-particle-workspaces') ?? '{}') as Record<
+      string,
+      { composites?: unknown }
+    >;
     return {
       shader: shader.state?.activeWorkspaceId === id,
       texture: texture.state?.textureLabWorkspaceId === id,
@@ -155,6 +158,60 @@ test('named workspaces switch and survive a reload', async ({ page }) => {
 
   await page.reload();
   await expect(page.getByTestId('studio-workspace-name')).toHaveText('Boss effect');
+});
+
+test('authored work in all three tools survives an abrupt renderer close', async ({ page, context }) => {
+  await page.goto('/');
+
+  await chooseTool(page, 'shader-graph');
+  await page.getByRole('tab', { name: 'Selection' }).click();
+  const shaderName = page.getByTestId('shader-right-panel-selection').locator('input').first();
+  await shaderName.fill('Crash-safe shader');
+
+  await chooseTool(page, 'particle-playground');
+  await page.getByTitle('New composite').click();
+  await page.getByPlaceholder('Explosion').fill('Crash-safe particles');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(page.getByTestId('particle-workbench-header')).toContainText('Crash-safe particles');
+
+  await chooseTool(page, 'texture-lab');
+  await page.getByLabel('Texture seed').fill('4242');
+
+  // Closing the renderer without a graceful app callback exercises the same
+  // persisted browser storage the Tauri webview restores after a process kill.
+  // Poll first so the React effects have flushed every tool's latest edit.
+  await expect.poll(() => page.evaluate(() => {
+    const shader = JSON.parse(localStorage.getItem('feather-shader-graph') ?? '{}');
+    const texture = JSON.parse(localStorage.getItem('studio-preferences') ?? '{}');
+    const particles = JSON.parse(localStorage.getItem('feather-local-particle-workspaces') ?? '{}');
+    return {
+      shaderName: shader.state?.shaderName,
+      textureSeed: texture.state?.textureLabRecipe?.seed,
+      particleNames: Object.values(particles).flatMap((workspace) =>
+        Array.isArray(workspace.composites) ? workspace.composites : [],
+      ),
+    };
+  })).toEqual({
+    shaderName: 'Crash-safe shader',
+    textureSeed: 4242,
+    particleNames: expect.arrayContaining(['Crash-safe particles']),
+  });
+
+  await page.close();
+  const reopened = await context.newPage();
+  await reopened.goto('/');
+
+  await chooseTool(reopened, 'shader-graph');
+  await reopened.getByRole('tab', { name: 'Selection' }).click();
+  await expect(reopened.getByTestId('shader-right-panel-selection').locator('input').first()).toHaveValue(
+    'Crash-safe shader',
+  );
+
+  await chooseTool(reopened, 'particle-playground');
+  await expect(reopened.getByTestId('particle-workbench-header')).toContainText('Crash-safe particles');
+
+  await chooseTool(reopened, 'texture-lab');
+  await expect(reopened.getByLabel('Texture seed')).toHaveValue('4242');
 });
 
 test('a successful Inspector pairing adds live preview and disconnecting keeps local work', async ({ page }) => {
