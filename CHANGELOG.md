@@ -47,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Inspector release builds now install Bun, compile the CLI before embedding it, and select the sidecar binary from Tauri's requested target triple so cross-compiled macOS packages carry the correct architecture.
+- Inspector release builds now install Bun, compile the CLI before embedding it, select the sidecar binary from Tauri's requested target triple, and create the named GitHub release required for artifact upload.
 - The CLI release entrypoint retains the workflow filename registered with npm trusted publishing, so isolated `cli-v*` releases can exchange GitHub OIDC identity and publish successfully.
 - Studio now mounts its creative MCP bridge at the application root, so live Shader Graph, Particle Playground, and Texture Lab snapshot/action requests reach the running desktop app instead of returning 404.
 - `pnpm run up` now verifies Inspector's WebSocket identity and Studio's application identity before reusing their ports, and stops with actionable guidance when another service owns one instead of launching against the wrong process.

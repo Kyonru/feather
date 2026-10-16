@@ -138,4 +138,6 @@ jobs:
         with:
           projectPath: apps/inspector
           tagName: ${{ github.ref_name }}
+          releaseName: "Feather Inspector v${{ needs.verify.outputs.version }}"
+          prerelease: ${{ contains(needs.verify.outputs.version, '-') }}
           args: ${{ matrix.args }}
