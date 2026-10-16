@@ -99,6 +99,7 @@ jobs:
           summary: Debug & Inspect Tool for LÖVE (love2d)
           detailed_description: |
             Feather is a debugger tool with a plugin system for Love2D projects.
+          template: packages/runtime-lua/feather-release.rockspec.template
           fail_on_duplicate: true
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
