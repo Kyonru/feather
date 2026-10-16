@@ -1,12 +1,10 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { DownloadIcon, FolderOpenIcon, Trash2Icon, WorkflowIcon } from 'lucide-react';
+import { DownloadIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
 import { Badge } from '@feather/ui/badge';
-import { Label } from '@feather/ui/label';
-import { Switch } from '@feather/ui/switch';
-import { usePluginControl } from '@studio/session/plugin-control';
-import { sessionSupportsRuntime, useSessionStore } from '@studio/session';
+import { useActiveSession, sessionSupportsRuntime } from '@studio/session';
+import { useWorkspaceToolKey } from '@studio/store/studio-workspaces';
 import { useHost } from '@feather/host';
 import { Button } from '@feather/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@feather/ui/resizable';
@@ -69,11 +67,12 @@ function parseShaderGraphFile(raw: string): FeatherShaderGraphFile {
 
 export default function ShaderGraph() {
   const host = useHost();
-  const sessionId = useSessionStore((state) => state.sessionId);
-  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
-  const shaderGraphPlugin = usePluginControl('shader-graph');
+  const activeSession = useActiveSession();
   const localMode = !sessionSupportsRuntime(activeSession);
-  const workspaceId = sessionId ?? 'default';
+  // The graph belongs to the Studio workspace, not to whichever game is
+  // attached: keying it by session id made connecting swap the user's graph
+  // for an empty one.
+  const workspaceId = useWorkspaceToolKey('shaderGraph');
   const nodes = useShaderGraphStore((state) => state.nodes);
   const edges = useShaderGraphStore((state) => state.edges);
   const subgraphs = useShaderGraphStore((state) => state.subgraphs);
@@ -239,24 +238,12 @@ export default function ShaderGraph() {
             <p className="text-xs text-muted-foreground">{shaderName}</p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
-            {localMode ? (
-              <Badge variant="secondary" className="h-6 rounded-full px-2 text-[10px]">
-                Local workspace
-              </Badge>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="shader-graph-enabled"
-                  size="sm"
-                  checked={shaderGraphPlugin.enabled}
-                  disabled={shaderGraphPlugin.enabled ? !sessionId : !shaderGraphPlugin.available || !sessionId}
-                  onCheckedChange={(enabled) => shaderGraphPlugin.setEnabled(enabled)}
-                />
-                <Label htmlFor="shader-graph-enabled" className="text-xs text-muted-foreground">
-                  Enabled
-                </Label>
-              </div>
-            )}
+            {/* Mode, stated as chrome. A connection adds live preview; the
+                editor is the same either way (V4.md §6.4, P1/P2). Plugin
+                state lives in Inspector, which is where it is toggled. */}
+            <Badge variant="secondary" className="h-6 rounded-full px-2 text-[10px]" data-testid="shader-graph-mode">
+              {localMode ? 'Local' : `Live preview · ${activeSession?.name ?? 'game'}`}
+            </Badge>
             <div className="flex flex-wrap justify-end gap-2">
               <Select onValueChange={loadPreset}>
                 <SelectTrigger aria-label="Load preset" className="h-8 w-48 text-xs">
@@ -315,46 +302,26 @@ export default function ShaderGraph() {
           />
         </header>
 
-        {!localMode && !shaderGraphPlugin.enabled ? (
-          <div className="flex h-0 min-h-0 flex-1 items-center justify-center overflow-hidden">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div className="flex size-10 items-center justify-center rounded-md border bg-muted/40">
-                <WorkflowIcon className="size-5 text-muted-foreground" />
-              </div>
-              <div className="grid gap-1">
-                <p className="text-sm font-semibold">Shader Graph is disabled</p>
-                <p className="text-xs text-muted-foreground">
-                  {!sessionId
-                    ? 'Connect a session to enable this plugin.'
-                    : !shaderGraphPlugin.available
-                      ? 'Plugin not found in this session.'
-                      : 'Toggle the switch above to enable it.'}
-                </p>
-              </div>
+        <ResizablePanelGroup orientation="horizontal" className="h-0 min-h-0 flex-1 overflow-hidden">
+          <ResizablePanel defaultSize="16%" minSize="12%" maxSize="25%" className="flex flex-col border-r">
+            <div className="border-b px-3 py-2 shrink-0">
+              <span className="text-sm font-semibold">Nodes</span>
             </div>
-          </div>
-        ) : (
-          <ResizablePanelGroup orientation="horizontal" className="h-0 min-h-0 flex-1 overflow-hidden">
-            <ResizablePanel defaultSize="16%" minSize="12%" maxSize="25%" className="flex flex-col border-r">
-              <div className="border-b px-3 py-2 shrink-0">
-                <span className="text-sm font-semibold">Nodes</span>
-              </div>
-              <NodePalette />
-            </ResizablePanel>
+            <NodePalette />
+          </ResizablePanel>
 
-            <ResizableHandle withHandle />
+          <ResizableHandle withHandle />
 
-            <ResizablePanel defaultSize="57%" minSize="30%" className="min-w-0 overflow-hidden">
-              <ShaderCanvas />
-            </ResizablePanel>
+          <ResizablePanel defaultSize="57%" minSize="30%" className="min-w-0 overflow-hidden">
+            <ShaderCanvas />
+          </ResizablePanel>
 
-            <ResizableHandle withHandle />
+          <ResizableHandle withHandle />
 
-            <ResizablePanel defaultSize="27%" minSize="18%" maxSize="40%" className="flex flex-col border-l">
-              <ShaderRightPanel />
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        )}
+          <ResizablePanel defaultSize="27%" minSize="18%" maxSize="40%" className="flex flex-col border-l">
+            <ShaderRightPanel />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </ReactFlowProvider>
   );

@@ -11,6 +11,7 @@ import type { GeneratedGlsl, ShaderParameter, ShaderTextureUpload } from '@studi
 
 const PLUGIN_ID = 'particle-system-playground';
 const SHADER_GRAPH_PLUGIN = 'shader-graph';
+const VALIDATION_WAIT_MS = 4_000;
 
 export type ShaderPreviewShape = 'circle' | 'line' | 'rectangle';
 export type ShaderPreviewColor = [number, number, number, number];
@@ -81,6 +82,14 @@ export function useShaderGraph() {
         action: 'compile-shader',
         params: { pixelSource: glsl.pixel, vertexSource: glsl.vertex ?? '' },
       });
+      // The game's verdict has no path back to Studio over the bridge yet
+      // (the request carries a requestId for when it does). Waiting forever
+      // would leave "validating" on screen as if an answer were coming.
+      setTimeout(() => {
+        if (useShaderGraphStore.getState().validationStatus === 'validating') {
+          useShaderGraphStore.getState().setValidationStatus('idle');
+        }
+      }, VALIDATION_WAIT_MS);
     } catch {
       store.setValidationStatus('error');
       store.setValidationErrors({ pixelError: 'Failed to reach game process' });

@@ -17,6 +17,8 @@ import { useHost } from '@feather/host';
 import { pickShaderTexture } from './textureUpload';
 import type { ShaderGraphDiagnostic } from '@studio/types/shader-graph';
 import { TextureLabDialog } from '@studio/tools/texture-lab/TextureLabDialog';
+import { usePreviewFreshness } from '@studio/session/preview-delivery';
+import { useInspectorConnection } from '@studio/store/inspector-connection';
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -225,6 +227,9 @@ export function ShaderOutputDock({
   const setPreviewColor = useShaderGraphStore((s) => s.setPreviewColor);
   const setBaseTexture = useShaderGraphStore((s) => s.setPreviewBaseTexture);
   const [previewEnabled, setPreviewEnabled] = useState(false);
+  // C2: once paired, say whether the preview in the game is from this run.
+  const paired = useInspectorConnection((state) => state.status === 'paired');
+  const freshness = usePreviewFreshness('shader-graph', paired && previewEnabled && !standalone);
   const sendShaderPreviewRef = useRef(sendShaderPreview);
   const onPreviewParamsChangeRef = useRef(onPreviewParamsChange);
   const debouncedNodes = useDebouncedValue(nodes, 180);
@@ -462,6 +467,17 @@ export function ShaderOutputDock({
           {previewEnabled ? 'Preview Off' : 'Preview On'}
         </Button>
       </div>
+
+      {freshness.label && (
+        <div
+          className={cn('border-t px-3 py-1.5 text-[10px]', freshness.state === 'stale' ? 'text-warn' : 'text-muted-foreground')}
+          data-testid="shader-preview-freshness"
+          data-state={freshness.state}
+          role="status"
+        >
+          {freshness.label}
+        </div>
+      )}
 
       {runtimeSuspended && previewEnabled && (
         <div className="border-t px-3 py-2 text-[10px] text-warn">

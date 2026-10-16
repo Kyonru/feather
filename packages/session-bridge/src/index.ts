@@ -14,12 +14,28 @@
  * the web, so sends become no-ops and the tools stay usable as local editors.
  */
 
-// The versioned cross-process contract (V4.md Phase 05b).
+// The versioned cross-process contract (V4.md §5.4).
 export {
   BRIDGE_VERSION,
   BRIDGE_MIN_SUPPORTED,
+  BRIDGE_METHODS,
+  BRIDGE_SERVER_ERROR_CODES,
+  BRIDGE_CLIENT_ERROR_CODES,
+  BRIDGE_MAX_REQUEST_BYTES,
+  BRIDGE_MAX_HANDSHAKE_BYTES,
+  DEFAULT_GRANTED_METHODS,
+  PREVIEW_ALLOWLIST,
+  isAllowedPreview,
   negotiate,
   nextRequestId,
+  normalizeSessionList,
+  previewCommand,
+  resolvePreviewTarget,
+  sortSessions,
+  validateHandshakeParams,
+  validatePreviewSendParams,
+  validatePreviewCancelParams,
+  validateSelectParams,
   ok,
   fail,
   STUDIO_PREFERENCE_KEYS,
@@ -30,15 +46,20 @@ export type {
   BridgeRequest,
   BridgeResponse,
   BridgeError,
+  BridgeSessionSummary,
+  CapabilityGrant,
   HandshakeParams,
   HandshakeResult,
-  SessionDescription,
-  SendParams,
+  PreviewCancelParams,
+  PreviewSendParams,
+  PreviewSendResult,
+  SelectSessionParams,
+  SessionList,
   StudioPreferencesPayload,
 } from './contract.ts';
 
-export { createNullBridge, createClientBridge, createBridgeServer } from './adapters.ts';
-export type { SessionBridge, BridgeTransport, BridgeServerHandlers } from './adapters.ts';
+export { createNullBridge, createClientBridge, createBridgeServer, CAPABILITY_TTL_MS } from './adapters.ts';
+export type { SessionBridge, BridgeTransport, BridgeServerHandlers, BridgeResult, GrantRecord } from './adapters.ts';
 
 export type CommandMessage = string | Record<string, unknown>;
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BlendIcon, MenuIcon, PlugZapIcon, SparklesIcon, WandSparklesIcon } from 'lucide-react';
+import { BlendIcon, MenuIcon, PlugZapIcon, SparklesIcon, UnplugIcon, WandSparklesIcon } from 'lucide-react';
 import type { ElementType } from 'react';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@feather/ui/sheet';
 import { cn } from '@feather/ui';
@@ -8,6 +8,7 @@ import ParticleSystemPlayground from './tools/particle-system-playground';
 import ShaderGraph from './tools/shader-graph';
 import TextureLab from './tools/texture-lab';
 import { useInspectorBridge } from './useInspectorBridge';
+import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
 import { STUDIO_TOOLS, useStudioUiStore, type StudioToolId } from './store/studio-ui';
 
 /**
@@ -35,6 +36,16 @@ const TOOLS: Record<StudioToolId, { label: string; icon: ElementType; render: ()
   'texture-lab': { label: 'Texture Lab', icon: WandSparklesIcon, render: () => <TextureLab /> },
 };
 
+function sessionLabel(session: { id: string; name: string | null }): string {
+  return session.name ?? `Game ${session.id.slice(0, 8)}`;
+}
+
+function connectedTime(connectedAt: number): string {
+  return connectedAt > 0
+    ? new Date(connectedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : '';
+}
+
 /**
  * The Inspector connection.
  *
@@ -42,28 +53,38 @@ const TOOLS: Record<StudioToolId, { label: string; icon: ElementType; render: ()
  * tool and a game is an addition to it (V4.md **Studio P2**). The dot is
  * achromatic for the same reason the rest of the shell is — connection is
  * chrome, not state, and color near a preview competes with the artifact.
+ *
+ * With several games attached to Inspector the user picks one; Studio never
+ * guesses, because a guess is how a preview lands in the wrong game.
  */
 function InspectorStatus({ compact = false }: { compact?: boolean }) {
   const inspector = useInspectorBridge();
+  const selected = inspector.selectedSession;
 
-  const detail = inspector.connected
-    ? inspector.session.connected
-      ? (inspector.session.name ?? 'Game attached')
-      : 'No game attached'
-    : 'Local only';
+  const detail =
+    inspector.status === 'connecting'
+      ? 'Connecting…'
+      : !inspector.connected
+        ? 'Local only'
+        : selected
+          ? sessionLabel(selected)
+          : inspector.sessions.length > 0
+            ? 'Choose a game'
+            : 'No game attached';
 
   if (compact) {
     return (
       <div
         className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
         data-testid="studio-inspector-status"
-        title={inspector.connected ? detail : 'Studio works as a local editor. Connecting adds live preview in a game.'}
+        title={
+          inspector.connected
+            ? `Feather Inspector · ${detail}`
+            : (inspector.notice ?? 'Studio works as a local editor. Connecting adds live preview in a game.')
+        }
       >
         <span
-          className={cn(
-            'size-1.5 shrink-0 rounded-full',
-            inspector.connected ? 'bg-foreground' : 'bg-muted-foreground/40',
-          )}
+          className={cn('size-1.5 shrink-0 rounded-full', selected ? 'bg-foreground' : 'bg-muted-foreground/40')}
         />
         <span className="truncate">{detail}</span>
       </div>
@@ -75,12 +96,48 @@ function InspectorStatus({ compact = false }: { compact?: boolean }) {
       <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Game</p>
       <p className="text-xs">{detail}</p>
 
-      {!inspector.connected && (
+      {inspector.connected && inspector.sessions.length > 0 && (
+        <div role="radiogroup" aria-label="Game to preview in" className="grid gap-0.5" data-testid="studio-session-picker">
+          {inspector.sessions.map((session) => {
+            const checked = session.id === inspector.selectedSessionId;
+            return (
+              <button
+                key={session.id}
+                type="button"
+                role="radio"
+                aria-checked={checked}
+                onClick={() => void inspector.selectSession(session.id)}
+                className={cn(
+                  'flex items-baseline justify-between gap-2 rounded-sm border-l-2 px-2 py-1.5 text-left text-xs',
+                  checked
+                    ? 'border-l-primary bg-accent/60 text-foreground'
+                    : 'border-l-transparent text-muted-foreground hover:bg-accent/40 hover:text-foreground',
+                )}
+              >
+                <span className="truncate">{sessionLabel(session)}</span>
+                <span className="shrink-0 text-[10px] tabular-nums">{connectedTime(session.connectedAt)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {inspector.connected ? (
+        <button
+          type="button"
+          onClick={() => void inspector.disconnect()}
+          className="flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <UnplugIcon className="size-3.5 shrink-0" />
+          Disconnect Inspector
+        </button>
+      ) : (
         <>
           <button
             type="button"
+            disabled={inspector.status === 'connecting'}
             onClick={() => void inspector.connect()}
-            className="flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
           >
             <PlugZapIcon className="size-3.5 shrink-0" />
             Connect Inspector
@@ -92,9 +149,11 @@ function InspectorStatus({ compact = false }: { compact?: boolean }) {
         </>
       )}
 
-      {inspector.error && (
-        <p className="text-[11px] text-destructive" role="status">
-          {inspector.error}
+      {(inspector.error ?? inspector.notice) && (
+        // Muted, not destructive: an absent Inspector costs the user nothing
+        // they were working on, so it is not styled as danger (P2).
+        <p className="text-[11px] leading-relaxed text-muted-foreground" role="status" data-testid="studio-inspector-message">
+          {inspector.error ?? inspector.notice}
         </p>
       )}
     </div>
@@ -172,6 +231,10 @@ export function StudioApp() {
         <span className="truncate font-medium" data-testid="studio-current-tool">
           {TOOLS[activeTool].label}
         </span>
+        <span className="text-muted-foreground/50" aria-hidden>
+          /
+        </span>
+        <WorkspaceSwitcher />
         <div className="ml-auto flex items-center gap-3">
           <InspectorStatus compact />
         </div>

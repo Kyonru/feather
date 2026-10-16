@@ -82,6 +82,10 @@ pub fn run() {
     // Answers Studio's one-time preferences handoff; the payload lives in this
     // app's webview storage, so the export has to be relayed through it.
     let preferences_exporter = studio_bridge::PreferencesExporter::default();
+    // Pairings and session names are managed state so Inspector's settings can
+    // list and revoke pairings individually.
+    let studio_capabilities = studio_bridge::BridgeCapabilities::default();
+    let studio_sessions = studio_bridge::SessionDirectory::default();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -94,6 +98,8 @@ pub fn run() {
         .manage(cli_actions)
         .manage(binary_channel.clone())
         .manage(preferences_exporter.clone())
+        .manage(studio_capabilities.clone())
+        .manage(studio_sessions.clone())
         .setup(move |app| {
             let handle = app.handle().clone();
             mcp_bridge.set_app_handle(handle.clone());
@@ -124,15 +130,22 @@ pub fn run() {
                 .unwrap_or(4008);
             preferences_exporter.set_app_handle(app.handle().clone());
             studio_bridge::start_bridge_server(
-                sessions.clone(),
+                studio_bridge::BridgeState::new(
+                    sessions.clone(),
+                    studio_capabilities.clone(),
+                    studio_sessions.clone(),
+                    env!("CARGO_PKG_VERSION").to_string(),
+                    preferences_exporter.clone(),
+                ),
                 studio_bridge_port,
-                env!("CARGO_PKG_VERSION").to_string(),
-                preferences_exporter.clone(),
             );
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             studio_bridge::resolve_studio_preferences_export,
+            studio_bridge::list_studio_pairings,
+            studio_bridge::revoke_studio_pairing,
+            studio_bridge::set_studio_bridge_sessions,
             ws_server::send_command,
             ws_server::subscribe_binary,
             ws_server::get_active_sessions,

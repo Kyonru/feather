@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { describeAge, isFromPreviousRun } from '@feather/ui';
+
 import { useSessionStore } from '@/store/session';
 
 /**
@@ -20,9 +22,6 @@ import { useSessionStore } from '@/store/session';
  * See V4.md §6.2 (C2).
  */
 
-/** Below this, "just now" is more honest than a number that churns every second. */
-const JUST_NOW_MS = 3_000;
-
 export type Freshness = {
   /** When this data last arrived, or null if it never has. */
   updatedAt: number | null;
@@ -36,28 +35,10 @@ export type Freshness = {
   label: string | null;
 };
 
-export function describeAge(ageMs: number): string {
-  if (ageMs < JUST_NOW_MS) return 'just now';
-  const seconds = Math.floor(ageMs / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
-}
-
-/**
- * Did this data arrive before the attached session started?
- *
- * The whole judgement, kept as a pure function so it can be tested without a
- * React tree. Age is not the signal — a panel showing a value from 40 seconds
- * ago is fine if the game has been up for an hour, and wrong if the game
- * restarted 5 seconds ago.
- */
-export function isFromPreviousRun(updatedAt: number | null, sessionConnectedAt?: number | null): boolean {
-  if (updatedAt === null || !sessionConnectedAt) return false;
-  return updatedAt < sessionConnectedAt;
-}
+// The judgement itself lives in `@feather/ui` so Studio applies the same rule
+// to previews it sends through Inspector; it is re-exported here so existing
+// callers and `scripts/tests/freshness.test.ts` keep their import.
+export { describeAge, isFromPreviousRun };
 
 /**
  * Track freshness for one query key.

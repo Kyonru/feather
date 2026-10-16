@@ -1,23 +1,21 @@
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 import { TextureLabActionControls, TextureLabPanel } from './TextureLabPanel';
-import { useParticleSystemPlayground } from '@studio/hooks/use-particle-system-playground';
 import { useLocalParticlePlayground } from '@studio/tools/particle-system-playground/use-local-particle-playground';
 import { useShaderGraphStore } from '@studio/store/shader-graph';
 import { useStudioPreferencesStore } from '@studio/store/studio-preferences';
-import { useIsLocalMode, useSessionStore } from '@studio/session';
+import { useWorkspaceToolKey } from '@studio/store/studio-workspaces';
 import type { GeneratedTextureResult } from '@studio/types/texture-lab';
 
 const SHADER_TEXTURE_NODE_TYPES = new Set(['TextureInput', 'TextureUniformColor', 'TextureParameter']);
 
 export default function TextureLab() {
-  const sessionId = useSessionStore((state) => state.sessionId);
-  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
-  const localMode = useIsLocalMode();
-  const livePlayground = useParticleSystemPlayground();
-  const localPlayground = useLocalParticlePlayground(localMode ? 'studio-local' : activeSession?.id);
-  const playground = localMode ? localPlayground : livePlayground;
-  const workspaceId = sessionId ?? 'default';
+  // Everything here follows the Studio workspace, attached or not: the
+  // emitter a texture goes into and the graph it textures are the ones the user
+  // is working on, never a game's.
+  const playground = useLocalParticlePlayground(useWorkspaceToolKey('particles'));
+  const shaderWorkspaceId = useWorkspaceToolKey('shaderGraph');
+  const textureWorkspaceId = useWorkspaceToolKey('textureLab');
   const activateShaderWorkspace = useShaderGraphStore((state) => state.activateWorkspace);
   const activateTextureLabWorkspace = useStudioPreferencesStore((state) => state.activateTextureLabWorkspace);
   const shaderNodes = useShaderGraphStore((state) => state.nodes);
@@ -29,9 +27,9 @@ export default function TextureLab() {
   const canUseShaderTexture = !!selectedShaderNode && SHADER_TEXTURE_NODE_TYPES.has(selectedShaderNode.data.nodeType);
 
   useEffect(() => {
-    activateShaderWorkspace(workspaceId);
-    activateTextureLabWorkspace(workspaceId);
-  }, [activateShaderWorkspace, activateTextureLabWorkspace, workspaceId]);
+    activateShaderWorkspace(shaderWorkspaceId);
+    activateTextureLabWorkspace(textureWorkspaceId);
+  }, [activateShaderWorkspace, activateTextureLabWorkspace, shaderWorkspaceId, textureWorkspaceId]);
 
   function useTexture(texture: GeneratedTextureResult) {
     if (canUseParticleEmitter) {

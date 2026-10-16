@@ -77,6 +77,11 @@ function writeLocalParticleWorkspace(workspaceId: string, data: ParticleSystemPl
   }
 }
 
+/** Which workspace keys have particle work saved under them. */
+export function listLocalParticleWorkspaceIds(): string[] {
+  return Object.keys(readLocalParticleWorkspaces());
+}
+
 export function deleteLocalParticleWorkspace(workspaceId: string) {
   if (typeof window === 'undefined') return;
   try {
@@ -478,8 +483,16 @@ export function useLocalParticlePlayground(workspaceId?: string) {
     clearHistory();
   }, [workspaceId]);
 
+  // Saved on every change. On the render where the workspace id changes,
+  // `data` still belongs to the workspace being left, so that one pass is
+  // skipped — writing it would copy the old workspace into the new one.
+  const writtenFor = useRef(workspaceId);
   useEffect(() => {
     if (!workspaceId) return;
+    if (writtenFor.current !== workspaceId) {
+      writtenFor.current = workspaceId;
+      return;
+    }
     writeLocalParticleWorkspace(workspaceId, data);
   }, [data, workspaceId]);
 

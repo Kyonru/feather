@@ -1,97 +1,30 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useStudioPreferencesStore } from '@studio/store/studio-preferences';
-import {
-  createClientBridge,
-  createNullBridge,
-  type BridgeRequest,
-  type BridgeResponse,
-  type SessionBridge,
-  type SessionDescription,
-} from '@feather/session-bridge';
-
-const STUDIO_VERSION = '0.1.0';
-
-/** Where Inspector listens for bridge requests on loopback. */
-const INSPECTOR_BRIDGE_URL = 'http://127.0.0.1:4008/bridge';
+import { useShallow } from 'zustand/react/shallow';
+import { useInspectorConnection } from '@studio/store/inspector-connection';
 
 /**
- * Loopback transport.
+ * Studio's optional connection to a running Feather Inspector, for components.
  *
- * Bound to 127.0.0.1 rather than a wildcard: the bridge can push commands into a
- * running game, so it must not be reachable from the network. The capability
- * travels in the request body, never the URL, so it stays out of logs.
+ * The connection itself lives in `store/inspector-connection.ts` so the strip,
+ * the menu and the tools all see one pairing. Studio is fully useful with no
+ * Inspector at all — that is the null bridge, not an error state — and
+ * connecting is an explicit user action, so Studio never probes loopback on its
+ * own.
  */
-async function loopbackTransport(request: BridgeRequest): Promise<BridgeResponse> {
-  const response = await fetch(INSPECTOR_BRIDGE_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(request),
-  });
-  if (!response.ok) {
-    throw new Error(`Feather Inspector responded ${response.status}`);
-  }
-  return (await response.json()) as BridgeResponse;
-}
-
-export type InspectorConnection = {
-  bridge: SessionBridge;
-  connected: boolean;
-  session: SessionDescription;
-  error: string | null;
-  connect: () => Promise<void>;
-};
-
-/**
- * Optional connection to a running Feather Inspector.
- *
- * Studio is fully useful with no Inspector at all — that is the null bridge, not
- * an error state. Connecting is an explicit user action so Studio never probes
- * loopback on its own.
- */
-export function useInspectorBridge(): InspectorConnection {
-  const [bridge, setBridge] = useState<SessionBridge>(() => createNullBridge());
-  const [connected, setConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [session, setSession] = useState<SessionDescription>({
-    sessionId: null,
-    name: null,
-    connected: false,
-  });
-
-  const connect = useCallback(async () => {
-    const client = createClientBridge(loopbackTransport, { clientVersion: STUDIO_VERSION });
-    const result = await client.connect();
-    if (!result.ok) {
-      setBridge(createNullBridge());
-      setConnected(false);
-      setError(result.error ?? 'Could not reach Feather Inspector.');
-      return;
-    }
-    setBridge(client);
-    setConnected(true);
-    setError(null);
-    setSession(await client.describeSession());
-
-    // One-time handoff. A Studio install that has never migrated asks Inspector
-    // for the preferences it still holds; importPreferences is idempotent and
-    // refuses a payload from a newer Studio, so a repeat pairing is harmless.
-    const store = useStudioPreferencesStore.getState();
-    if (store.migratedFrom === 0) {
-      const payload = await client.exportPreferences();
-      if (payload) store.importPreferences(payload);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!connected) return;
-    const id = window.setInterval(() => {
-      void bridge.describeSession().then(setSession);
-    }, 4000);
-    return () => window.clearInterval(id);
-  }, [bridge, connected]);
-
-  return useMemo(
-    () => ({ bridge, connected, session, error, connect }),
-    [bridge, connected, session, error, connect],
+export function useInspectorBridge() {
+  return useInspectorConnection(
+    useShallow((state) => ({
+      status: state.status,
+      connected: state.status === 'paired',
+      sessions: state.sessions,
+      selectedSessionId: state.selectedSessionId,
+      selectedSession: state.sessions.find((session) => session.id === state.selectedSessionId) ?? null,
+      error: state.error,
+      notice: state.notice,
+      connect: state.connect,
+      disconnect: state.disconnect,
+      selectSession: state.selectSession,
+    })),
   );
 }
+
+export type InspectorConnection = ReturnType<typeof useInspectorBridge>;

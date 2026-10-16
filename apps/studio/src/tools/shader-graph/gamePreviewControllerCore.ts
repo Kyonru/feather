@@ -29,6 +29,16 @@ function stableJson(value: unknown): string {
     .join(',')}}`;
 }
 
+/**
+ * What "already sent" means: this payload, to this session. A restarted game
+ * is a new session that has never seen the preview, so the same payload must
+ * go again — deduping on the payload alone left Studio showing a live preview
+ * the new run did not have (C2).
+ */
+function sentKey(sessionId: string, signature: string): string {
+  return `${sessionId}\u0000${signature}`;
+}
+
 export function shaderGraphPreviewSignature(params: ShaderGraphGamePreviewParams): string {
   return stableJson(params);
 }
@@ -67,7 +77,7 @@ export function createShaderGraphGamePreviewController(
     pending = null;
     if (!next) return;
 
-    if (next.signature === lastSentSignature) {
+    if (sentKey(next.sessionId, next.signature) === lastSentSignature) {
       settle(next.waiters);
       return;
     }
@@ -83,7 +93,7 @@ export function createShaderGraphGamePreviewController(
         },
       });
       lastSentAt = now();
-      lastSentSignature = next.signature;
+      lastSentSignature = sentKey(next.sessionId, next.signature);
       settle(next.waiters);
     } catch (error) {
       settle(next.waiters, error);
@@ -101,7 +111,7 @@ export function createShaderGraphGamePreviewController(
   return {
     preview(sessionId: string, params: ShaderGraphGamePreviewParams) {
       const signature = shaderGraphPreviewSignature(params);
-      if (!pending && signature === lastSentSignature) {
+      if (!pending && sentKey(sessionId, signature) === lastSentSignature) {
         return Promise.resolve();
       }
 

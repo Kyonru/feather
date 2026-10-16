@@ -1,5 +1,5 @@
 import { useHost } from '@feather/host';
-import { AlertTriangleIcon, FileWarningIcon, PlayIcon, Redo2Icon, RotateCcwIcon, SparklesIcon, Undo2Icon } from 'lucide-react';
+import { PlayIcon, Redo2Icon, RotateCcwIcon, SparklesIcon, Undo2Icon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@feather/ui/button';
@@ -9,10 +9,8 @@ import { ScrollArea } from '@feather/ui/scroll-area';
 import { Separator } from '@feather/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@feather/ui/resizable';
-import { usePluginControl } from '@studio/session/plugin-control';
-import { useParticleSystemPlayground } from '@studio/hooks/use-particle-system-playground';
 import { useLocalParticlePlayground } from '@studio/tools/particle-system-playground/use-local-particle-playground';
-import { useIsLocalMode, useSessionStore } from '@studio/session';
+import { useWorkspaceToolKey } from '@studio/store/studio-workspaces';
 import { usePersistedPanelLayout } from '@studio/hooks/use-persisted-panel-layout';
 import { CompositeSelector } from './components/CompositeSelector';
 import { EmitterList } from './components/EmitterList';
@@ -29,7 +27,7 @@ const PROJECT_FILE_EXTENSION = 'featherparticles';
 const PARTICLE_PANEL_IDS = ['particle-selection', 'particle-preview', 'particle-inspector'] as const;
 const PARTICLE_PREVIEW_PANEL_IDS = ['particle-canvas', 'particle-timeline'] as const;
 
-export type ParticleSystemPlaygroundController = ReturnType<typeof useParticleSystemPlayground>;
+export type ParticleSystemPlaygroundController = ReturnType<typeof useLocalParticlePlayground>;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -50,27 +48,14 @@ function targetIsTextInput(target: EventTarget | null): boolean {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || target.isContentEditable;
 }
 
-/**
- * A stable id for the local workspace, so work persists across restarts.
- *
- * Previously the id came from a "creative session", which Studio never creates,
- * so it was always `undefined` and every launch started from
- * `defaultLocalParticleData()`. S4 replaces this constant with real named
- * workspaces; until then it is what makes the tool remember anything at all.
- */
-const LOCAL_WORKSPACE_ID = 'studio-local';
-
 export default function ParticleSystemPlaygroundPage() {
   const host = useHost();
-  const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
-  // Local is the default. This used to ask `isCreativeSession`, which is false
-  // when no game is attached, so it selected the *live* controller in exactly
-  // the situation Studio is normally in — see V4.md §6.4, session semantics.
-  const localMode = useIsLocalMode();
-  const livePlayground = useParticleSystemPlayground();
-  const localPlayground = useLocalParticlePlayground(localMode ? LOCAL_WORKSPACE_ID : activeSession?.id);
-  const playground = localMode ? localPlayground : livePlayground;
-  const pluginControl = usePluginControl('particle-system-playground');
+  // The work is always the local workspace's. Attaching a game used to swap in
+  // a game-owned controller, which in Studio has no read-back from the game —
+  // so connecting replaced the user's composites with an empty "not available"
+  // screen. Connecting adds; it does not replace (V4.md §6.4, P2).
+  const workspaceKey = useWorkspaceToolKey('particles');
+  const playground = useLocalParticlePlayground(workspaceKey);
   const composite = playground.composite;
   const system = playground.activeSystem;
   const isGameComposite = composite?.compositeType === 'game';
@@ -79,7 +64,6 @@ export default function ParticleSystemPlaygroundPage() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const workbenchLayout = usePersistedPanelLayout('particles', PARTICLE_PANEL_IDS);
   const previewLayout = usePersistedPanelLayout('particles-preview', PARTICLE_PREVIEW_PANEL_IDS);
-  const sendRuntimeTimeline = gamePreviewActive && !playground.runtimeSuspended;
   // The viewport measuring that used to live here existed for one situation:
   // this tool embedded in an Inspector page, where it had to size itself to the
   // window minus the surrounding chrome. In Studio the tool owns the window and
@@ -124,47 +108,6 @@ export default function ParticleSystemPlaygroundPage() {
     }
   };
 
-  if (!localMode && !playground.available) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center p-8">
-        <div className="grid max-w-md justify-items-center gap-3 text-center">
-          <FileWarningIcon className="size-8 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Particles Playground is not available in this session</h1>
-          <p className="text-sm text-muted-foreground">
-            Run with the bundled Feather plugins or update the game runtime.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!localMode && !playground.enabled) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center p-8">
-        <div className="grid max-w-md justify-items-center gap-3 text-center">
-          <AlertTriangleIcon className="size-8 text-muted-foreground" />
-          <h1 className="text-lg font-semibold">Particles Playground is disabled</h1>
-          <p className="text-sm text-muted-foreground">
-            Enable the built-in plugin for this session to author particle effects.
-          </p>
-          <Button
-            size="sm"
-            className="h-8 text-xs"
-            disabled={!!pluginControl.plugin?.incompatible}
-            onClick={() => pluginControl.setEnabled(true)}
-          >
-            Enable Particles Playground
-          </Button>
-          {pluginControl.plugin?.incompatible && (
-            <p className="text-xs text-muted-foreground">
-              This plugin is incompatible with the current Feather runtime.
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       data-testid="particle-playground-root"
@@ -203,10 +146,10 @@ export default function ParticleSystemPlaygroundPage() {
               <Redo2Icon className="size-4" />
             </Button>
             <ExportPanel onExportCode={playground.exportCode} onExportZip={playground.exportZip} onSaveProject={playground.saveProject} onImportProject={() => void importProject()} />
-            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" title="Play particle timeline" onClick={() => playground.playTimeline(sendRuntimeTimeline)}>
+            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" title="Play particle timeline" onClick={() => playground.playTimeline()}>
               <PlayIcon className="size-3.5" /> Play
             </Button>
-            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => playground.reset(false)}>
+            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => playground.reset()}>
               <RotateCcwIcon className="size-3.5" /> Reset
             </Button>
             <Button size="sm" variant="outline" className="h-8 text-xs" onClick={playground.kickStart}>Kick Start</Button>
@@ -253,15 +196,15 @@ export default function ParticleSystemPlaygroundPage() {
                 {timelineOpen ? (
                   <ResizablePanelGroup id="studio-particle-preview-stack" orientation="vertical" className="h-0 min-h-0 flex-1" defaultLayout={previewLayout.defaultLayout} onLayoutChanged={previewLayout.onLayoutChanged}>
                     <ResizablePanel id="particle-canvas" defaultSize="38%" minSize="26%" className="min-h-0 overflow-hidden">
-                      <ParticlePreviewMonitor playground={playground} standalone={localMode} isGameComposite={isGameComposite} allowGamePreview={!localMode} gamePreviewActive={gamePreviewActive} onGamePreviewActiveChange={setGamePreviewActive} />
+                      <ParticlePreviewMonitor playground={playground} standalone isGameComposite={isGameComposite} allowGamePreview={false} gamePreviewActive={gamePreviewActive} onGamePreviewActiveChange={setGamePreviewActive} />
                     </ResizablePanel>
                     <ResizableHandle className="bg-border/40" />
                     <ResizablePanel id="particle-timeline" defaultSize="62%" minSize="40%" className="min-h-0 overflow-auto bg-card p-2">
-                      <TimelinePanel composite={composite} activeSystemIndex={playground.activeSystemIndex} isGameComposite={isGameComposite} onSelectSystem={playground.selectSystem} onSystemEnabledChange={(index, enabled) => playground.updateSystemParam(index, 'enabled', enabled)} onTimelineChange={playground.updateTimeline} onPlay={() => playground.playTimeline(sendRuntimeTimeline)} onPause={(time) => playground.pauseTimeline(time, sendRuntimeTimeline)} onStop={() => playground.stopTimeline(sendRuntimeTimeline)} onSeek={(time, immediate) => playground.seekTimeline(time, immediate, sendRuntimeTimeline)} />
+                      <TimelinePanel composite={composite} activeSystemIndex={playground.activeSystemIndex} isGameComposite={isGameComposite} onSelectSystem={playground.selectSystem} onSystemEnabledChange={(index, enabled) => playground.updateSystemParam(index, 'enabled', enabled)} onTimelineChange={playground.updateTimeline} onPlay={() => playground.playTimeline()} onPause={(time) => playground.pauseTimeline(time)} onStop={() => playground.stopTimeline()} onSeek={(time) => playground.seekTimeline(time)} />
                     </ResizablePanel>
                   </ResizablePanelGroup>
                 ) : (
-                  <div className="h-0 min-h-0 flex-1 overflow-hidden"><ParticlePreviewMonitor playground={playground} standalone={localMode} isGameComposite={isGameComposite} allowGamePreview={!localMode} gamePreviewActive={gamePreviewActive} onGamePreviewActiveChange={setGamePreviewActive} /></div>
+                  <div className="h-0 min-h-0 flex-1 overflow-hidden"><ParticlePreviewMonitor playground={playground} standalone isGameComposite={isGameComposite} allowGamePreview={false} gamePreviewActive={gamePreviewActive} onGamePreviewActiveChange={setGamePreviewActive} /></div>
                 )}
               </>
             )}

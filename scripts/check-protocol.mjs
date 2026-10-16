@@ -9,13 +9,13 @@
  * Run: npm run check:protocol
  */
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 function read(relative) {
-  return readFileSync(join(root, relative), 'utf8');
+  return readFileSync(resolve(root, relative), 'utf8');
 }
 
 function extract(source, pattern, label, file) {
@@ -138,8 +138,11 @@ compare('generated Lua table', toGame, generatedLua, registrySource, generatedLu
 // Studio must never declare a runtime range of its own.
 // ---------------------------------------------------------------------------
 
-const bridgeTsFile = 'packages/session-bridge/src/contract.ts';
-const bridgeRsFile = 'apps/inspector/src-tauri/src/studio_bridge.rs';
+// Overridable so `scripts/tests/bridgeContractDrift.test.mjs` can prove the
+// check fires against drifted copies without touching the real files.
+const bridgeTsFile = process.env.FEATHER_BRIDGE_TS_FILE ?? 'packages/session-bridge/src/contract.ts';
+const bridgeRsFile = process.env.FEATHER_BRIDGE_RS_FILE ?? 'apps/inspector/src-tauri/src/studio_bridge.rs';
+const bridgeAdaptersFile = process.env.FEATHER_BRIDGE_ADAPTERS_FILE ?? 'packages/session-bridge/src/adapters.ts';
 
 const bridgeTs = extract(read(bridgeTsFile), /^export const BRIDGE_VERSION = (\d+);/m, 'BRIDGE_VERSION', bridgeTsFile);
 const bridgeTsMin = extract(
@@ -172,6 +175,101 @@ if (bridgeTsMin > bridgeTs) {
   );
 }
 
+// The rest of the contract: method names, error codes, the preview allowlist
+// and the size limit. A version bump alone does not catch a method renamed on
+// one side, a new error code Studio cannot name, or an action Rust forwards that
+// TypeScript never meant to allow — which is the one that matters most.
+{
+  const tsSource = read(bridgeTsFile);
+  const rsSource = read(bridgeRsFile);
+  const adaptersSource = read(bridgeAdaptersFile);
+
+  const block = (source, pattern, label, file) => {
+    const match = source.match(pattern);
+    if (!match) throw new Error(`Could not find ${label} in ${file}`);
+    return match[1];
+  };
+  const quoted = (text) => [...text.matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1]);
+  const product = (text) => text.split('*').reduce((total, part) => total * Number(part.trim()), 1);
+  const sameSet = (a, b) => a.length === b.length && [...a].sort().join('\n') === [...b].sort().join('\n');
+  const diff = (a, b) => a.filter((item) => !b.includes(item));
+
+  const tsMethods = quoted(block(tsSource, /export const BRIDGE_METHODS = \[([\s\S]*?)\] as const;/, 'BRIDGE_METHODS', bridgeTsFile));
+  const rsMethods = quoted(block(rsSource, /pub const BRIDGE_METHODS: &\[&str\] = &\[([\s\S]*?)\];/, 'BRIDGE_METHODS', bridgeRsFile));
+  if (!sameSet(tsMethods, rsMethods)) {
+    problems.push(
+      `Bridge methods differ.\n` +
+        `  Only in TypeScript: ${diff(tsMethods, rsMethods).join(', ') || '—'}\n` +
+        `  Only in Rust: ${diff(rsMethods, tsMethods).join(', ') || '—'}`,
+    );
+  }
+  for (const method of rsMethods.filter((method) => method !== 'handshake')) {
+    if (!new RegExp(`"${method.replace('.', '\\.')}"\\s*(=>|\\|)`).test(rsSource)) {
+      problems.push(`${bridgeRsFile} declares "${method}" but has no match arm handling it.`);
+    }
+  }
+
+  const tsCodes = quoted(
+    block(tsSource, /export const BRIDGE_SERVER_ERROR_CODES = \[([\s\S]*?)\] as const;/, 'BRIDGE_SERVER_ERROR_CODES', bridgeTsFile),
+  );
+  const rsCodes = quoted(
+    block(rsSource, /pub const BRIDGE_SERVER_ERROR_CODES: &\[&str\] = &\[([\s\S]*?)\];/, 'BRIDGE_SERVER_ERROR_CODES', bridgeRsFile),
+  );
+  if (!sameSet(tsCodes, rsCodes)) {
+    problems.push(
+      `Bridge error codes differ.\n` +
+        `  Only in TypeScript: ${diff(tsCodes, rsCodes).join(', ') || '—'}\n` +
+        `  Only in Rust: ${diff(rsCodes, tsCodes).join(', ') || '—'}`,
+    );
+  }
+  const rsUsed = [...rsSource.matchAll(/\bfail\([^,()]*(?:\([^()]*\))?[^,()]*,\s*"([a-z-]+)"/g)].map((m) => m[1]);
+  const tsUsed = [...adaptersSource.matchAll(/\bfail\([^,()]*,\s*'([a-z-]+)'/g)].map((m) => m[1]);
+  for (const [file, used] of [
+    [bridgeRsFile, rsUsed],
+    [bridgeAdaptersFile, tsUsed],
+  ]) {
+    const undeclared = [...new Set(used.filter((code) => !tsCodes.includes(code)))];
+    if (undeclared.length) {
+      problems.push(`${file} answers with undeclared bridge error codes: ${undeclared.join(', ')}.`);
+    }
+  }
+
+  const tsAllow = Object.fromEntries(
+    [
+      ...block(tsSource, /export const PREVIEW_ALLOWLIST[^=]*= \{([\s\S]*?)\};/, 'PREVIEW_ALLOWLIST', bridgeTsFile).matchAll(
+        /['"]([^'"]+)['"]\s*:\s*\[([^\]]*)\]/g,
+      ),
+    ].map((m) => [m[1], quoted(m[2])]),
+  );
+  const rsAllow = Object.fromEntries(
+    [
+      ...block(rsSource, /pub const PREVIEW_ALLOWLIST: [^=]*= &\[([\s\S]*?)\];\n/, 'PREVIEW_ALLOWLIST', bridgeRsFile).matchAll(
+        /\(\s*"([^"]+)"\s*,\s*&\[([^\]]*)\]\s*\)/g,
+      ),
+    ].map((m) => [m[1], quoted(m[2])]),
+  );
+  for (const plugin of new Set([...Object.keys(tsAllow), ...Object.keys(rsAllow)])) {
+    const a = tsAllow[plugin] ?? [];
+    const b = rsAllow[plugin] ?? [];
+    if (!sameSet(a, b)) {
+      problems.push(
+        `Preview allowlist for "${plugin}" differs: TypeScript allows [${a.join(', ')}], Rust allows [${b.join(', ')}].\n` +
+          `  Rust is what forwards to the game, so an action only it allows is reachable without review.`,
+      );
+    }
+  }
+
+  const tsLimit = product(block(tsSource, /export const BRIDGE_MAX_REQUEST_BYTES = ([\d\s*]+);/, 'BRIDGE_MAX_REQUEST_BYTES', bridgeTsFile));
+  const rsLimit = product(block(rsSource, /pub const BRIDGE_MAX_REQUEST_BYTES: usize = ([\d\s*]+);/, 'BRIDGE_MAX_REQUEST_BYTES', bridgeRsFile));
+  const tsHandshake = product(block(tsSource, /export const BRIDGE_MAX_HANDSHAKE_BYTES = ([\d\s*]+);/, 'BRIDGE_MAX_HANDSHAKE_BYTES', bridgeTsFile));
+  const rsHandshake = product(block(rsSource, /pub const BRIDGE_MAX_HANDSHAKE_BYTES: usize = ([\d\s*]+);/, 'BRIDGE_MAX_HANDSHAKE_BYTES', bridgeRsFile));
+  if (tsLimit !== rsLimit || tsHandshake !== rsHandshake) {
+    problems.push(
+      `Bridge size limits differ: TypeScript ${tsLimit}/${tsHandshake} bytes, Rust ${rsLimit}/${rsHandshake} bytes (request/handshake).`,
+    );
+  }
+}
+
 // Studio must not declare a runtime compatibility range. Inspector owns that
 // translation; a Studio that claimed one would be asserting something about a
 // game it never talks to directly.
@@ -200,6 +298,6 @@ if (problems.length > 0) {
 
 console.log(
   `[feather] Protocol OK — wire v${ts} (desktop supports v${tsMin}..v${ts}), runtime advertises v${lua}; ` +
-    `bridge v${bridgeTsMin}..v${bridgeTs} agreed by TypeScript and Rust. ` +
+    `bridge v${bridgeTsMin}..v${bridgeTs}, its methods, error codes, allowlist and limits agreed by TypeScript and Rust. ` +
     `${toGame.size} desktop->game and ${toDesktop.size} game->desktop messages match their dispatch tables.`,
 );

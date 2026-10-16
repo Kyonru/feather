@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SessionDescription } from '@feather/session-bridge';
+import type { BridgeSessionSummary } from '@feather/session-bridge';
 
 /**
  * Studio's view of a game session.
@@ -69,8 +69,8 @@ export function studioModeFor(session?: SessionInfo | null): StudioMode {
 type StudioSessionStore = {
   sessionId: string | null;
   sessions: Record<string, SessionInfo>;
-  /** Replace the mirror with what the bridge just reported. */
-  syncFromBridge: (description: SessionDescription) => void;
+  /** Mirror the game the bridge pairing is scoped to, or none. */
+  syncFromBridge: (session: BridgeSessionSummary | null) => void;
   /** Drop the mirror. Called when the bridge disconnects. */
   clear: () => void;
 };
@@ -79,17 +79,30 @@ export const useSessionStore = create<StudioSessionStore>()((set) => ({
   sessionId: null,
   sessions: {},
 
-  syncFromBridge: (description) =>
-    set(() => {
-      if (!description.sessionId) return { sessionId: null, sessions: {} };
+  syncFromBridge: (session) =>
+    set((state) => {
+      if (!session) return state.sessionId === null ? state : { sessionId: null, sessions: {} };
+      const current = state.sessionId ? state.sessions[state.sessionId] : null;
+      // A poll that reports the same run must not re-render every tool.
+      if (
+        current &&
+        current.id === session.id &&
+        current.connectedAt === session.connectedAt &&
+        current.name === (session.name ?? undefined)
+      ) {
+        return state;
+      }
       return {
-        sessionId: description.sessionId,
+        sessionId: session.id,
         sessions: {
-          [description.sessionId]: {
-            id: description.sessionId,
-            name: description.name ?? undefined,
-            connected: description.connected,
-            connectedAt: Date.now(),
+          [session.id]: {
+            id: session.id,
+            name: session.name ?? undefined,
+            connected: true,
+            // Inspector's time, not ours: when this run of the game connected.
+            // Stamping Date.now() here, on every poll, made every preview look
+            // newer than the run it was sent to (C2).
+            connectedAt: session.connectedAt,
           },
         },
       };
