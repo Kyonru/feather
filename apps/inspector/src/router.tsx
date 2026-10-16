@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router';
 import { toast } from 'sonner';
 import {
@@ -17,15 +17,6 @@ import { SidebarInset, SidebarProvider } from '@feather/ui/sidebar';
 import { Toaster } from '@feather/ui/sonner';
 import { Button } from '@feather/ui/button';
 import Logs from './pages/log';
-import Performance from './pages/performance';
-import Observability from './pages/observable';
-import Plugins from './pages/plugins';
-import Console from './pages/console';
-import Debugger from './pages/debugger';
-import TimeTravel from './pages/time-travel';
-import SessionReplay from './pages/session-replay';
-import Compare from './pages/compare';
-import Assets from './pages/assets';
 import SessionPage from './pages/session';
 import { SettingsModal } from './pages/settings';
 import { useConfigStore } from './store/config';
@@ -36,6 +27,26 @@ import { useSettingsStore } from './store/settings';
 import { copyToClipboardWithMeta } from './utils/strings';
 import { openUrl } from './utils/linking';
 import { sendCommand } from './lib/send-command';
+
+// Route-level code splitting. Logs (the default route) and Session stay in the
+// entry chunk with the shell; every other surface — several of them over a
+// thousand lines — loads when first opened instead of on every launch.
+const Performance = lazy(() => import('./pages/performance'));
+const Observability = lazy(() => import('./pages/observable'));
+const Plugins = lazy(() => import('./pages/plugins'));
+const Console = lazy(() => import('./pages/console'));
+const Debugger = lazy(() => import('./pages/debugger'));
+const TimeTravel = lazy(() => import('./pages/time-travel'));
+const SessionReplay = lazy(() => import('./pages/session-replay'));
+const Compare = lazy(() => import('./pages/compare'));
+const Assets = lazy(() => import('./pages/assets'));
+
+/** Shown for the moment a route's chunk loads. Quiet on purpose (L6). */
+const RouteFallback = () => (
+  <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm" aria-busy="true">
+    Loading…
+  </div>
+);
 
 const INSTALL_DOCS_URL = 'https://kyonru.github.io/feather/installation/';
 const CLI_DOCS_URL = 'https://kyonru.github.io/feather/cli/';
@@ -253,6 +264,7 @@ export const Router = () => {
         <SidebarInset className="min-w-0 overflow-hidden">
           <SiteHeader />
           <div className="flex min-h-0 flex-1 flex-col">
+            <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route
                 path="/"
@@ -342,6 +354,7 @@ export const Router = () => {
                 />
               </Route>
             </Routes>
+            </Suspense>
           </div>
         </SidebarInset>
       </SidebarProvider>
