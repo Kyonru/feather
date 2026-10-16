@@ -1,13 +1,17 @@
 import { useEffect } from 'react';
 import { creativeMcpTransport } from '@studio/mcp/transport';
-import { useQueryClient } from '@tanstack/react-query';
 import { useShaderGraphStore } from '@studio/store/shader-graph';
 import { useStudioPreferencesStore } from '@studio/store/studio-preferences';
-import { useSessionStore } from '@studio/session';
-import { sessionQueryKey } from '@studio/lib/session-query-keys';
+import { toolKey } from '@studio/store/workspace-registry';
+import { useStudioWorkspacesStore } from '@studio/store/studio-workspaces';
 import { codegen } from '@studio/tools/shader-graph/codegen';
 import { diagnoseShaderGraph, hasBlockingDiagnostics } from '@studio/tools/shader-graph/diagnostics';
 import { parseShaderGraphFile, type FeatherShaderGraphFile } from '@studio/tools/shader-graph/file-format';
+import { runLocalParticleWorkspaceAction } from '@studio/tools/particle-system-playground/local-mcp';
+import {
+  loadLocalParticleWorkspace,
+  subscribeLocalParticleWorkspace,
+} from '@studio/tools/particle-system-playground/use-local-particle-playground';
 import {
   DEFAULT_TEXTURE_LAB_RECIPE,
   DEFAULT_TEXTURE_LAB_ATLAS_SETTINGS,
@@ -98,14 +102,19 @@ function textureLabSnapshot() {
   };
 }
 
-function particleSnapshot(queryClient: ReturnType<typeof useQueryClient>) {
-  const sessionId = useSessionStore.getState().sessionId;
-  const data = sessionId ? queryClient.getQueryData(sessionQueryKey.plugin(sessionId, PARTICLE_TOOL)) : null;
+function particleWorkspaceId(): string {
+  const registry = useStudioWorkspacesStore.getState();
+  const workspace = registry.workspaces.find((item) => item.id === registry.activeId) ?? registry.workspaces[0];
+  return toolKey(workspace, 'particles');
+}
+
+function particleSnapshot() {
+  const workspaceId = particleWorkspaceId();
   return {
     type: PARTICLE_TOOL,
     updatedAt: Date.now(),
-    sessionId,
-    data: data ?? null,
+    workspaceId,
+    data: loadLocalParticleWorkspace(workspaceId),
   };
 }
 
@@ -319,7 +328,7 @@ async function handleTextureLabAction(action: string, params: Record<string, unk
   throw new Error(`Unknown Texture Lab MCP action: ${action}`);
 }
 
-async function handleCreativeRequest(request: McpCreativeRequest, queryClient: ReturnType<typeof useQueryClient>) {
+async function handleCreativeRequest(request: McpCreativeRequest) {
   const params = paramsRecord(request.params);
   if (request.tool === SHADER_GRAPH_TOOL) {
     if (request.action === 'snapshot') return shaderGraphSnapshot();
@@ -331,7 +340,10 @@ async function handleCreativeRequest(request: McpCreativeRequest, queryClient: R
     if (request.action === 'clear-preview') return { ok: true };
   }
   if (request.tool === PARTICLE_TOOL) {
-    if (request.action === 'snapshot') return particleSnapshot(queryClient);
+    if (request.action === 'snapshot') return particleSnapshot();
+    const response = runLocalParticleWorkspaceAction(particleWorkspaceId(), request.action, params);
+    publishCreativeSnapshot(PARTICLE_TOOL, particleSnapshot());
+    return response;
   }
   if (request.tool === TEXTURE_LAB_TOOL) {
     return handleTextureLabAction(request.action, params);
@@ -344,8 +356,6 @@ function publishCreativeSnapshot(tool: string, snapshot: unknown) {
 }
 
 export function useMcpCreativeBridge() {
-  const queryClient = useQueryClient();
-
   useEffect(() => {
     publishCreativeSnapshot(SHADER_GRAPH_TOOL, shaderGraphSnapshot());
     return useShaderGraphStore.subscribe(() => {
@@ -361,17 +371,22 @@ export function useMcpCreativeBridge() {
   }, []);
 
   useEffect(() => {
-    const syncParticleSnapshot = () => {
-      publishCreativeSnapshot(PARTICLE_TOOL, particleSnapshot(queryClient));
+    let unsubscribeWorkspace: (() => void) | null = null;
+    const sync = () => publishCreativeSnapshot(PARTICLE_TOOL, particleSnapshot());
+    const subscribe = () => {
+      unsubscribeWorkspace?.();
+      unsubscribeWorkspace = subscribeLocalParticleWorkspace(particleWorkspaceId(), sync);
+      sync();
     };
-    syncParticleSnapshot();
-    return queryClient.getQueryCache().subscribe((event) => {
-      const key = event.query.queryKey;
-      if (Array.isArray(key) && key[1] === 'plugin' && key[2] === PARTICLE_TOOL) {
-        syncParticleSnapshot();
-      }
+    subscribe();
+    const unsubscribeRegistry = useStudioWorkspacesStore.subscribe((state, previous) => {
+      if (state.activeId !== previous.activeId || state.workspaces !== previous.workspaces) subscribe();
     });
-  }, [queryClient]);
+    return () => {
+      unsubscribeWorkspace?.();
+      unsubscribeRegistry();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -382,7 +397,7 @@ export function useMcpCreativeBridge() {
         if (!request?.id) return;
         void (async () => {
           try {
-            const response = await handleCreativeRequest(request as McpCreativeRequest, queryClient);
+            const response = await handleCreativeRequest(request as McpCreativeRequest);
             await transport.resolve({ id: request.id, ok: true, response, error: null });
           } catch (error) {
             await transport.resolve({
@@ -404,5 +419,5 @@ export function useMcpCreativeBridge() {
       cancelled = true;
       unlisten?.();
     };
-  }, [queryClient]);
+  }, []);
 }

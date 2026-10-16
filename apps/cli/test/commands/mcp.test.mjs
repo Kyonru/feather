@@ -144,6 +144,9 @@ function startFakeBridge() {
         compile: { glsl: { pixel: 'vec4 effect(){return vec4(1.0);}', vertex: '' }, diagnostics: [] },
         'preview-params': { pixelSource: 'vec4 effect(){return vec4(1.0);}', vertexSource: '', shape: 'circle', color: [1, 1, 1, 1] },
         export: { filename: 'test.feathershgh', content: '{}' },
+        'new-composite': { composite: body.params?.name ?? 'Scratch Composite' },
+        'set-params': { type: 'particle-system-playground', activeComposite: body.params?.composite ?? null },
+        'export-code': { filename: 'mcp-particle.lua', exportCode: 'return {}' },
         generate: { filename: 'soft-circle.png', width: 32, height: 32, dataBase64: 'abc', recipe: { generator: 'soft-circle' } },
         'generate-atlas': { texture: { filename: 'atlas.png', width: 64, height: 64, dataBase64: 'abc' }, frames: [], atlas: { frameCount: 1 } },
       };
@@ -752,9 +755,9 @@ test('mcp: stdio initializes, lists tools, and calls the fake bridge without std
     });
     const particle = await waitForRpc(child, 8);
     assert.match(particle.result.content[0].text, /MCP Spark/);
-    assert.ok(bridge.commands.some((command) => command.message?.action === 'new-composite'));
-    assert.ok(bridge.commands.some((command) => command.message?.type === 'cmd:plugin:params'));
-    assert.ok(bridge.commands.some((command) => command.message?.action === 'export-code'));
+    const particleActions = bridge.creativeActions.filter((entry) => entry.tool === 'particle-system-playground');
+    assert.deepEqual(particleActions.map((entry) => entry.body.action), ['new-composite', 'set-params', 'export-code']);
+    assert.ok(!bridge.commands.some((command) => command.message?.plugin === 'particle-system-playground'));
 
     sendRpc(child, {
       jsonrpc: '2.0',
@@ -964,6 +967,7 @@ test('mcp: HTTP transport requires bearer auth and accepts an authorized initial
 const STUDIO_TOKEN = 'test-studio-token';
 
 function startFakeStudio({ stall = false } = {}) {
+  const creativeActions = [];
   const server = createServer((req, res) => {
     if (req.url === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' });
@@ -981,6 +985,27 @@ function startFakeStudio({ stall = false } = {}) {
       res.end(JSON.stringify({ type: 'texture-lab', recipe: { generator: 'soft-circle' } }));
       return;
     }
+    if (req.method === 'GET' && req.url === '/creative/particle-system-playground') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ type: 'particle-system-playground', activeComposite: 'Studio Local' }));
+      return;
+    }
+    if (req.method === 'POST' && req.url === '/creative/particle-system-playground/action') {
+      const chunks = [];
+      req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on('end', () => {
+        const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        creativeActions.push(body);
+        const response = body.action === 'new-composite'
+          ? { composite: body.params?.name ?? 'Scratch Composite' }
+          : body.action === 'export-code'
+            ? { filename: 'studio-local.lua', exportCode: 'return {}' }
+            : { ok: true };
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, response }));
+      });
+      return;
+    }
     res.writeHead(404, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ error: 'not found' }));
   });
@@ -988,6 +1013,7 @@ function startFakeStudio({ stall = false } = {}) {
     server.listen(0, '127.0.0.1', () => {
       resolve({
         url: `http://127.0.0.1:${server.address().port}`,
+        creativeActions,
         close: () => new Promise((done) => { server.closeAllConnections?.(); server.close(done); }),
       });
     });
@@ -1053,6 +1079,18 @@ test('mcp: starts for Studio-only use, finds the published Studio token, and rep
     sendRpc(child, { jsonrpc: '2.0', id: 5, method: 'tools/list' });
     const tools = (await waitForRpc(child, 5)).result.tools.map((tool) => tool.name);
     assert.ok(!tools.includes('feather_send_command'), 'the raw command tool is off by default');
+
+    sendRpc(child, {
+      jsonrpc: '2.0',
+      id: 6,
+      method: 'tools/call',
+      params: {
+        name: 'feather_create_particle_system',
+        arguments: { name: 'Offline Sparks', params: { emissionRate: 40 }, exportCode: true },
+      },
+    });
+    assert.match(JSON.stringify(await waitForRpc(child, 6)), /Offline Sparks/);
+    assert.deepEqual(studio.creativeActions.map((entry) => entry.action), ['new-composite', 'set-params', 'export-code']);
   } finally {
     await stopChild(child);
     await studio.close();

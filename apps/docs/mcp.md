@@ -199,7 +199,7 @@ Texture Lab and Particle Playground binary outputs are returned as JSON/base64 p
 Use the high-level creation tools first:
 
 - `feather_create_shader` creates a Shader Graph workspace shader from Feather graph JSON or standalone GLSL. Pass `validateInGame: true` to route it through the live `shader-graph` plugin compiler, or `previewInGame: true` to show it in a connected Love2D session.
-- `feather_create_particle_system` creates a Particle Playground composite in a live session, then can apply emitter params, attach texture/shader payloads, emit a burst, and return project/code/ZIP exports.
+- `feather_create_particle_system` creates and updates a composite in Studio's active local Particle Playground workspace, then can attach texture/shader payloads and return project/code/ZIP asset payloads without a running game. Pass `sessionId` to target a live game; live-only operations such as `emitCount`, `emit`, and `runtime-preview` require it.
 - `feather_create_texture` creates a Texture Lab PNG or atlas payload from a recipe, generator, and dimensions. It returns base64 metadata and can optionally save the recipe in the desktop workspace.
 
 The lower-level Shader Graph, Particle Playground, Texture Lab, and generic plugin tools remain available when an MCP client needs precise step-by-step control.

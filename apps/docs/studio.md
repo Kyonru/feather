@@ -90,6 +90,11 @@ There is one Feather MCP server, not two. `feather mcp` serves both
 applications: session and debugging tools come from Inspector, creative tools
 from Studio. Configure it once.
 
+Particle Playground tools read and edit Studio's active local workspace by
+default, including project, Lua and ZIP-asset exports, so they do not need a
+game or Inspector. Pass a `sessionId` only when an action should target a live
+game, such as emitting particles or starting an in-game preview.
+
 If an application is not running, its tools say so by name rather than failing
 with a connection error.
 

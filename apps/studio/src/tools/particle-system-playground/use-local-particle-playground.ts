@@ -34,16 +34,20 @@ import {
 } from '@studio/tools/particle-system-playground/history';
 import type { TextureLabAtlasMetadata } from '@studio/types/texture-lab';
 
-type ParamValue = string | number | boolean;
+export type LocalParticleParamValue = string | number | boolean;
+type ParamValue = LocalParticleParamValue;
 const LOCAL_PARTICLE_WORKSPACES_STORAGE_KEY = 'feather-local-particle-workspaces';
 
-function defaultLocalParticleData(): ParticleSystemPlaygroundData {
+type LocalParticleWorkspaceListener = (data: ParticleSystemPlaygroundData) => void;
+const localParticleWorkspaceListeners = new Map<string, Set<LocalParticleWorkspaceListener>>();
+
+export function defaultLocalParticleData(): ParticleSystemPlaygroundData {
   return {
     type: 'particle-system-playground',
     composites: ['Showcase Fire'],
     activeComposite: 'Showcase Fire',
     activeSystem: 1,
-    data: composite('fire'),
+    data: createLocalParticleComposite('fire'),
   };
 }
 
@@ -93,9 +97,29 @@ export function deleteLocalParticleWorkspace(workspaceId: string) {
   }
 }
 
-function loadLocalParticleWorkspace(workspaceId?: string): ParticleSystemPlaygroundData {
+export function loadLocalParticleWorkspace(workspaceId?: string): ParticleSystemPlaygroundData {
   if (!workspaceId) return defaultLocalParticleData();
   return readLocalParticleWorkspaces()[workspaceId] ?? defaultLocalParticleData();
+}
+
+/**
+ * Replace a local particle workspace from a non-React owner such as Studio's
+ * creative MCP backend. The open Particle Playground subscribes to this seam,
+ * so an agent edit is visible immediately rather than only after a reload.
+ */
+export function replaceLocalParticleWorkspace(workspaceId: string, data: ParticleSystemPlaygroundData): void {
+  writeLocalParticleWorkspace(workspaceId, data);
+  for (const listener of localParticleWorkspaceListeners.get(workspaceId) ?? []) listener(data);
+}
+
+export function subscribeLocalParticleWorkspace(workspaceId: string, listener: LocalParticleWorkspaceListener): () => void {
+  const listeners = localParticleWorkspaceListeners.get(workspaceId) ?? new Set<LocalParticleWorkspaceListener>();
+  listeners.add(listener);
+  localParticleWorkspaceListeners.set(workspaceId, listeners);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) localParticleWorkspaceListeners.delete(workspaceId);
+  };
 }
 
 function downloadProject(project: ParticleSystemPlaygroundProjectFile) {
@@ -113,7 +137,11 @@ function timelinesEqual(a: ParticleTimeline, b: ParticleTimeline): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function system(index: number, title: string, template: ParticleSystemPlaygroundTemplate): ParticleSystemPlaygroundSystem {
+export function createLocalParticleSystem(
+  index: number,
+  title: string,
+  template: ParticleSystemPlaygroundTemplate,
+): ParticleSystemPlaygroundSystem {
   const texturePreset =
     template === 'smoke' || template === 'dust-puff' || template === 'snowfall' || template === 'rainfall' || template === 'rain-storm'
       ? 'light'
@@ -312,18 +340,20 @@ function customizeSystem(
   };
 }
 
-function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPlaygroundCompositeData {
+export function createLocalParticleComposite(
+  template: ParticleSystemPlaygroundTemplate,
+): ParticleSystemPlaygroundCompositeData {
   const systems =
     template === 'explosion'
-      ? [system(1, 'Core Blast', 'explosion'), system(2, 'Smoke Bloom', 'smoke'), system(3, 'Sparks', 'sparkles')]
+      ? [createLocalParticleSystem(1, 'Core Blast', 'explosion'), createLocalParticleSystem(2, 'Smoke Bloom', 'smoke'), createLocalParticleSystem(3, 'Sparks', 'sparkles')]
       : template === 'snowfall'
-        ? [system(1, 'Snow Field', 'snowfall')]
+        ? [createLocalParticleSystem(1, 'Snow Field', 'snowfall')]
         : template === 'rainfall'
-          ? [system(1, 'Rain Sheet', 'rainfall')]
+          ? [createLocalParticleSystem(1, 'Rain Sheet', 'rainfall')]
           : template === 'rain-storm'
             ? [
-                system(1, 'Heavy Streaks', 'rain-storm'),
-                customizeSystem(system(2, 'Back Sheet', 'rain-storm'), {
+                createLocalParticleSystem(1, 'Heavy Streaks', 'rain-storm'),
+                customizeSystem(createLocalParticleSystem(2, 'Back Sheet', 'rain-storm'), {
                   properties: {
                     emissionRate: 220,
                     particleLifetimeMin: 0.65,
@@ -342,7 +372,7 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
                     emissionAreaDy: 28,
                   },
                 }),
-                customizeSystem(system(3, 'Ground Splash', 'rain-storm'), {
+                customizeSystem(createLocalParticleSystem(3, 'Ground Splash', 'rain-storm'), {
                   y: 172,
                   properties: {
                     emissionRate: 82,
@@ -364,7 +394,7 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
                     emissionAreaDy: 8,
                   },
                 }),
-                customizeSystem(system(4, 'Cool Mist', 'rain-storm'), {
+                customizeSystem(createLocalParticleSystem(4, 'Cool Mist', 'rain-storm'), {
                   blendMode: 'alpha',
                   y: 148,
                   properties: {
@@ -390,38 +420,38 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
                 }),
               ]
             : template === 'falling-leaves'
-              ? [system(1, 'Leaf Drift', 'falling-leaves')]
+              ? [createLocalParticleSystem(1, 'Leaf Drift', 'falling-leaves')]
       : template === 'muzzle-flash'
-        ? [system(1, 'Flash Cone', 'muzzle-flash'), system(2, 'Barrel Sparks', 'sparkles')]
+        ? [createLocalParticleSystem(1, 'Flash Cone', 'muzzle-flash'), createLocalParticleSystem(2, 'Barrel Sparks', 'sparkles')]
         : template === 'magic-burst'
-          ? [system(1, 'Core Pulse', 'magic-burst'), system(2, 'Swirl', 'sparkles'), system(3, 'Glitter Trail', 'sparkles')]
+          ? [createLocalParticleSystem(1, 'Core Pulse', 'magic-burst'), createLocalParticleSystem(2, 'Swirl', 'sparkles'), createLocalParticleSystem(3, 'Glitter Trail', 'sparkles')]
           : template === 'complex-composite'
             ? [
-                customizeSystem(system(1, 'Core Pulse', 'magic-burst'), {
+                customizeSystem(createLocalParticleSystem(1, 'Core Pulse', 'magic-burst'), {
                   emitAtStart: 140,
                   properties: { emissionRate: 720, sizes: '0.35, 1.8, 0.3' },
                 }),
-                customizeSystem(system(2, 'Shock Ring', 'sparkles'), {
+                customizeSystem(createLocalParticleSystem(2, 'Shock Ring', 'sparkles'), {
                   emitAtStart: 90,
                   properties: { speedMin: 160, speedMax: 360, sizes: '0.18, 1.4, 0', spread: Math.PI * 2 },
                 }),
-                customizeSystem(system(3, 'Smoke Bloom', 'smoke'), {
+                customizeSystem(createLocalParticleSystem(3, 'Smoke Bloom', 'smoke'), {
                   emitAtStart: 110,
                   y: -8,
                   properties: { emissionRate: 95, speedMin: 18, speedMax: 90, sizes: '0.45, 1.8, 2.6' },
                 }),
-                customizeSystem(system(4, 'Spark Trails', 'sparkles'), {
+                customizeSystem(createLocalParticleSystem(4, 'Spark Trails', 'sparkles'), {
                   emitAtStart: 180,
                   y: -10,
                   properties: { emissionRate: 520, speedMin: 120, speedMax: 300, direction: -0.9, spread: 4.6 },
                 }),
-                customizeSystem(system(5, 'Dust Wake', 'dust-puff'), {
+                customizeSystem(createLocalParticleSystem(5, 'Dust Wake', 'dust-puff'), {
                   emitAtStart: 100,
                   y: 18,
                   properties: { emissionRate: 70, speedMin: 20, speedMax: 70, sizes: '0.3, 1.2, 2' },
                 }),
               ]
-            : [system(1, template === 'smoke' ? 'Smoke' : template === 'sparkles' ? 'Sparkles' : 'Flame', template)];
+            : [createLocalParticleSystem(1, template === 'smoke' ? 'Smoke' : template === 'sparkles' ? 'Sparkles' : 'Flame', template)];
   const data: ParticleSystemPlaygroundCompositeData = {
     compositeType: 'scratch',
     x: 400,
@@ -433,7 +463,11 @@ function composite(template: ParticleSystemPlaygroundTemplate): ParticleSystemPl
   return withNormalizedTimeline({ ...data, timeline: timelineForTemplate(template, systems) }, template);
 }
 
-function updateSystemDraft(systemDraft: ParticleSystemPlaygroundSystem, key: string, value: ParamValue): ParticleSystemPlaygroundSystem {
+export function updateLocalParticleSystem(
+  systemDraft: ParticleSystemPlaygroundSystem,
+  key: string,
+  value: ParamValue,
+): ParticleSystemPlaygroundSystem {
   if (key === 'title') return { ...systemDraft, title: String(value) };
   if (key === 'blendMode') return { ...systemDraft, blendMode: String(value) };
   if (key === 'enabled') return { ...systemDraft, enabled: value === true };
@@ -483,6 +517,16 @@ export function useLocalParticlePlayground(workspaceId?: string) {
     clearHistory();
   }, [workspaceId]);
 
+  useEffect(() => {
+    if (!workspaceId) return;
+    return subscribeLocalParticleWorkspace(workspaceId, (next) => {
+      dataRef.current = next;
+      historyScope.current = next.activeComposite;
+      setData(next);
+      clearHistory();
+    });
+  }, [workspaceId]);
+
   // Saved on every change. On the render where the workspace id changes,
   // `data` still belongs to the workspace being left, so that one pass is
   // skipped — writing it would copy the old workspace into the new one.
@@ -493,7 +537,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
       writtenFor.current = workspaceId;
       return;
     }
-    writeLocalParticleWorkspace(workspaceId, data);
+    replaceLocalParticleWorkspace(workspaceId, data);
   }, [data, workspaceId]);
 
   const currentHistorySnapshot = useCallback(() => snapshotParticleAuthoring(dataRef.current), []);
@@ -552,7 +596,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
         data: {
           ...current.data,
           systems: current.data.systems.map((item) =>
-            item.index === current.activeSystem ? updateSystemDraft(item, key, value) : item,
+            item.index === current.activeSystem ? updateLocalParticleSystem(item, key, value) : item,
           ),
         },
       };
@@ -568,7 +612,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
         data: {
           ...current.data,
           systems: current.data.systems.map((item) =>
-            item.index === systemIndex ? updateSystemDraft(item, key, value) : item,
+            item.index === systemIndex ? updateLocalParticleSystem(item, key, value) : item,
           ),
         },
       };
@@ -672,7 +716,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
       composites: [...data.composites, nextName],
       activeComposite: nextName,
       activeSystem: 1,
-      data: composite(template),
+      data: createLocalParticleComposite(template),
     });
   }
 
@@ -711,7 +755,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
       setData((current) => {
         if (!current.data) return current;
         const nextIndex = Math.max(0, ...current.data.systems.map((item) => item.index)) + 1;
-        const systems = [...current.data.systems, system(nextIndex, `Emitter ${nextIndex}`, 'sparkles')];
+        const systems = [...current.data.systems, createLocalParticleSystem(nextIndex, `Emitter ${nextIndex}`, 'sparkles')];
         return {
           ...current,
           activeSystem: nextIndex,
@@ -850,7 +894,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
             data: {
               ...current.data,
               systems: current.data.systems.map((item) =>
-                item.index === current.activeSystem ? updateSystemDraft(item, 'shaderSource', String(params.shaderSource)) : item,
+                item.index === current.activeSystem ? updateLocalParticleSystem(item, 'shaderSource', String(params.shaderSource)) : item,
               ),
             },
           };

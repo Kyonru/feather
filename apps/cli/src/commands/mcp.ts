@@ -488,7 +488,7 @@ function createFeatherMcpServer(
     'feather_create_particle_system',
     {
       title: 'Create Particle System',
-      description: 'Create a Particle Playground composite, optionally apply params/assets, emit it, and return exports.',
+      description: 'Create a composite in Studio’s local Particle Playground workspace and optionally return exports. Pass sessionId to target a live game instead.',
       inputSchema: {
         sessionId: z.string().optional(),
         name: z.string().optional(),
@@ -516,38 +516,42 @@ function createFeatherMcpServer(
       exportZip,
       timeoutMs,
     }) => {
-      const created = await particleAction(bridge, sessionId, 'new-composite', stripUndefined({ name, template }), timeoutMs);
+      const action = (name: string, actionParams: Record<string, unknown>) =>
+        particleAction(bridge, sessionId, name, actionParams, timeoutMs);
+      const created = await action('new-composite', stripUndefined({ name, template }));
       const composite = extractParticleComposite(created, name);
       const target: Record<string, unknown> = composite ? { composite } : {};
       const result: Record<string, unknown> = { created, composite: composite ?? null };
 
       if (params) {
-        const id = await resolveSessionId(bridge, sessionId);
-        result.params = await bridge.sendCommand(id, {
-          message: {
-            type: 'cmd:plugin:params',
-            plugin: 'particle-system-playground',
-            params: stripUndefined({ ...target, ...params }),
-          },
-        });
+        result.params = sessionId
+          ? await bridge.sendCommand(sessionId, {
+              message: {
+                type: 'cmd:plugin:params',
+                plugin: 'particle-system-playground',
+                params: stripUndefined({ ...target, ...params }),
+              },
+            })
+          : await creativeResponse(bridge, 'particle-system-playground', 'set-params', stripUndefined({ ...target, ...params }), timeoutMs);
       }
       if (texture) {
-        result.texture = await particleAction(bridge, sessionId, 'set-texture', stripUndefined({ ...target, ...texture }), timeoutMs);
+        result.texture = await action('set-texture', stripUndefined({ ...target, ...texture }));
       }
       if (shader) {
-        result.shader = await particleAction(bridge, sessionId, 'set-shader', stripUndefined({ ...target, ...shader }), timeoutMs);
+        result.shader = await action('set-shader', stripUndefined({ ...target, ...shader }));
       }
       if (emitCount) {
-        result.emit = await particleAction(bridge, sessionId, 'emit', stripUndefined({ ...target, count: emitCount }), timeoutMs);
+        if (!sessionId) throw new Error('emitCount is a live-game operation. Pass sessionId to emit into a running game.');
+        result.emit = await action('emit', stripUndefined({ ...target, count: emitCount }));
       }
       if (exportProject) {
-        result.project = await particleAction(bridge, sessionId, 'export-project', target, timeoutMs);
+        result.project = await action('export-project', target);
       }
       if (exportCode) {
-        result.code = await particleAction(bridge, sessionId, 'export-code', target, timeoutMs);
+        result.code = await action('export-code', target);
       }
       if (exportZip) {
-        result.zip = await particleAction(bridge, sessionId, 'export-zip', target, timeoutMs);
+        result.zip = await action('export-zip', target);
       }
 
       return jsonTool(result);
@@ -712,12 +716,12 @@ function createFeatherMcpServer(
     'feather_particles_snapshot',
     {
       title: 'Particle Playground Snapshot',
-      description: 'Get the live Particle Playground plugin payload for a session.',
+      description: 'Get Studio’s local Particle Playground workspace. Pass sessionId to read a live game plugin instead.',
       inputSchema: { sessionId: z.string().optional() },
     },
     async ({ sessionId }) => {
-      const id = await resolveSessionId(bridge, sessionId);
-      return jsonTool(getLivePluginState(await bridge.getSession(id), 'particle-system-playground'));
+      if (!sessionId) return jsonTool(await bridge.getCreative('particle-system-playground'));
+      return jsonTool(getLivePluginState(await bridge.getSession(sessionId), 'particle-system-playground'));
     },
   );
 
@@ -725,7 +729,7 @@ function createFeatherMcpServer(
     'feather_particles_new_composite',
     {
       title: 'Create Particle Composite',
-      description: 'Create a Particle Playground scratch composite.',
+      description: 'Create a scratch composite in Studio’s local workspace. Pass sessionId to create it in a live game.',
       inputSchema: particleToolSchema({ name: z.string().optional(), template: z.string().optional() }),
     },
     async ({ sessionId, timeoutMs, ...params }) => particleActionTool(bridge, sessionId, 'new-composite', params, timeoutMs),
@@ -735,7 +739,7 @@ function createFeatherMcpServer(
     'feather_particles_select',
     {
       title: 'Select Particle Composite Or Emitter',
-      description: 'Select a Particle Playground composite and/or emitter index.',
+      description: 'Select a Studio-local Particle Playground composite and/or emitter. Pass sessionId for a live game.',
       inputSchema: {
         sessionId: z.string().optional(),
         composite: z.string().optional(),
@@ -754,15 +758,15 @@ function createFeatherMcpServer(
     'feather_particles_set_params',
     {
       title: 'Set Particle Parameters',
-      description: 'Update Particle Playground params for the active or selected composite/emitter.',
+      description: 'Update Studio-local Particle Playground params. Pass sessionId for a live game.',
       inputSchema: {
         sessionId: z.string().optional(),
         params: z.record(z.string(), z.unknown()),
       },
     },
     async ({ sessionId, params }) => {
-      const id = await resolveSessionId(bridge, sessionId);
-      return jsonTool(await bridge.sendCommand(id, {
+      if (!sessionId) return jsonTool(await creativeResponse(bridge, 'particle-system-playground', 'set-params', params));
+      return jsonTool(await bridge.sendCommand(sessionId, {
         message: { type: 'cmd:plugin:params', plugin: 'particle-system-playground', params },
       }));
     },
@@ -772,7 +776,7 @@ function createFeatherMcpServer(
     'feather_particles_action',
     {
       title: 'Run Particle Playground Action',
-      description: 'Run any Particle Playground plugin action with params.',
+      description: 'Run a Studio-local Particle Playground action. Pass sessionId for live-game-only actions such as emit or runtime-preview.',
       inputSchema: {
         sessionId: z.string().optional(),
         action: z.string(),
@@ -787,7 +791,7 @@ function createFeatherMcpServer(
     'feather_particles_export_project',
     {
       title: 'Export Particle Project',
-      description: 'Export the active Particle Playground composite as a .featherparticles payload.',
+      description: 'Export the active Studio-local composite as a .featherparticles payload. Pass sessionId for a live game.',
       inputSchema: particleToolSchema({ composite: z.string().optional() }),
     },
     async ({ sessionId, timeoutMs, ...params }) => particleActionTool(bridge, sessionId, 'export-project', params, timeoutMs),
@@ -797,7 +801,7 @@ function createFeatherMcpServer(
     'feather_particles_export_code',
     {
       title: 'Export Particle Lua Code',
-      description: 'Export the active Particle Playground composite as Lua source text.',
+      description: 'Export the active Studio-local composite as Lua source text. Pass sessionId for a live game.',
       inputSchema: particleToolSchema({ composite: z.string().optional() }),
     },
     async ({ sessionId, timeoutMs, ...params }) => particleActionTool(bridge, sessionId, 'export-code', params, timeoutMs),
@@ -807,7 +811,7 @@ function createFeatherMcpServer(
     'feather_particles_export_zip',
     {
       title: 'Export Particle ZIP Payload',
-      description: 'Export the active Particle Playground composite as base64 ZIP asset payload metadata.',
+      description: 'Export Studio-local particle project/code/shader assets for a ZIP. Pass sessionId for a live game bundle.',
       inputSchema: particleToolSchema({ composite: z.string().optional() }),
     },
     async ({ sessionId, timeoutMs, ...params }) => particleActionTool(bridge, sessionId, 'export-zip', params, timeoutMs),
@@ -1825,6 +1829,9 @@ async function particleAction(
   params: Record<string, unknown>,
   timeoutMs?: number,
 ): Promise<unknown> {
+  if (!sessionId) {
+    return creativeResponse(bridge, 'particle-system-playground', action, params, timeoutMs);
+  }
   const id = await resolveSessionId(bridge, sessionId);
   return bridge.sendCommand(id, {
     message: {
