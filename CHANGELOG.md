@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Studio now mounts its creative MCP bridge at the application root, so live Shader Graph, Particle Playground, and Texture Lab snapshot/action requests reach the running desktop app instead of returning 404.
 - `pnpm run up` now verifies Inspector's WebSocket identity and Studio's application identity before reusing their ports, and stops with actionable guidance when another service owns one instead of launching against the wrong process.
 - VSIX packaging now resolves the post-v4 icon source, includes the canonical license, excludes obsolete pre-v4 CLI/Lua bundle directories, and restores the development launcher after producing the package.
 - Root development commands accept both pnpm argument-forwarding forms, so the documented `pnpm run feather -- ...` and `pnpm run up -- ...` commands work under pnpm 11 as well as older pnpm releases.

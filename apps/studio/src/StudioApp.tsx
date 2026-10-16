@@ -7,6 +7,7 @@ import { cn } from '@feather/ui';
 import ParticleSystemPlayground from './tools/particle-system-playground';
 import ShaderGraph from './tools/shader-graph';
 import TextureLab from './tools/texture-lab';
+import { useMcpCreativeBridge } from './hooks/use-mcp-creative-bridge';
 import { useInspectorBridge } from './useInspectorBridge';
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
 import { STUDIO_TOOLS, useStudioUiStore, type StudioToolId } from './store/studio-ui';
@@ -222,6 +223,7 @@ function ToolMenu({ activeTool, onSelect }: { activeTool: StudioToolId; onSelect
 }
 
 export function StudioApp() {
+  useMcpCreativeBridge();
   const activeTool = useStudioUiStore((state) => state.activeTool);
   const setActiveTool = useStudioUiStore((state) => state.setActiveTool);
 

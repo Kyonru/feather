@@ -37,10 +37,10 @@ security boundary, or materially stall the game. `P1` is the next reliability/pe
 | Area | Status | Landed / remaining |
 | --- | --- | --- |
 | Packages | Partial | Transactionality, ownership, lock validation, version resolution and provenance landed. Independently signed registry metadata remains backlog. |
-| Plugins | Partial | Capability/runtime policy, scheduler budgets, manifests, action correlation and health landed. UI payload byte/depth/node limits and Inspector health presentation remain. |
+| Plugins | Partial | Capability/runtime policy, scheduler budgets, manifests, action correlation, bounded UI payloads and Inspector/MCP health landed. Capability-scoped Lua contexts and manager decomposition remain. |
 | Connection | Partial | Incremental masking, bounded queues, explicit overflow, disabled-MCP gating, raw binary IPC, log batching and capped history landed. Byte-accounted Rust queues, overload UI and soak/load proof remain. |
 | Runtime/protocol | Partial | Request IDs, read-only incompatible sessions and named receive overflow landed. Feature/range negotiation and targeted payload schemas remain. |
-| MCP | Partial | Independent startup/auth, correlation cleanup, status, deadlines, request limits and raw-command gating landed. Module decomposition and Studio-local particle authoring remain. |
+| MCP | Partial | Independent startup/auth, correlation cleanup, status, deadlines, request limits, raw-command gating and Studio-local particle authoring landed. Module decomposition remains. |
 | Studio bridge | Done | Narrow allowlist, session selection, revocation, limits and TypeScript/Rust drift checks are implemented and covered. |
 | VS Code extension | Partial | Launcher, managed cancellable jobs, project selection, build config and real Extension Host Doctor coverage landed. A canonical shared CLI machine contract remains. |
 | Repository boundaries | Done except release proof | Post-v4 paths, metadata, CI/Turbo and executable boundary checks landed. Owner-only release checks remain in `V4.md` step 5. |
@@ -68,7 +68,7 @@ security boundary, or materially stall the game. `P1` is the next reliability/pe
 - Met: removing a modified package file refuses by default and prints a recovery action.
 - Met: a plugin missing an allowed capability never reaches `init`, `update`, callbacks, or actions.
 - Met: an incompatible runtime is visible for historical inspection but receives no mutating command.
-- Partial: Studio-only Shader Graph and Texture Lab MCP work without Inspector; Particle Playground authoring still uses the live-game backend.
+- Met: Studio-only Shader Graph, Texture Lab and Particle Playground MCP work without Inspector.
 - Met: app/package metadata and agent guidance use the post-v4 `apps/*` and `catalog/*` paths.
 
 ## Things to preserve
