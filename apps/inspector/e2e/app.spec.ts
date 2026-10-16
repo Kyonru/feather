@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 const NARROW_VIEWPORT = { width: 900, height: 720 };
 
@@ -1361,6 +1362,44 @@ test('typing in the log search survives a log the runtime sent without a message
 
   expect(pageErrors, `page threw while searching:\n${pageErrors.join('\n')}`).toEqual([]);
   await expect(page.getByText('player spawned')).toBeVisible();
+});
+
+test('exports only the logs visible through the active filters', async ({ page }) => {
+  await seedSession(page);
+  await page.addInitScript(() => {
+    const logs = [
+      { id: 'visible', count: 1, time: Date.now(), type: 'error', str: 'player collision', trace: 'player.lua:8' },
+      { id: 'hidden', count: 1, time: Date.now(), type: 'output', str: 'level loaded', trace: '' },
+    ];
+    localStorage.setItem(
+      'feather-log-history-v1',
+      JSON.stringify({
+        state: {
+          logsBySession: { demo: { logs, label: 'Demo Session', updatedAt: Date.now() } },
+          logsByHistoryKey: { 'session:demo': { logs, label: 'Demo Session', updatedAt: Date.now() } },
+          sessionHistoryKeys: { demo: ['session:demo'] },
+        },
+        version: 0,
+      }),
+    );
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Demo Session/ }).click();
+  await page.getByTestId('logs-toolbar-search').getByRole('textbox').fill('collision');
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export visible logs' }).click();
+  const download = await downloadPromise;
+  const downloadPath = await download.path();
+
+  expect(download.suggestedFilename()).toMatch(/^feather-logs-filtered-.*\.featherlog$/);
+  expect(downloadPath).not.toBeNull();
+  const records = (await readFile(downloadPath!, 'utf8'))
+    .trimEnd()
+    .split('\n')
+    .map((line) => JSON.parse(line));
+  expect(records).toHaveLength(1);
+  expect(records[0]).toMatchObject({ id: 'visible', str: 'player collision' });
 });
 
 test('settings are findable from the command palette', async ({ page }) => {
@@ -2973,6 +3012,50 @@ test('runtime interest follows active app panels', async ({ page }) => {
       }),
     )
     .toBe(true);
+});
+
+test('unsafe plugin output is bounded and its structured health stays actionable', async ({ page }) => {
+  await seedTauriConnectedGame(page, {
+    plugins: {
+      'unsafe-plugin': {
+        tabName: 'Unsafe Fixture',
+        icon: 'triangle-alert',
+        capabilities: [],
+        disabled: false,
+        health: {
+          status: 'failing',
+          consecutiveFailures: 1,
+          totalFailures: 1,
+          lastError: {
+            phase: 'payload',
+            message: 'data[tree][value] exceeds the safe string limit',
+          },
+        },
+      },
+    },
+  });
+  await page.goto('/plugins/unsafe-plugin');
+
+  await expect(page.getByTestId('plugin-health-status')).toHaveText('Failing');
+  await expect(page.getByTestId('plugin-health-error')).toContainText('safe string limit');
+
+  await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__FEATHER_E2E_TAURI__.emitMessage('live-game-session', {
+      type: 'plugin',
+      plugin: 'unsafe-plugin',
+      data: {
+        type: 'ui',
+        tree: { type: 'text', value: 'x'.repeat(256 * 1024 + 1) },
+        loading: false,
+      },
+    });
+  });
+
+  const error = page.getByTestId('plugin-payload-error');
+  await expect(error).toContainText('Inspector blocked an unsafe plugin payload.');
+  await expect(error).toContainText('byte string');
+  await expect(error).toContainText('Reduce this plugin');
 });
 
 

@@ -11,6 +11,7 @@ import {
   Trash2Icon,
   UploadIcon,
   ChevronsDownIcon,
+  DownloadIcon,
   XIcon,
 } from 'lucide-react';
 import { Button } from '@feather/ui/button';
@@ -33,6 +34,9 @@ import { matchesSearch } from './search';
 import { LogType } from '@/hooks/use-logs';
 import { cn } from '@/utils/styles';
 import { isWeb } from '@/utils/platform';
+import { useHost } from '@feather/host';
+import { serializeFeatherLogs } from './export';
+import { toast } from 'sonner';
 
 const ACCEPTED_LOG_FILE_TYPES = ['featherlog'] as const;
 type LogFilter = 'all' | 'output' | 'error' | 'fatal' | 'feather' | 'plugin';
@@ -86,6 +90,7 @@ export function LogTable({
   onScreenshotChange: () => void;
   onUpload: (pathname: string) => void;
 }) {
+  const host = useHost();
   // These survive navigation and restarts. Logs is the default route and the
   // most-visited panel in the app, so re-typing a filter after stepping away to
   // check a number was the single most frequent cost this tool imposed.
@@ -203,6 +208,36 @@ export function LogTable({
               </TooltipTrigger>
               <TooltipContent>
                 <p>{isPaused ? 'Resume logs' : 'Pause logs'}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="size-8"
+                  disabled={filteredLogs.length === 0}
+                  onClick={async () => {
+                    try {
+                      const saved = await host.saveTextFile({
+                        defaultName: `feather-logs-filtered-${new Date().toISOString().replace(/[:.]/g, '-')}.featherlog`,
+                        extensions: ['featherlog'],
+                        filterName: 'Feather Logs',
+                        text: serializeFeatherLogs(filteredLogs),
+                      });
+                      if (saved) toast.success(`Exported ${filteredLogs.length} visible logs`);
+                    } catch (error) {
+                      toast.error(error instanceof Error ? error.message : 'Could not export visible logs');
+                    }
+                  }}
+                >
+                  <DownloadIcon className="size-4 text-info" />
+                  <span className="sr-only">Export visible logs</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export visible logs</p>
               </TooltipContent>
             </Tooltip>
 

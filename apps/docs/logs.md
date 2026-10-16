@@ -35,6 +35,10 @@ Use **Follow tail** while reproducing an issue so new output stays visible. Disa
 
 Search and filters apply to the visible log table. Use type/source filters for noisy sessions, then clear them when you need the full timeline again.
 
+Use **Export visible logs** to save exactly that filtered view as a `.featherlog` file. The exported
+file can be opened in Inspector later with **Open Log File**; cancelling the save leaves the view
+unchanged, and a failed save is reported in the app.
+
 ## Persistence
 
 Live session logs are cached locally in the desktop app. Reopening Feather or restarting a CLI-launched game restores recent log history for the saved session/project, so the previous run is still available after a normal restart.
