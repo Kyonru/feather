@@ -20,8 +20,55 @@ use uuid::Uuid;
 
 use crate::mcp_bridge::McpBridgeState;
 
-// Sender half for pushing commands from desktop → game
-pub(crate) type WsSender = mpsc::UnboundedSender<Message>;
+/// Desktop → game commands a session may have queued but not yet written.
+///
+/// The channel used to be unbounded, so a game that stopped reading (paused in
+/// a debugger, stuck in a long frame) let Inspector, MCP and Studio queue
+/// commands until memory was the limit. Commands are small; a game this far
+/// behind is not going to catch up, and the sender is told so by name.
+pub(crate) const OUTBOUND_QUEUE_CAPACITY: usize = 1024;
+
+/// Why a command could not be queued for a game.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SendError {
+    /// The game has not read the last `OUTBOUND_QUEUE_CAPACITY` commands.
+    QueueFull,
+    /// The session ended.
+    Closed,
+}
+
+impl std::fmt::Display for SendError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SendError::QueueFull => write!(
+                f,
+                "the game is not reading commands (its queue of {OUTBOUND_QUEUE_CAPACITY} is full); it may be paused or stalled"
+            ),
+            SendError::Closed => write!(f, "the game session has ended"),
+        }
+    }
+}
+
+impl std::error::Error for SendError {}
+
+/// Sender half for pushing commands from desktop → game. Sending never blocks
+/// and never grows without bound.
+#[derive(Clone)]
+pub(crate) struct WsSender(mpsc::Sender<Message>);
+
+impl WsSender {
+    pub(crate) fn send(&self, message: Message) -> Result<(), SendError> {
+        self.0.try_send(message).map_err(|error| match error {
+            mpsc::error::TrySendError::Full(_) => SendError::QueueFull,
+            mpsc::error::TrySendError::Closed(_) => SendError::Closed,
+        })
+    }
+}
+
+pub(crate) fn outbound_channel() -> (WsSender, mpsc::Receiver<Message>) {
+    let (tx, rx) = mpsc::channel::<Message>(OUTBOUND_QUEUE_CAPACITY);
+    (WsSender(tx), rx)
+}
 
 /// The app ID the desktop expects games to present. Empty string means "accept any".
 pub type AppId = Arc<Mutex<String>>;
@@ -120,12 +167,15 @@ pub fn send_command(
     state: tauri::State<Sessions>,
 ) -> Result<(), String> {
     let sessions = state.lock().map_err(|e| e.to_string())?;
-    if let Some(data) = sessions.get(&session_id) {
-        data.sender
+    match sessions.get(&session_id) {
+        Some(data) => data
+            .sender
             .send(Message::Text(message.into()))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| e.to_string()),
+        // Previously a silent Ok: the command vanished and the panel waited for
+        // a response that could never come.
+        None => Err(format!("session {session_id} is not connected")),
     }
-    Ok(())
 }
 
 /// Tauri command: forcibly close (drop) a session.
@@ -228,7 +278,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
 
     // ── Phase 2: normal session lifecycle ────────────────────────────────────
 
-    let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
+    let (tx, mut rx) = outbound_channel();
 
     state
         .sessions
@@ -351,7 +401,7 @@ mod tests {
             sessions: sessions.clone(),
             app_id: app_id.clone(), // empty = accept any
             events: Arc::new(CapturedEvents { tx }),
-            mcp_bridge: crate::mcp_bridge::new_state(sessions.clone(), app_id),
+            mcp_bridge: crate::mcp_bridge::new_state_at(sessions.clone(), app_id, crate::mcp_bridge::test_config_path()),
         };
         let task = tokio::spawn(async move { serve_ws(listener, state).await });
 
@@ -505,6 +555,30 @@ mod tests {
             .await
             .expect("client should close cleanly");
         server.abort();
+    }
+
+    #[test]
+    fn outbound_queue_is_bounded_and_says_why() {
+        let (sender, mut receiver) = outbound_channel();
+        for _ in 0..OUTBOUND_QUEUE_CAPACITY {
+            sender
+                .send(Message::Text("{}".into()))
+                .expect("queue should accept up to its capacity");
+        }
+        let error = sender
+            .send(Message::Text("{}".into()))
+            .expect_err("a full queue must refuse rather than grow");
+        assert_eq!(error, SendError::QueueFull);
+        assert!(error.to_string().contains("not reading commands"));
+
+        // Draining one makes room for one.
+        receiver.try_recv().expect("a queued command should be readable");
+        sender
+            .send(Message::Text("{}".into()))
+            .expect("draining should free capacity");
+
+        drop(receiver);
+        assert_eq!(sender.send(Message::Text("{}".into())), Err(SendError::Closed));
     }
 
     #[tokio::test]

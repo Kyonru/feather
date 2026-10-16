@@ -13,7 +13,10 @@ use std::{
     fs,
     net::SocketAddr,
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        Arc, Mutex,
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 use tokio::{
@@ -32,6 +35,11 @@ const MAX_PERFORMANCE: usize = 240;
 const MAX_CONSOLE_RESPONSES: usize = 100;
 const MAX_PLUGIN_ACTIONS: usize = 100;
 const MAX_WAIT_MS: u64 = 10_000;
+/// A single game message larger than this is not copied into the snapshot an
+/// agent reads; the snapshot records that it was omitted and how large it was.
+/// Waiters still receive it. An asset listing or capture can be megabytes, and
+/// the snapshot is a summary, not a mirror.
+const MAX_SNAPSHOT_MESSAGE_BYTES: usize = 2 * 1024 * 1024;
 
 #[derive(Clone)]
 pub struct McpBridgeState {
@@ -45,7 +53,13 @@ struct McpBridgeInner {
     settings: Mutex<McpBridgeSettings>,
     api_keys: Mutex<ApiKeys>,
     snapshots: Mutex<HashMap<String, SessionSnapshot>>,
-    waiters: Mutex<Vec<ResponseWaiter>>,
+    waiters: Mutex<HashMap<u64, ResponseWaiter>>,
+    next_waiter: AtomicU64,
+    /// Mirror of `settings.enabled`, read on every game message without a lock.
+    enabled: AtomicBool,
+    /// Game messages parsed for observation. Zero while MCP is disabled is the
+    /// property the fast path exists to guarantee.
+    parsed_messages: AtomicU64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -181,7 +195,30 @@ pub struct WaitCondition {
 struct ResponseWaiter {
     session_id: String,
     condition: WaitCondition,
+    /// The `requestId` sent with the command. A runtime that echoes it resolves
+    /// exactly this waiter; one that does not falls back to shape matching.
+    request_id: Option<String>,
     sender: oneshot::Sender<Value>,
+}
+
+/// Removes a waiter from the registry however the wait ends — response,
+/// timeout, send failure, cancellation of the HTTP request, or shutdown.
+/// Before this, a timed-out waiter stayed registered until some later message
+/// happened to match it, so an unresponsive game accumulated dead waiters.
+struct WaiterGuard {
+    state: McpBridgeState,
+    id: u64,
+}
+
+impl Drop for WaiterGuard {
+    fn drop(&mut self) {
+        self.state
+            .inner
+            .waiters
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&self.id);
+    }
 }
 
 #[derive(Serialize)]
@@ -214,7 +251,13 @@ pub fn shared_config_path() -> PathBuf {
 }
 
 pub fn new_state(sessions: Sessions, app_id: AppId) -> McpBridgeState {
-    let config_path = shared_config_path();
+    new_state_at(sessions, app_id, shared_config_path())
+}
+
+/// `new_state` with an explicit settings file. Tests use this so they never
+/// read or rewrite the developer's real `~/.feather/mcp.json` — they used to,
+/// and a test that disables the bridge left the developer's bridge disabled.
+pub fn new_state_at(sessions: Sessions, app_id: AppId, config_path: PathBuf) -> McpBridgeState {
     let bridge_url = env::var("FEATHER_MCP_BRIDGE_URL").unwrap_or_else(|_| default_bridge_url());
     let mut settings = read_settings(&config_path).unwrap_or_else(|| McpBridgeSettings {
         enabled: false,
@@ -228,6 +271,7 @@ pub fn new_state(sessions: Sessions, app_id: AppId) -> McpBridgeState {
     settings.bridge_url = bridge_url;
     settings.config_path = config_path.to_string_lossy().to_string();
 
+    let enabled = settings.enabled;
     let state = McpBridgeState {
         inner: Arc::new(McpBridgeInner {
             sessions,
@@ -236,7 +280,10 @@ pub fn new_state(sessions: Sessions, app_id: AppId) -> McpBridgeState {
             settings: Mutex::new(settings),
             api_keys: Mutex::new(ApiKeys::default()),
             snapshots: Mutex::new(HashMap::new()),
-            waiters: Mutex::new(Vec::new()),
+            waiters: Mutex::new(HashMap::new()),
+            next_waiter: AtomicU64::new(1),
+            enabled: AtomicBool::new(enabled),
+            parsed_messages: AtomicU64::new(0),
         }),
     };
 
@@ -314,6 +361,7 @@ impl McpBridgeState {
             let mut settings = self.inner.settings.lock().map_err(|e| e.to_string())?;
             settings.enabled = enabled;
         }
+        self.inner.enabled.store(enabled, Ordering::Relaxed);
         self.persist_settings()?;
         Ok(self.settings())
     }
@@ -349,10 +397,22 @@ impl McpBridgeState {
         }
     }
 
+    /// Observe one game→desktop message for MCP snapshots and waiters.
+    ///
+    /// Runs on the relay's hot path for every message of every connected game,
+    /// so while MCP is disabled it must cost nothing: no parse, no redaction,
+    /// no lock. The one exception is `feather:hello`, which carries the session
+    /// identity and arrives once per connection — keeping it means a bridge
+    /// enabled mid-session can still name the game.
     pub fn record_message(&self, payload: &str) {
+        if !self.inner.enabled.load(Ordering::Relaxed) && !payload.contains("\"feather:hello\"") {
+            return;
+        }
+        self.inner.parsed_messages.fetch_add(1, Ordering::Relaxed);
         let Ok(mut value) = serde_json::from_str::<Value>(payload) else {
             return;
         };
+        let oversized = payload.len() > MAX_SNAPSHOT_MESSAGE_BYTES;
         redact_secrets(&mut value);
         let Some(session_id) = value
             .get("_session")
@@ -367,7 +427,18 @@ impl McpBridgeState {
             .and_then(Value::as_str)
             .unwrap_or("")
             .to_string();
-        let data = value.get("data").cloned();
+        let data = if oversized {
+            Some(json!({ "omitted": true, "reason": "message too large for the MCP snapshot", "bytes": payload.len() }))
+        } else {
+            value.get("data").cloned()
+        };
+        // What a snapshot keeps when it stores the whole message rather than
+        // its `data`: the message itself, or the same omission marker.
+        let stored = if oversized {
+            json!({ "type": message_type, "omitted": true, "bytes": payload.len() })
+        } else {
+            value.clone()
+        };
 
         {
             let mut snapshots = self.inner.snapshots.lock().unwrap_or_else(|e| e.into_inner());
@@ -415,8 +486,8 @@ impl McpBridgeState {
                         snapshot.config = Some(config);
                     }
                 }
-                "log" => push_capped(&mut snapshot.logs, data.unwrap_or(value.clone()), MAX_LOGS),
-                "log:update" => push_capped(&mut snapshot.logs, data.unwrap_or(value.clone()), MAX_LOGS),
+                "log" => push_capped(&mut snapshot.logs, data.unwrap_or(stored.clone()), MAX_LOGS),
+                "log:update" => push_capped(&mut snapshot.logs, data.unwrap_or(stored.clone()), MAX_LOGS),
                 "logs" => {
                     if let Some(Value::Array(entries)) = data {
                         for entry in entries {
@@ -426,7 +497,7 @@ impl McpBridgeState {
                 }
                 "performance" => push_capped(
                     &mut snapshot.performance,
-                    data.unwrap_or(value.clone()),
+                    data.unwrap_or(stored.clone()),
                     MAX_PERFORMANCE,
                 ),
                 "profiler" => snapshot.profiler = data,
@@ -440,9 +511,9 @@ impl McpBridgeState {
                     }
                 }
                 "plugin:action:response" => {
-                    push_capped(&mut snapshot.plugin_actions, value.clone(), MAX_PLUGIN_ACTIONS);
+                    push_capped(&mut snapshot.plugin_actions, stored.clone(), MAX_PLUGIN_ACTIONS);
                     if let Some(plugin) = value.get("plugin").and_then(Value::as_str) {
-                        if let Some(data) = value.get("data").cloned() {
+                        if let Some(data) = data.clone() {
                             snapshot.plugins.insert(plugin.to_string(), data);
                         }
                     }
@@ -451,7 +522,7 @@ impl McpBridgeState {
                 "debugger:paused" => snapshot.debugger_paused = data,
                 "debugger:frame" => snapshot.debugger_paused = data,
                 "debugger:resumed" => snapshot.debugger_paused = None,
-                "eval:response" => push_capped(&mut snapshot.console, value.clone(), MAX_CONSOLE_RESPONSES),
+                "eval:response" => push_capped(&mut snapshot.console, stored.clone(), MAX_CONSOLE_RESPONSES),
                 "console:globals" => snapshot.console_globals = data,
                 "console:pins" => snapshot.console_pins = data,
                 "console:inspect_result" => snapshot.console_inspect = data,
@@ -505,19 +576,39 @@ impl McpBridgeState {
         strip_command_secrets(&mut message);
         self.attach_command_auth(session_id, &mut message);
 
-        let wait_for = request.wait_for.clone();
-        let waiter = if let Some(condition) = wait_for {
+        // A command that waits carries a requestId, so the runtime's echo can
+        // resolve this wait and no other. Two identical concurrent commands
+        // used to both receive the first response.
+        let request_id = if request.wait_for.is_some() {
+            let object = message.as_object_mut().expect("checked above");
+            let id = object
+                .get("requestId")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+                .unwrap_or_else(|| Uuid::new_v4().to_string());
+            object.insert("requestId".to_string(), Value::String(id.clone()));
+            Some(id)
+        } else {
+            None
+        };
+
+        let waiter = if let Some(condition) = request.wait_for.clone() {
             let (sender, receiver) = oneshot::channel();
+            let id = self.inner.next_waiter.fetch_add(1, Ordering::Relaxed);
             self.inner
                 .waiters
                 .lock()
                 .unwrap_or_else(|e| e.into_inner())
-                .push(ResponseWaiter {
-                    session_id: session_id.to_string(),
-                    condition,
-                    sender,
-                });
-            Some(receiver)
+                .insert(
+                    id,
+                    ResponseWaiter {
+                        session_id: session_id.to_string(),
+                        condition,
+                        request_id: request_id.clone(),
+                        sender,
+                    },
+                );
+            Some((WaiterGuard { state: self.clone(), id }, receiver))
         } else {
             None
         };
@@ -532,10 +623,10 @@ impl McpBridgeState {
             session
                 .sender
                 .send(Message::Text(message.to_string().into()))
-                .map_err(|err| error_response(StatusCode::BAD_GATEWAY, &err.to_string()))?;
+                .map_err(|err| error_response(StatusCode::SERVICE_UNAVAILABLE, &err.to_string()))?;
         }
 
-        if let Some(receiver) = waiter {
+        if let Some((_guard, receiver)) = waiter {
             let wait_ms = request
                 .wait_for
                 .as_ref()
@@ -598,17 +689,42 @@ impl McpBridgeState {
         }
     }
 
+    /// Hand a game message to at most one waiter.
+    ///
+    /// A message echoing a `requestId` resolves the waiter that sent it. One
+    /// without (a runtime predating correlation, or an unsolicited push) falls
+    /// back to the response shape, and resolves only the **oldest** matching
+    /// waiter: the game answers one session's commands in order, so FIFO is the
+    /// pairing that is right, where resolving every match was always wrong.
     fn resolve_waiters(&self, session_id: &str, message: &Value) {
         let mut waiters = self.inner.waiters.lock().unwrap_or_else(|e| e.into_inner());
-        let mut index = 0;
-        while index < waiters.len() {
-            if waiters[index].session_id == session_id && waiters[index].condition.matches(message) {
-                let waiter = waiters.remove(index);
+        if waiters.is_empty() {
+            return;
+        }
+        let echoed = message.get("requestId").and_then(Value::as_str);
+        let chosen = match echoed {
+            Some(request_id) => waiters
+                .iter()
+                .find(|(_, waiter)| {
+                    waiter.session_id == session_id && waiter.request_id.as_deref() == Some(request_id)
+                })
+                .map(|(id, _)| *id),
+            None => waiters
+                .iter()
+                .filter(|(_, waiter)| waiter.session_id == session_id && waiter.condition.matches(message))
+                .map(|(id, _)| *id)
+                .min(),
+        };
+        if let Some(id) = chosen {
+            if let Some(waiter) = waiters.remove(&id) {
                 let _ = waiter.sender.send(message.clone());
-            } else {
-                index += 1;
             }
         }
+    }
+
+    #[cfg(test)]
+    fn waiter_count(&self) -> usize {
+        self.inner.waiters.lock().unwrap().len()
     }
 }
 
@@ -643,10 +759,28 @@ async fn health(headers: HeaderMap, State(state): State<McpBridgeState>) -> Resp
         return response;
     }
     let settings = state.settings();
+    let sessions = state
+        .inner
+        .snapshots
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .values()
+        .filter(|snapshot| snapshot.connected)
+        .count();
+    // Enough for the `feather mcp` gateway to report what this backend is and
+    // can do, instead of an agent discovering it one failed call at a time.
     Json(json!({
         "ok": true,
+        "app": "inspector",
+        "version": env!("CARGO_PKG_VERSION"),
         "enabled": settings.enabled,
         "bridgeUrl": settings.bridge_url,
+        "connectedSessions": sessions,
+        "features": ["sessions", "snapshots", "commands", "request-correlation"],
+        "limits": {
+            "maxWaitMs": MAX_WAIT_MS,
+            "maxSnapshotMessageBytes": MAX_SNAPSHOT_MESSAGE_BYTES,
+        },
     }))
     .into_response()
 }
@@ -756,11 +890,24 @@ fn value_to_string(value: &Value) -> Option<String> {
     }
 }
 
+/// Remove caller-supplied credentials anywhere in a command, not only at the
+/// top level: a generic command could otherwise smuggle `{"data":{"apiKey":…}}`
+/// past a check that only looked at the outer object. Inspector attaches the
+/// credentials it means to send afterwards (`attach_command_auth`).
 fn strip_command_secrets(message: &mut Value) {
-    if let Some(object) = message.as_object_mut() {
-        for key in ["appId", "apiKey", "token", "password", "secret", "authorization"] {
-            object.remove(key);
+    match message {
+        Value::Object(object) => {
+            object.retain(|key, _| !is_secret_key(key));
+            for child in object.values_mut() {
+                strip_command_secrets(child);
+            }
         }
+        Value::Array(items) => {
+            for item in items {
+                strip_command_secrets(item);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -800,27 +947,55 @@ fn error_response(status: StatusCode, message: &str) -> Response {
 }
 
 #[cfg(test)]
+pub(crate) fn test_config_path() -> PathBuf {
+    env::temp_dir().join(format!("feather-mcp-test-{}.json", Uuid::new_v4()))
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use axum::extract::ws::Message;
     use tokio::sync::mpsc;
 
-    fn test_state() -> (McpBridgeState, mpsc::UnboundedReceiver<Message>) {
+    fn test_state() -> (McpBridgeState, mpsc::Receiver<Message>) {
         let sessions: Sessions = Arc::new(Mutex::new(HashMap::new()));
         let app_id: AppId = Arc::new(Mutex::new("desktop-app".to_string()));
-        let state = new_state(sessions.clone(), app_id);
+        let state = new_state_at(sessions.clone(), app_id, test_config_path());
         {
             let mut settings = state.inner.settings.lock().unwrap();
-            settings.enabled = true;
             settings.token = "test-token".to_string();
         }
-        let (tx, rx) = mpsc::unbounded_channel();
+        state.set_enabled(true).unwrap();
+        let (tx, rx) = crate::ws_server::outbound_channel();
         sessions.lock().unwrap().insert(
             "s1".to_string(),
             crate::ws_server::SessionData { sender: tx },
         );
         state.session_started("s1");
         (state, rx)
+    }
+
+    fn sent_json(rx: &mut mpsc::Receiver<Message>) -> Value {
+        match rx.try_recv().expect("a command should have been sent") {
+            Message::Text(text) => serde_json::from_str(&text).unwrap(),
+            other => panic!("expected text message, got {other:?}"),
+        }
+    }
+
+    fn wait_for(message_type: &str, timeout_ms: u64) -> Option<WaitCondition> {
+        Some(WaitCondition {
+            message_type: Some(message_type.to_string()),
+            id: None,
+            plugin: None,
+            action: None,
+            timeout_ms: Some(timeout_ms),
+        })
+    }
+
+    #[test]
+    fn tests_never_touch_the_shared_settings_file() {
+        let (state, _) = test_state();
+        assert_ne!(PathBuf::from(state.settings().config_path), shared_config_path());
     }
 
     #[test]
@@ -861,6 +1036,31 @@ mod tests {
         assert!(snapshot.insecure);
     }
 
+    #[test]
+    fn disabled_bridge_does_not_parse_ordinary_messages() {
+        let (state, _) = test_state();
+        state.set_enabled(false).unwrap();
+        for _ in 0..100 {
+            state.record_message(r#"{"_session":"s1","type":"performance","data":{"fps":60}}"#);
+        }
+        assert_eq!(state.inner.parsed_messages.load(Ordering::Relaxed), 0);
+
+        // The once-per-connection hello is still kept, so enabling later can name the game.
+        state.record_message(r#"{"_session":"s1","type":"feather:hello","data":{"sessionName":"Late"}}"#);
+        assert_eq!(state.inner.parsed_messages.load(Ordering::Relaxed), 1);
+        let name = state.inner.snapshots.lock().unwrap().get("s1").unwrap().name.clone();
+        assert_eq!(name.as_deref(), Some("Late"));
+    }
+
+    #[test]
+    fn oversized_messages_are_summarised_not_copied() {
+        let (state, _) = test_state();
+        let blob = "x".repeat(MAX_SNAPSHOT_MESSAGE_BYTES + 1);
+        state.record_message(&format!(r#"{{"_session":"s1","type":"assets","data":{{"blob":"{blob}"}}}}"#));
+        let assets = state.inner.snapshots.lock().unwrap().get("s1").unwrap().assets.clone().unwrap();
+        assert_eq!(assets["omitted"], true);
+    }
+
     #[tokio::test]
     async fn command_dispatch_strips_secrets_and_attaches_auth() {
         let (state, mut rx) = test_state();
@@ -873,7 +1073,8 @@ mod tests {
                         "type": "cmd:eval",
                         "code": "return 1",
                         "apiKey": "caller",
-                        "appId": "caller"
+                        "appId": "caller",
+                        "data": { "nested": { "apiKey": "smuggled", "password": "x" }, "keep": 1 }
                     }),
                     wait_for: None,
                 },
@@ -881,33 +1082,188 @@ mod tests {
             .await
             .unwrap();
         assert!(result.ok);
-        let sent = rx.recv().await.unwrap();
-        let text = match sent {
-            Message::Text(text) => text,
-            other => panic!("expected text message, got {other:?}"),
-        };
-        let value: Value = serde_json::from_str(&text).unwrap();
+        let value = sent_json(&mut rx);
         assert_eq!(value["appId"], "desktop-app");
         assert_eq!(value["apiKey"], "console-key");
+        assert!(value["data"]["nested"].get("apiKey").is_none(), "nested secrets must be stripped");
+        assert!(value["data"]["nested"].get("password").is_none());
+        assert_eq!(value["data"]["keep"], 1);
     }
 
     #[test]
-    fn waiters_match_response_shape() {
+    fn legacy_waiters_match_response_shape() {
         let (state, _) = test_state();
         let (tx, mut rx) = oneshot::channel();
-        state.inner.waiters.lock().unwrap().push(ResponseWaiter {
-            session_id: "s1".to_string(),
-            condition: WaitCondition {
-                message_type: Some("eval:response".to_string()),
-                id: Some("eval-1".to_string()),
-                plugin: None,
-                action: None,
-                timeout_ms: None,
+        state.inner.waiters.lock().unwrap().insert(
+            1,
+            ResponseWaiter {
+                session_id: "s1".to_string(),
+                condition: WaitCondition {
+                    message_type: Some("eval:response".to_string()),
+                    id: Some("eval-1".to_string()),
+                    plugin: None,
+                    action: None,
+                    timeout_ms: None,
+                },
+                request_id: None,
+                sender: tx,
             },
-            sender: tx,
-        });
+        );
         state.record_message(r#"{"_session":"s1","type":"eval:response","id":"eval-1","status":"success"}"#);
         assert_eq!(rx.try_recv().unwrap()["status"], "success");
+        assert_eq!(state.waiter_count(), 0);
     }
 
+    #[tokio::test]
+    async fn identical_concurrent_commands_get_their_own_responses() {
+        let (state, mut rx) = test_state();
+        let first = {
+            let state = state.clone();
+            tokio::spawn(async move {
+                state
+                    .dispatch_command(
+                        "s1",
+                        CommandRequest {
+                            message: json!({ "type": "req:performance" }),
+                            wait_for: wait_for("performance", 2_000),
+                        },
+                    )
+                    .await
+            })
+        };
+        tokio::task::yield_now().await;
+        let second = {
+            let state = state.clone();
+            tokio::spawn(async move {
+                state
+                    .dispatch_command(
+                        "s1",
+                        CommandRequest {
+                            message: json!({ "type": "req:performance" }),
+                            wait_for: wait_for("performance", 2_000),
+                        },
+                    )
+                    .await
+            })
+        };
+        // Wait until both commands are on the wire.
+        let mut sent = Vec::new();
+        while sent.len() < 2 {
+            match rx.recv().await.unwrap() {
+                Message::Text(text) => sent.push(serde_json::from_str::<Value>(&text).unwrap()),
+                other => panic!("unexpected {other:?}"),
+            }
+        }
+        let first_id = sent[0]["requestId"].as_str().unwrap().to_string();
+        let second_id = sent[1]["requestId"].as_str().unwrap().to_string();
+        assert_ne!(first_id, second_id);
+
+        // Answer the second one first; each must receive its own.
+        state.record_message(&format!(
+            r#"{{"_session":"s1","type":"performance","requestId":"{second_id}","data":{{"n":2}}}}"#
+        ));
+        state.record_message(&format!(
+            r#"{{"_session":"s1","type":"performance","requestId":"{first_id}","data":{{"n":1}}}}"#
+        ));
+        let a = first.await.unwrap().unwrap().response.unwrap();
+        let b = second.await.unwrap().unwrap().response.unwrap();
+        let by_id = |value: &Value| value["requestId"].as_str().unwrap().to_string();
+        let pairs = [(by_id(&a), a["data"]["n"].clone()), (by_id(&b), b["data"]["n"].clone())];
+        for (request_id, n) in pairs {
+            let expected = if request_id == first_id { 1 } else { 2 };
+            assert_eq!(n, expected);
+        }
+        assert_eq!(state.waiter_count(), 0);
+    }
+
+    #[test]
+    fn a_legacy_response_resolves_only_the_oldest_waiter() {
+        let (state, _) = test_state();
+        let mut receivers = Vec::new();
+        for id in [7_u64, 3, 9] {
+            let (tx, rx) = oneshot::channel();
+            state.inner.waiters.lock().unwrap().insert(
+                id,
+                ResponseWaiter {
+                    session_id: "s1".to_string(),
+                    condition: WaitCondition {
+                        message_type: Some("performance".to_string()),
+                        id: None,
+                        plugin: None,
+                        action: None,
+                        timeout_ms: None,
+                    },
+                    request_id: Some(format!("r{id}")),
+                    sender: tx,
+                },
+            );
+            receivers.push((id, rx));
+        }
+        state.record_message(r#"{"_session":"s1","type":"performance","data":{}}"#);
+        for (id, mut rx) in receivers {
+            assert_eq!(rx.try_recv().is_ok(), id == 3, "only waiter 3 (the oldest) is resolved");
+        }
+        assert_eq!(state.waiter_count(), 2);
+    }
+
+    #[tokio::test]
+    async fn a_timed_out_wait_leaves_no_waiter_behind() {
+        let (state, mut rx) = test_state();
+        let response = state
+            .dispatch_command(
+                "s1",
+                CommandRequest {
+                    message: json!({ "type": "req:assets" }),
+                    wait_for: wait_for("assets", 20),
+                },
+            )
+            .await
+            .unwrap();
+        assert!(!response.ok);
+        let _ = sent_json(&mut rx);
+        assert_eq!(state.waiter_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn a_failed_send_leaves_no_waiter_behind() {
+        let (state, _) = test_state();
+        let error = state
+            .dispatch_command(
+                "not-connected",
+                CommandRequest {
+                    message: json!({ "type": "req:assets" }),
+                    wait_for: wait_for("assets", 2_000),
+                },
+            )
+            .await
+            .err()
+            .expect("an unknown session must be refused");
+        assert_eq!(error.status(), StatusCode::NOT_FOUND);
+        assert_eq!(state.waiter_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn a_cancelled_request_leaves_no_waiter_behind() {
+        let (state, _rx) = test_state();
+        let task = {
+            let state = state.clone();
+            tokio::spawn(async move {
+                state
+                    .dispatch_command(
+                        "s1",
+                        CommandRequest {
+                            message: json!({ "type": "req:assets" }),
+                            wait_for: wait_for("assets", 5_000),
+                        },
+                    )
+                    .await
+            })
+        };
+        while state.waiter_count() == 0 {
+            tokio::task::yield_now().await;
+        }
+        task.abort();
+        let _ = task.await;
+        assert_eq!(state.waiter_count(), 0);
+    }
 }
