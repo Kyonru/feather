@@ -1,6 +1,6 @@
 [package]
 name = "feather-studio"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 description = "Feather Studio is a standalone creative tool for LÖVE: shader graphs, texture generation, and particle authoring. It edits assets locally and can optionally push them to a game through Feather Inspector."
 authors = ["kyonru"]
 edition = "2021"
