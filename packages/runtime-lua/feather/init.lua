@@ -1000,20 +1000,22 @@ function Feather:__handleCommand(msg)
     self.pluginManager:pushAll(self)
   elseif msg.type == "cmd:time_travel:start" then
     local plugin = self.pluginManager:getPlugin("time-travel")
-    if plugin then
-      plugin.disabled = false -- enable update() so frames are recorded each tick
+    -- enablePlugin enforces activation (capabilities, API) before update() records frames.
+    if plugin and self.pluginManager:enablePlugin("time-travel") then
       plugin.instance:startRecording()
+    end
+    if plugin then
       self:__sendHello()
     end
   elseif msg.type == "cmd:time_travel:stop" then
     local plugin = self.pluginManager:getPlugin("time-travel")
-    if plugin then
+    if plugin and not plugin.blocked and plugin.instance then
       plugin.instance:stopRecording()
       self:__sendHello()
     end
   elseif msg.type == "cmd:time_travel:request_frames" and msg.data then
     local plugin = self.pluginManager:getPlugin("time-travel")
-    if plugin then
+    if plugin and not plugin.blocked and plugin.instance then
       plugin.instance:sendFrames(msg.data, self)
     end
   elseif msg.type and msg.type:match("^cmd:session_replay:") then

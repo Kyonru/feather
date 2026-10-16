@@ -620,7 +620,7 @@ function FeatherDebugger:_doPause(info, line, reason, errorInfo)
   -- Push time-travel frames to the desktop so the user can scrub the history
   -- leading up to this breakpoint without having to manually request them.
   local ttPlugin = self.feather.pluginManager:getPlugin("time-travel")
-  if ttPlugin and ttPlugin.instance._bufCount > 0 then
+  if ttPlugin and not ttPlugin.disabled and ttPlugin.instance and (ttPlugin.instance._bufCount or 0) > 0 then
     ttPlugin.instance:sendFrames({}, self.feather)
   end
 

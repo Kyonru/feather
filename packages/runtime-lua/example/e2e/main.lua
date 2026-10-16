@@ -822,7 +822,15 @@ return M
     pluginPushBatchSize = 1,
     writeToDisk = false,
     plugins = {
-      FeatherPluginManager.createPlugin(PushCountingPlugin, "push-throttled", { label = "Throttled", pushInterval = 10 }),
+      FeatherPluginManager.createPlugin(
+        PushCountingPlugin,
+        "push-throttled",
+        { label = "Throttled", pushInterval = 10 },
+        false,
+        {},
+        nil,
+        { cost = "low", update = "active", push = "sampled", sampleRate = 1 }
+      ),
     },
     debugger = {
       enabled = false,
@@ -850,8 +858,69 @@ return M
   throttledPushFeather:update(0)
   assertEqual(pushRequestCount, 1, "plugin push interval skips scheduled payloads until due")
   throttledPushFeather.pluginManager:pushAll(throttledPushFeather)
+  assertEqual(pushRequestCount, 1, "manual plugin refresh builds nothing synchronously")
+  throttledPushFeather:update(0)
   assertEqual(pushRequestCount, 2, "manual plugin refresh ignores scheduled push interval")
   throttledPushFeather:finish()
+
+  -- req:plugins is a forced refresh. It used to build every payload inside the
+  -- command handler; it now queues them for the sample loop at raised priority,
+  -- under the same per-frame batch and budget as normal pushes.
+  local refreshFeather = FeatherDebugger({
+    debug = true,
+    mode = "disk",
+    sessionName = "Forced Refresh E2E",
+    deviceId = "forced-refresh-e2e",
+    assetPreview = false,
+    sampleRate = 1,
+    pluginPushBatchSize = 1,
+    writeToDisk = false,
+    plugins = {
+      FeatherPluginManager.createPlugin(PushCountingPlugin, "refresh-a", { label = "A" }),
+      FeatherPluginManager.createPlugin(PushCountingPlugin, "refresh-b", { label = "B" }),
+      FeatherPluginManager.createPlugin(PushCountingPlugin, "refresh-c", { label = "C" }),
+    },
+    debugger = {
+      enabled = false,
+    },
+  })
+  local refreshMessages = {}
+  refreshFeather.mode = "socket"
+  refreshFeather.wsConnected = true
+  refreshFeather.__connState = "connected"
+  refreshFeather.wsClient = {
+    status = 1,
+    update = function() end,
+    send = function(_, payload)
+      refreshMessages[#refreshMessages + 1] = json.decode(payload)
+    end,
+  }
+  pushRequestCount = 0
+  refreshFeather.__activeRequestId = "refresh-1"
+  refreshFeather:__handleCommand({ type = "req:plugins", requestId = "refresh-1" })
+  refreshFeather.__activeRequestId = nil
+  assertEqual(pushRequestCount, 0, "req:plugins builds no payload inside the command handler")
+  refreshFeather:update(0)
+  assertEqual(pushRequestCount, 1, "req:plugins refresh is served one plugin per frame at batch size 1")
+  refreshFeather:update(0)
+  refreshFeather:update(0)
+  assertEqual(pushRequestCount, 3, "req:plugins refresh drains within the batch limit")
+  refreshFeather:update(0)
+  assertEqual(pushRequestCount, 3, "req:plugins refresh does not repeat once drained")
+  local refreshed = 0
+  for _, message in ipairs(refreshMessages) do
+    if message.type == "plugin" then
+      refreshed = refreshed + 1
+      assertEqual(message.requestId, "refresh-1", "forced refresh payload echoes the req:plugins requestId")
+      assertEqual(message.schemaVersion, 1, "plugin envelope carries the UI schema version")
+      assertTruthy(type(message.generatedAt) == "number", "plugin envelope carries generatedAt")
+    end
+  end
+  assertEqual(refreshed, 3, "forced refresh sends one envelope per plugin")
+  local refreshHealth = refreshFeather.pluginManager:getConfig()["refresh-a"].health
+  assertEqual(refreshHealth.pushCount, 1, "plugin health counts pushes")
+  assertTruthy(type(refreshHealth.lastPayloadBytes) == "number", "plugin health records the last payload size")
+  refreshFeather:finish()
 
   -- ── Auth handshake state machine ───────────────────────────────────────────
   -- Test the challenge-response logic in isolation. We use a disk-mode instance

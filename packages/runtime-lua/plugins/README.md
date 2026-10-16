@@ -99,11 +99,24 @@ return {
   description = "What this plugin does",
   version     = "1.0.0",
   capabilities = { "filesystem" },     -- tokens this plugin requires (see Capabilities)
+  optionalCapabilities = { "draw" },  -- used when granted; the plugin still runs without them
+  runtime     = { cost = "low", update = "active", push = "active", sampleRate = 1 },
+  actions     = {                     -- optional action contract (see Action contracts)
+    { name = "export", cancellable = true },
+  },
   opts        = { speed = 1.0 },      -- default options merged with user pluginOptions
   optIn       = false,                -- true = not registered unless in config.include
   disabled    = true,                 -- true = registered but inactive by default
 }
 ```
+
+A manifest is data: one `return { ... }` table of literals. The catalog generator
+(`scripts/generate-plugin-catalog.mjs`) parses it without running Lua, so function calls, variables
+and string concatenation are rejected with the line and column. The generator also fails when an id
+does not match its directory, a version is not `x.y.z`, a capability token is unknown, the runtime
+policy is missing or invalid, an action is declared twice, or the plugin has no `README.md` or Lua
+e2e suite. The vocabulary it checks against lives in `feather/plugin_contract.lua`, which the
+runtime reads too.
 
 | Field          | Type       | Description                                                                                                                               |
 | -------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -111,7 +124,10 @@ return {
 | `name`         | `string`   | Human-readable display name.                                                                                                              |
 | `description`  | `string`   | Short description shown in tooling.                                                                                                       |
 | `version`      | `string`   | Semver string.                                                                                                                            |
-| `capabilities` | `string[]` | Capability tokens this plugin needs (e.g. `"filesystem"`, `"network"`). Checked against the user's `config.capabilities` at load time.    |
+| `capabilities` | `string[]` | Capability tokens this plugin needs (e.g. `"filesystem"`, `"network"`). If the user's `config.capabilities` does not grant all of them, the plugin never runs. |
+| `optionalCapabilities` | `string[]` | Tokens the plugin can use but does not need. Granted ones are passed to `init` as `config.grantedCapabilities`. |
+| `runtime`      | `table`    | Required runtime cost policy: `cost`, `update`, `push`, `sampleRate`. See Runtime Cost Policy.                                            |
+| `actions`      | `table[]`  | Optional action contract: `{ name, cancellable, description }`. When declared, undeclared actions are rejected. See Action contracts.     |
 | `opts`         | `table`    | Default plugin options. Merged with (and overridden by) the user's `config.pluginOptions[id]`.                                            |
 | `optIn`        | `boolean`  | If `true`, the plugin is not registered at all unless its ID appears in `config.include`.                                                 |
 | `disabled`     | `boolean`  | If `true`, the plugin registers and appears in the UI but starts inactive. Users can enable it from the desktop, or via `config.include`. |
@@ -216,7 +232,23 @@ Replay plugins should also use the callback bus for recording. They may still te
 
 ### Capabilities
 
-Declare the system access your plugin needs in `manifest.lua`. At load time, `FeatherPluginManager` checks these against the user's `config.capabilities` allowlist and logs a warning for any undeclared capability. Loading is not blocked — warnings are informational.
+Declare the system access your plugin needs in `manifest.lua`. Before any plugin code runs, `FeatherPluginManager` checks the required `capabilities` against the user's `config.capabilities` allowlist. If any is not granted the plugin is **blocked**: it stays in the plugin list so the desktop can say why, but its `init`, `update`, LÖVE callbacks, payload builder and actions never run, and it cannot be enabled from the desktop. The plugin list carries an `inactiveReason` with the missing tokens and what to change:
+
+```lua
+inactiveReason = {
+  code = "capability-denied",
+  message = "Requires capabilities this game does not grant: network.",
+  remediation = "Add \"network\" to capabilities in feather.config.lua (or run `feather config plugins --include network-inspector`), then restart the game.",
+  missingCapabilities = { "network" },
+}
+```
+
+Other codes are `invalid-manifest`, `not-callable`, `incompatible-api`, `init-failed`, `disabled` (switched off, can be enabled) and `disabled-by-errors`.
+
+Capabilities a plugin can use but does not need go in `optionalCapabilities`; they never block. `init(config)` receives `config.grantedCapabilities`, the declared tokens (required and optional) the game grants, so a plugin can skip optional work.
+
+> [!WARNING]
+> This is activation control, not a sandbox. Lua plugins run with the game's globals, so a plugin that reaches `love.filesystem` without declaring `"filesystem"` is not stopped. Treat third-party plugins as code you are choosing to run; the allowlist protects you from enabling one by accident, not from one written to misbehave.
 
 Available capability tokens:
 
@@ -228,12 +260,13 @@ Available capability tokens:
 | `"physics"`    | Accesses `love.physics`                      |
 | `"input"`      | Hooks input callbacks (`onKeypressed`, etc.) |
 | `"draw"`       | Hooks `onDraw` to render overlays            |
+| `"binary"`     | Sends binary attachments (replay chunks, captures) |
 
 Users can restrict which capabilities are allowed:
 
 ```lua
 require("feather.auto").setup({
-  -- Only allow filesystem and draw; plugins requesting anything else get a warning
+  -- Only allow filesystem and draw; plugins that require anything else do not run
   capabilities = { "filesystem", "draw" },
 })
 ```
@@ -278,7 +311,7 @@ local plugin = FeatherPluginManager.createPlugin(MyPlugin, "my-plugin", {}, fals
 
 ### Runtime Cost Policy
 
-Built-in plugins can declare a runtime policy in `manifest.lua` so Feather can stay cheap while the matching panel is not active:
+Every plugin declares a runtime policy in `manifest.lua` so Feather can stay cheap while the matching panel is not active:
 
 ```lua
 return {
@@ -292,15 +325,57 @@ return {
 }
 ```
 
-`active` means the plugin runs while its desktop panel is visible. `explicit` means the plugin should expose `isRuntimeActive(feather)` and return true only while recording, previewing, replaying, or otherwise doing user-requested work. Plugins without runtime metadata keep the existing sampled behavior for compatibility.
+`active` means the plugin runs while its desktop panel is visible. `explicit` means the plugin should expose `isRuntimeActive(feather)` and return true only while recording, previewing, replaying, or otherwise doing user-requested work. `always` is for plugins that do background work the user asked for (input playback, GIF capture); keep that work behind a cheap early return.
+
+A plugin with no runtime policy gets a manifest warning and the cheap default `{ cost = "low", update = "active", push = "active", sampleRate = 1 }`: it costs nothing while its page is closed. Before, an undeclared plugin updated every frame and built a payload every sample. If a plugin you register by hand needs background work, pass its policy:
+
+```lua
+local manifest = require("plugins.input-replay.manifest")
+FeatherPluginManager.createPlugin(InputReplay, "input-replay", opts, false, manifest.capabilities, nil, manifest.runtime)
+```
+
+`req:plugins` (sent when a plugin page opens) is a forced refresh. It no longer builds every payload inside the command handler: it queues one refresh per running plugin, and the runtime's sample loop serves the queue before regular pushes, under the same per-frame batch (`pluginPushBatchSize`) and frame budget.
+
+### Payload envelope
+
+Each pushed payload is wrapped in a versioned envelope. The Inspector treats every field but `data` as optional, so older runtimes still render:
+
+```lua
+{
+  type = "plugin",
+  plugin = "my-plugin",
+  data = <the value handleRequest returned>,
+  schemaVersion = 1,        -- plugin UI payload schema (feather/plugin_contract.lua)
+  pluginVersion = "1.0.0",  -- manifest version
+  generatedAt = 1792170977123, -- wall-clock milliseconds when the payload was built
+  requestId = "...",        -- only on a refresh asked for with a requestId
+}
+```
+
+### Plugin health
+
+The plugin list (`feather:hello` → `plugins[id]`) carries one `health` record per plugin, the same for the Inspector and MCP:
+
+| Field | Meaning |
+| ----- | ------- |
+| `status` | `active`, `failing` (running with recent failures), `inactive` (disabled or blocked) or `disabled-by-errors` |
+| `consecutiveFailures`, `totalFailures` | Failure counts; ten consecutive failures in one phase switch the plugin off |
+| `lastError` | `{ phase, message, at }`; phases are `init`, `update`, `suspendedUpdate`, `callback`, `payload`, `action`, `cancel`, `params`, `config` |
+| `disabledReason` | Why the runtime switched it off |
+| `lastUpdateMs`, `lastPushMs`, `lastPayloadBytes`, `lastPushAt`, `pushCount` | Cost of the last update and push |
+| `refreshPending` | A forced refresh is queued |
+
+LÖVE callback errors are now contained like `update()` errors: they are recorded in health and no longer unwind through `love.draw`.
 
 ### Plugin lifecycle
 
-The FeatherPluginManager handles the lifecycle of each plugin. Each plugin's `update()` is wrapped in `pcall` for error isolation — if a plugin crashes, it won't affect the game or other plugins. After 10 consecutive errors, a plugin is automatically disabled. Use `pluginManager:enablePlugin(id)` to re-enable it.
+The FeatherPluginManager handles the lifecycle of each plugin. Every call into a plugin (`update()`, LÖVE callbacks, payload builds, actions, params) is wrapped in `pcall` for error isolation — if a plugin crashes, it won't affect the game or other plugins. After 10 consecutive errors in one phase, a plugin is automatically disabled (`inactiveReason.code = "disabled-by-errors"`). Use `pluginManager:enablePlugin(id)` to re-enable it.
+
+A plugin that starts disabled is not constructed until it is enabled. Game code that integrates through `DEBUGGER.pluginManager:getPlugin(id).instance` still gets an instance (it is constructed on that first access), but the plugin does not update, receive callbacks, push payloads or handle actions until it is enabled. A blocked plugin has no instance: guard with `if plugin and plugin.instance then`.
 
 #### Initialization
 
-- `init(config)`: Called when the plugin is initialized. `config.options` contains the options passed to `createPlugin`, `config.logger` / `config.observer` are always available, and `config.callbacks.register(...)` lets plugins join the shared love-event callback bus.
+- `init(config)`: Called when the plugin is initialized. `config.options` contains the options passed to `createPlugin`, `config.logger` / `config.observer` are always available, `config.grantedCapabilities` lists the declared capabilities this game grants, and `config.callbacks.register(...)` lets plugins join the shared love-event callback bus.
 - `getConfig()`: Returns the plugin configuration (type, icon, tab name, actions). Sent to the desktop app on connect.
 
 #### Data Push (every cycle)
@@ -309,8 +384,38 @@ The FeatherPluginManager handles the lifecycle of each plugin. Each plugin's `up
 
 #### Action Handling (from desktop UI)
 
-- `handleActionRequest(request, feather)`: Called when a button action is triggered from the desktop. `request.params.action` contains the action key. Returns a `(data, err)` tuple — errors are sent back to the desktop as toast notifications.
-- `handleActionCancel(request, feather)`: Called when the user cancels an in-flight action from the desktop (e.g. stopping a GIF recording mid-way).
+- `handleActionRequest(request, feather)`: Called when a button action is triggered from the desktop. `request.params.action` contains the action key. Returns a `(data, err)` tuple — errors are sent back to the desktop as toast notifications. (Before this release a returned `err` was dropped and the desktop saw a success.)
+- `handleActionCancel(request, feather)`: Called when the user cancels an in-flight action from the desktop (e.g. stopping a GIF recording mid-way). For a correlated cancel, `request.requestId` and `request.cancelledAction` name the request being cancelled.
+
+#### Action contracts and request correlation
+
+A manifest may declare its actions. When it does, an action not in the list is refused before the plugin sees it, and only `cancellable` actions accept a correlated cancel:
+
+```lua
+actions = {
+  { name = "screenshot" },
+  { name = "gif", cancellable = true },
+}
+```
+
+Any `cmd:plugin:action` may carry a string `requestId` (letters, digits, `-_.:`, at most 128 characters). Every `plugin:action:response` produced because of it carries the same `requestId` at top level. An action that finishes later calls `request.defer()` and keeps the job:
+
+```lua
+function MyPlugin:handleActionRequest(request)
+  if request.params.action == "export" then
+    self.exportJob = request.defer()     -- acknowledged now with data.pending = true
+    return { started = true }
+  end
+end
+
+-- later, from update():
+self.exportJob:progress({ fraction = 0.5 })   -- status = "progress", final = false
+self.exportJob:complete({ download = ... })  -- status = "success", final = true
+-- or self.exportJob:fail("message")          -- status = "error", final = true
+-- self.exportJob:isCancelled()
+```
+
+`cmd:plugin:action:cancel` names the request it cancels with its own `requestId`. Only that request is cancelled; the reply has `status = "cancelled"` and the same id. A cancel for a request that is not in flight is answered with an error and never reaches the plugin, so a stale cancel cannot stop newer work. A cancel without a `requestId` behaves as before and leaves correlated requests alone. Disabling a plugin ends its in-flight requests with an error.
 - `handleParamsUpdate(request, feather)`: Called when the user changes an input or checkbox value in the desktop UI. `request.params` contains the updated key-value pairs.
 
 #### Update

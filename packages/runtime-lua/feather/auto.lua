@@ -107,6 +107,11 @@ local function scanPlugins()
           disabled = manifest.disabled ~= false,
           capabilities = manifest.capabilities or {},
           runtime = manifest.runtime or {},
+          manifest = {
+            description = manifest.description,
+            optionalCapabilities = manifest.optionalCapabilities,
+            actions = manifest.actions,
+          },
           compatibility = {
             api = manifest.api,
             minApi = manifest.minApi,
@@ -148,6 +153,11 @@ local function scanPlugins()
           disabled = manifest.disabled ~= false,
           capabilities = manifest.capabilities or {},
           runtime = manifest.runtime or {},
+          manifest = {
+            description = manifest.description,
+            optionalCapabilities = manifest.optionalCapabilities,
+            actions = manifest.actions,
+          },
           compatibility = {
             api = manifest.api,
             minApi = manifest.minApi,
@@ -222,7 +232,8 @@ function auto.setup(config)
           disabled,
           entry.capabilities,
           entry.compatibility,
-          entry.runtime
+          entry.runtime,
+          entry.manifest
         )
     end
   end

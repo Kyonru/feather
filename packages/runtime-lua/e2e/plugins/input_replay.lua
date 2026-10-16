@@ -1,6 +1,7 @@
 local FeatherDebugger = require("feather")
 local FeatherPluginManager = require("feather.plugin_manager")
 local InputReplayPlugin = require("plugins.input-replay")
+local InputReplayManifest = require("plugins.input-replay.manifest")
 
 local InputReplaySuite = {
   id = "input-replay",
@@ -29,12 +30,15 @@ function InputReplaySuite.run(assertEqual, assertTruthy)
     deviceId = "input-replay-e2e",
     assetPreview = false,
     plugins = {
+      -- Registered by hand, so pass the manifest's runtime policy: without it
+      -- the plugin gets the cheap interest-gated default and replay would
+      -- only advance while its page is open.
       FeatherPluginManager.createPlugin(InputReplayPlugin, "input-replay", {
         captureKeys = true,
         captureMouse = false,
         captureTouch = false,
         captureJoystick = false,
-      }),
+      }, false, InputReplayManifest.capabilities, nil, InputReplayManifest.runtime),
     },
     debugger = {
       enabled = false,

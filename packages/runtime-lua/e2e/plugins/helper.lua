@@ -109,6 +109,10 @@ local pluginSpecs = {
     suiteModulePath = "e2e.plugins.physics_debug",
   },
   {
+    id = "plugin-activation",
+    suiteModulePath = "e2e.plugins.plugin_activation",
+  },
+  {
     id = "profiler",
     suiteModulePath = "e2e.plugins.profiler",
   },
@@ -216,7 +220,12 @@ function PluginE2EHelper.createPluginRecord(definition, optionOverrides, disable
       name = manifest.name,
       version = manifest.version,
     },
-    manifest.runtime or {}
+    manifest.runtime or {},
+    {
+      description = manifest.description,
+      optionalCapabilities = manifest.optionalCapabilities,
+      actions = manifest.actions,
+    }
   )
 end
 
