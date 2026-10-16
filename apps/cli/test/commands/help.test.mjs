@@ -23,6 +23,11 @@ test('help: core commands render help text', () => {
   assert.match(runOk(['skills', '--help']), /Install Feather agent skills/);
 });
 
+test('help: accepts the pnpm script argument separator forwarded by pnpm 11', () => {
+  assert.match(runOk(['--', '--help']), /Usage:/);
+  assert.match(runOk(['--', 'mcp', '--help']), /Model Context Protocol/);
+});
+
 test('help: symlinked global bin executes CLI', () => {
   const bin = join(makeTmp(), 'feather');
   symlinkSync(CLI, bin);

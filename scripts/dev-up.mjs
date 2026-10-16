@@ -250,6 +250,11 @@ process.on('exit', () => sessionTracker.close());
 // --- main -----------------------------------------------------------------
 
 function parseArgs(argv) {
+  // pnpm 10 and earlier consumed the conventional `--` script separator,
+  // while pnpm 11 forwards it. Keep both documented invocation styles
+  // working so contributors do not have to know which pnpm behavior they
+  // happen to be running under.
+  if (argv[0] === '--') argv = argv.slice(1);
   const options = { studio: false, game: true, example: null, list: false, help: false, verbose: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];

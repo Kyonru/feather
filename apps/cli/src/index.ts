@@ -1085,13 +1085,17 @@ export function createProgram(): Command {
 }
 
 export async function runCli(argv: string[] = process.argv.slice(2)): Promise<number> {
+  // `pnpm run feather -- <args>` forwards the separator itself in pnpm 11.
+  // Accept that development-shell form without changing the published
+  // binary's normal Commander argument handling.
+  const normalizedArgv = argv[0] === '--' ? argv.slice(1) : argv;
   const previousExitCode = process.exitCode;
   process.exitCode = undefined;
   const program = createProgram();
   program.exitOverride();
 
   try {
-    await program.parseAsync(argv, { from: 'user' });
+    await program.parseAsync(normalizedArgv, { from: 'user' });
   } catch (err) {
     if (err && typeof err === 'object' && 'exitCode' in err) {
       process.exitCode = Number((err as { exitCode: number }).exitCode);

@@ -3,6 +3,9 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   commandHasMarkers,
@@ -12,6 +15,18 @@ import {
   readProcessCommand,
   validateDevSession,
 } from '../dev-session.mjs';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+
+test('up accepts the pnpm script argument separator forwarded by pnpm 11', () => {
+  const result = spawnSync(process.execPath, ['scripts/dev-up.mjs', '--', '--help'], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /start Inspector, optionally Studio/);
+});
 
 function withTemporaryRoot(run) {
   const root = mkdtempSync(join(tmpdir(), 'feather-dev-session-'));

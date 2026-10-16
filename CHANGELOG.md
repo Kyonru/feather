@@ -40,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin activation now enforces declared capabilities and runtime policy, schedules work within budgets, validates action contracts, and reports plugin health.
 - The VS Code extension now runs cancellable managed jobs with explicit project selection and build configuration instead of relying on ambient workspace state.
 
+### Fixed
+
+- Root development commands accept both pnpm argument-forwarding forms, so the documented `pnpm run feather -- ...` and `pnpm run up -- ...` commands work under pnpm 11 as well as older pnpm releases.
+
 ### Added
 
 
