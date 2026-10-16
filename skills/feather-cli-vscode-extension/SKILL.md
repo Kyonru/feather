@@ -11,8 +11,8 @@ Use this skill when changing the VS Code extension, command palette actions, pro
 
 ## First pass
 
-- Start with `apps/vscode-extension/src/extension.ts` for activation and command registration.
-- Follow CLI execution through `apps/vscode-extension/src/cli.ts` and command helpers.
+- Start with `apps/vscode-extension/src/extension.ts` for activation wiring, then the workflow module under `apps/vscode-extension/src/workflows/`.
+- CLI argv comes from `apps/vscode-extension/src/plans.ts`; non-interactive commands run through `apps/vscode-extension/src/jobs/`.
 - For architecture, load [extension architecture](references/extension-architecture.md).
 - For commands, packaging, and tests, load [commands and packaging](references/commands-and-packaging.md).
 - If behavior mirrors the CLI, also use `feather-cli-builds`.
@@ -24,19 +24,21 @@ Use this skill when changing the VS Code extension, command palette actions, pro
 - Keep command IDs stable unless the task includes a migration.
 - Respect user settings for project directory, Love2D executable, default upload target/channel, watch mode, run targets, and vendor directory.
 - Refresh the project view when config or relevant project files change.
-- Show CLI output in VS Code terminals or output channels in a way users can act on.
+- Run non-interactive commands as managed jobs (output channel + progress + completion); keep terminals for `run`/`watch` only. Never refresh on a timer.
+- Read project state from the CLI's JSON output, never by parsing project files in the extension.
 - Keep build config editing aligned with `feather.build.json`.
 
 ## Common implementation map
 
-- Activation and commands: `apps/vscode-extension/src/extension.ts`.
-- CLI wrapper: `apps/vscode-extension/src/cli.ts`.
-- Command helper: `apps/vscode-extension/src/command.ts`.
-- Project detection/status: `apps/vscode-extension/src/project.ts`.
+- Activation wiring only: `apps/vscode-extension/src/extension.ts`.
+- Commands, one module per workflow: `apps/vscode-extension/src/workflows/` (`run`, `setup`, `plugins`, `packages`, `buildRelease`).
+- Every CLI argv the extension builds: `apps/vscode-extension/src/plans.ts` (pure; contract-tested against the CLI).
+- Managed jobs (spawn without a shell, output channel, progress, cancel, completion): `apps/vscode-extension/src/jobs/`.
+- CLI resolution and run/watch terminals: `apps/vscode-extension/src/cli.ts`.
+- Project selection and CLI-sourced state (`doctor`, `plugin list`, `package list` JSON): `apps/vscode-extension/src/project/`.
 - Activity panel: `apps/vscode-extension/src/featherPanel.ts`.
-- Build config panel: `apps/vscode-extension/src/buildConfigPanel.ts`.
-- Vendor support: `apps/vscode-extension/src/vendor.ts`.
-- Package catalog support: `apps/vscode-extension/src/catalog.ts`.
+- Build config panel, model apart from rendering: `apps/vscode-extension/src/buildConfig/`.
+- Bundled catalog snapshots: `apps/vscode-extension/src/catalog.ts`.
 - Prep/package scripts: `apps/vscode-extension/scripts/prepare.mjs`, `generate-icon.mjs`.
 
 ## Verification

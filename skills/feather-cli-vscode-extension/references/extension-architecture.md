@@ -16,14 +16,18 @@ The VS Code extension keeps common Feather workflows in the editor:
 
 ## Source map
 
-- `apps/vscode-extension/src/extension.ts`: activation and command registration.
-- `apps/vscode-extension/src/cli.ts`: resolves and invokes Feather CLI.
-- `apps/vscode-extension/src/command.ts`: command execution helpers.
-- `apps/vscode-extension/src/project.ts`: project detection and status.
-- `apps/vscode-extension/src/featherPanel.ts`: activity bar tree/webview surface.
-- `apps/vscode-extension/src/buildConfigPanel.ts`: `feather.build.json` editing.
-- `apps/vscode-extension/src/vendor.ts`: vendor flows.
-- `apps/vscode-extension/src/catalog.ts`: package catalog support.
+- `apps/vscode-extension/src/extension.ts`: activation wiring; returns the API the integration test uses.
+- `apps/vscode-extension/src/workflows/`: command registration and user interaction, per workflow.
+- `apps/vscode-extension/src/plans.ts`: pure argv builders for every CLI call.
+- `apps/vscode-extension/src/jobs/runner.ts`: job lifecycle without `vscode` (steps, exit codes, cancel, `--json`).
+- `apps/vscode-extension/src/jobs/service.ts`: output channel, progress notification, completion notification, refresh.
+- `apps/vscode-extension/src/cli.ts`: resolves the bundled CLI or dev launcher; run/watch terminals.
+- `apps/vscode-extension/src/project/selection.ts`: which folder is the project (multi-root, `feather.projectDir`).
+- `apps/vscode-extension/src/project/state.ts`: project state from `doctor`, `plugin list` and `package list` JSON.
+- `apps/vscode-extension/src/featherPanel.ts`: activity bar tree.
+- `apps/vscode-extension/src/buildConfig/model.ts`: `feather.build.json` form model; preserves fields it does not show.
+- `apps/vscode-extension/src/buildConfig/panel.ts` and `html.ts`: the webview.
+- `apps/vscode-extension/src/catalog.ts`: bundled plugin/package catalog snapshots.
 
 ## CLI boundary
 
@@ -41,17 +45,18 @@ CLI resolution follows this pattern:
 
 - Local development uses `apps/vscode-extension/bundled-bin/feather-dev.mjs` when present.
 - Packaged builds use the platform-specific bundled binary in `bundled-bin`.
-- Terminal commands quote shell text; background commands use `spawn(..., { shell: false })`.
+- Managed jobs and state queries use `spawn(..., { shell: false })` with stdin closed; run/watch terminals start the CLI as the terminal process (`shellPath`), so nothing is shell-quoted.
 
 Do not duplicate CLI behavior in the extension just to avoid invoking the CLI. Add CLI support first, then call it from VS Code.
 
 ## Adding an extension feature
 
 - Add business behavior to the CLI first when the workflow is not VS Code-specific, then invoke it from the extension.
-- Register new commands in `apps/vscode-extension/src/extension.ts` and keep `apps/vscode-extension/package.json` contributions in sync.
-- Route command execution through `apps/vscode-extension/src/cli.ts` and `apps/vscode-extension/src/command.ts`; keep shell quoting and background process behavior consistent with existing helpers.
-- Respect `feather.projectDir` and multi-root workspaces instead of assuming the first workspace folder is the game.
-- Refresh the project view after commands that change config, packages, plugins, vendors, build config, or project status.
+- Register new commands in the matching `apps/vscode-extension/src/workflows/` module and keep `apps/vscode-extension/package.json` contributions in sync.
+- Build argv in `apps/vscode-extension/src/plans.ts` and add the plan to `apps/vscode-extension/test/cli-contract.test.mjs`.
+- Run non-interactive commands through `services.jobs.run(plan, root)`; use `runInTerminal` only for interactive, long-lived processes.
+- Get the project from `services.project.requireRoot()`; it handles `feather.projectDir`, multi-root selection and outside-workspace confirmation.
+- Managed jobs refresh project state when the process exits; do not add refresh timers.
 - Add extension integration coverage for command workflows and packaging-sensitive behavior.
 - Update `apps/vscode-extension/README.md`, any docs symlink target, and `CHANGELOG.md`.
 - Run `pnpm run extension:build`, `pnpm run extension:test`, and `pnpm run extension:test:integration` when command flow changes.

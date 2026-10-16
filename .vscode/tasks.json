@@ -2,9 +2,10 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "npm: extension:build",
-      "type": "npm",
-      "script": "extension:build",
+      "label": "extension:build",
+      "detail": "Build the CLI, bundle the Lua runtime, prepare bundled-bin/ and compile the VS Code extension",
+      "type": "shell",
+      "command": "pnpm run extension:build",
       "group": "build",
       "problemMatcher": "$tsc"
     }

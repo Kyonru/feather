@@ -1,79 +1,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { buildCommand, buildEnvCommand, shellQuote } = require('../out/command.js');
-const { getProjectStatus, resolveProjectDir } = require('../out/project.js');
+const { shellQuote } = require('../out/command.js');
+const { hotReloadModuleName, vendorDirOption } = require('../out/settings.js');
 
-test('command helpers quote paths with spaces', () => {
+test('shellQuote quotes only what needs it (display only; jobs never use a shell)', () => {
   assert.equal(shellQuote('/tmp/Feather App/node'), '"/tmp/Feather App/node"');
-  assert.equal(
-    buildCommand('/tmp/VS Code/node', '/tmp/ext/bundled-cli/index.js', ['run', '/tmp/My Game']),
-    '"/tmp/VS Code/node" /tmp/ext/bundled-cli/index.js run "/tmp/My Game"',
-  );
-  assert.equal(
-    buildEnvCommand({ ELECTRON_RUN_AS_NODE: '1' }, '/tmp/VS Code/helper', '/tmp/ext/bundled-cli/launcher.js', [
-      'run',
-      '/tmp/My Game',
-    ]),
-    'ELECTRON_RUN_AS_NODE=1 "/tmp/VS Code/helper" /tmp/ext/bundled-cli/launcher.js run "/tmp/My Game"',
-  );
+  assert.equal(shellQuote('--plugins'), '--plugins');
+  assert.equal(shellQuote('console,hot-reload'), 'console,hot-reload');
+  assert.equal(shellQuote('a"b$c'), '"a\\"b\\$c"');
 });
 
-test('project helpers resolve configured project before workspace root', () => {
-  assert.equal(resolveProjectDir('/tmp/game', ['/tmp/workspace']), '/tmp/game');
-  assert.equal(resolveProjectDir('', ['/tmp/workspace']), '/tmp/workspace');
-  assert.equal(resolveProjectDir(undefined, []), undefined);
+test('feather.vendorDir becomes a project-relative --vendor-dir, never --dir', () => {
+  assert.deepEqual(vendorDirOption('/p', undefined), { ok: true, value: undefined });
+  assert.deepEqual(vendorDirOption('/p', '  '), { ok: true, value: undefined });
+  // The old flow saved the project root here after the first vendor add.
+  assert.deepEqual(vendorDirOption('/p', '/p'), { ok: true, value: undefined });
+  assert.deepEqual(vendorDirOption('/p', '/p/vendor'), { ok: true, value: 'vendor' });
+  assert.deepEqual(vendorDirOption('/p', 'third_party/vendor'), { ok: true, value: 'third_party/vendor' });
+  const outside = vendorDirOption('/p', '/elsewhere/vendor');
+  assert.equal(outside.ok, false);
+  assert.match(outside.error, /must be a folder inside the project/);
 });
 
-test('project status reports config, runtime, plugins, and packages', () => {
-  const root = mkdtempSync(join(tmpdir(), 'feather-cli-vscode-test-'));
-  try {
-    writeFileSync(join(root, 'main.lua'), '');
-    writeFileSync(join(root, 'feather.config.lua'), 'return {}\n');
-    mkdirSync(join(root, 'feather', 'plugins', 'console'), { recursive: true });
-    writeFileSync(join(root, 'feather', 'init.lua'), 'return {}\n');
-    writeFileSync(join(root, 'feather', 'plugins', 'console', 'manifest.lua'), 'return {}\n');
-    writeFileSync(join(root, 'feather.lock.json'), JSON.stringify({ packages: { anim8: {}, baton: {} } }));
-
-    const status = getProjectStatus(root);
-    assert.equal(status.hasWorkspace, true);
-    assert.equal(status.hasMain, true);
-    assert.equal(status.hasConfig, true);
-    assert.equal(status.hasRuntime, true);
-    assert.equal(status.pluginCount, 1);
-    assert.equal(status.packageCount, 2);
-    assert.equal(existsSync(root), true);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test('project status counts CLI-managed included plugins from config', () => {
-  const root = mkdtempSync(join(tmpdir(), 'feather-cli-vscode-test-'));
-  try {
-    writeFileSync(join(root, 'main.lua'), '');
-    writeFileSync(
-      join(root, 'feather.config.lua'),
-      `return {
-  managed = "cli",
-  include = { "console", "hot-reload", "profiler" },
-  exclude = { "profiler" },
-
-  -- include = { "commented-out" },
-}
-`,
-    );
-
-    const status = getProjectStatus(root);
-    assert.equal(status.hasConfig, true);
-    assert.equal(status.hasRuntime, false);
-    assert.equal(status.pluginCount, 2);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
+test('hot reload module names come from project-relative Lua paths', () => {
+  assert.equal(hotReloadModuleName('/p', '/p/game/player.lua'), 'game.player');
+  assert.equal(hotReloadModuleName('/p', '/p/game/init.lua'), 'game');
+  assert.equal(hotReloadModuleName('/p', '/p/readme.md'), undefined);
+  assert.equal(hotReloadModuleName('/p', '/other/x.lua'), undefined);
 });

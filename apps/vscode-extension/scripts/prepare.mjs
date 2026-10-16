@@ -108,6 +108,18 @@ cpSync(join(cliGenerated, 'registry.json'), join(bundledBin, 'registry.json'));
 const { pluginCatalog } = await import(join(cliGenerated, 'plugin-catalog.js'));
 writeFileSync(join(bundledBin, 'plugin-catalog.json'), JSON.stringify(pluginCatalog, null, 2) + '\n');
 
+// CLI policy the extension needs to *show* (the init picker preselects these)
+// but must not keep its own copy of. Read from the CLI build so a change to the
+// CLI's defaults reaches the extension without anyone editing it twice.
+const { defaultIncludedPluginIds } = await import(join(repoRoot, 'apps', 'cli', 'dist', 'ui', 'init', 'model.js'));
+if (!Array.isArray(defaultIncludedPluginIds)) {
+  throw new Error('apps/cli/dist/ui/init/model.js no longer exports defaultIncludedPluginIds; update prepare.mjs.');
+}
+writeFileSync(
+  join(bundledBin, 'cli-defaults.json'),
+  `${JSON.stringify({ initPlugins: defaultIncludedPluginIds }, null, 2)}\n`,
+);
+
 // Recorded beside the binaries so the extension can report it at runtime, and
 // so an unpacked VSIX says which platform it carries.
 writeFileSync(
@@ -116,6 +128,6 @@ writeFileSync(
 );
 
 console.log(
-  `Prepared bundled-bin/ with ${bundleMode}, lua/, registry.json, plugin-catalog.json, ` +
+  `Prepared bundled-bin/ with ${bundleMode}, lua/, registry.json, plugin-catalog.json, cli-defaults.json, ` +
     `and platform.json (platform ${declaredPlatform}).`,
 );

@@ -120,6 +120,12 @@
         "title": "Create Release Build",
         "category": "Feather",
         "icon": "$(rocket)"
+      },
+      {
+        "command": "feather.selectProject",
+        "title": "Select Project",
+        "category": "Feather",
+        "icon": "$(folder-opened)"
       }
     ],
     "viewsContainers": {
@@ -148,6 +154,11 @@
         },
         {
           "command": "feather.doctor",
+          "when": "view == feather.projectView",
+          "group": "navigation"
+        },
+        {
+          "command": "feather.selectProject",
           "when": "view == feather.projectView",
           "group": "navigation"
         },
@@ -202,6 +213,11 @@
           "command": "feather.buildRelease",
           "when": "view == feather.projectView && viewItem == actionBuildRelease",
           "group": "inline"
+        },
+        {
+          "command": "feather.selectProject",
+          "when": "view == feather.projectView && viewItem == actionSelectProject",
+          "group": "inline"
         }
       ]
     },
@@ -211,7 +227,7 @@
         "feather.projectDir": {
           "type": "string",
           "default": "",
-          "description": "Path to the LÖVE project. Defaults to the first workspace folder."
+          "description": "Path to the LÖVE project (absolute, or relative to the workspace). When empty, Feather uses the workspace folder containing main.lua, or asks once and remembers the choice for this workspace. A folder outside the workspace must be confirmed before use."
         },
         "feather.loveExecutable": {
           "type": "string",
@@ -244,7 +260,7 @@
         "feather.vendorDir": {
           "type": "string",
           "default": "",
-          "description": "Directory where build vendor files are installed. Remembered per workspace after the first Feather: Vendor add."
+          "description": "Build vendor directory inside the project, passed to `feather build vendor add --vendor-dir`. Empty uses the CLI default (`vendor`)."
         }
       }
     }

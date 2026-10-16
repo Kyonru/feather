@@ -19,6 +19,7 @@ Current command palette actions include:
 - `feather.buildConfig`
 - `feather.buildRelease`
 - `feather.refreshProjectView`
+- `feather.selectProject`
 
 Keep IDs stable for users, keybindings, and command palette muscle memory.
 
@@ -27,10 +28,11 @@ Keep IDs stable for users, keybindings, and command palette muscle memory.
 Local development:
 
 ```bash
-npm install
-pnpm run cli:build
+pnpm install
 pnpm run extension:build
 ```
+
+Then press F5 with the "Feather VS Code Extension" launch configuration (`.vscode/launch.json`).
 
 Packaging:
 
@@ -44,7 +46,7 @@ The packaged extension should use bundled assets. Local development should use `
 
 - `pnpm run extension:build`
 - `pnpm run extension:test`
-- `pnpm run extension:test:integration`
+- `pnpm run extension:test:integration` (downloads VS Code into `node_modules/.vscode-test`; opens a window, so it needs a desktop session)
 
 Run package-level checks after changing scripts, bundled binary resolution, icon generation, or files included in the VSIX.
 

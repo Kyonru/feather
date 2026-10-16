@@ -1,17 +1,17 @@
 import * as vscode from 'vscode';
-import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as os from 'node:os';
-import { shellQuote } from './command';
+import type { CliInvocation } from './jobs/runner';
+import type { TerminalPlan } from './plans';
 
-interface CliInvocation {
-  command: string;
-  argsPrefix: string[];
-}
-
-function getCliInvocation(context: vscode.ExtensionContext): CliInvocation {
-  const devLauncher = join(context.extensionPath, 'bundled-bin', 'feather-dev.mjs');
+/**
+ * The CLI this extension runs: the platform binary it bundles, or — in a
+ * development build, where prepare.mjs writes no binaries — the workspace CLI
+ * through `bundled-bin/feather-dev.mjs`. Never the user's PATH (V4.md D6).
+ */
+export function cliInvocation(extensionPath: string): CliInvocation {
+  const devLauncher = join(extensionPath, 'bundled-bin', 'feather-dev.mjs');
   if (existsSync(devLauncher)) {
     return { command: 'node', argsPrefix: [devLauncher] };
   }
@@ -22,42 +22,38 @@ function getCliInvocation(context: vscode.ExtensionContext): CliInvocation {
     p === 'darwin' && a === 'arm64' ? 'feather' :
     p === 'darwin' ? 'feather-darwin-x64' :
     p === 'win32' ? 'feather-win-x64.exe' : 'feather-linux-x64';
-  return { command: join(context.extensionPath, 'bundled-bin', name), argsPrefix: [] };
+  return { command: join(extensionPath, 'bundled-bin', name), argsPrefix: [] };
 }
 
-export function runInTerminal(
-  context: vscode.ExtensionContext,
-  name: string,
-  args: string[],
-  cwd: string,
-): vscode.Terminal {
-  return runCommandsInTerminal(context, name, [args], cwd);
-}
-
-export function runCommandsInTerminal(
-  context: vscode.ExtensionContext,
-  name: string,
-  commands: string[][],
-  cwd: string,
-): vscode.Terminal {
-  const cli = getCliInvocation(context);
-  const existing = vscode.window.terminals.find((t) => t.name === name);
-  existing?.dispose();
-  const terminal = vscode.window.createTerminal({ name, cwd });
-  for (const args of commands) {
-    terminal.sendText([cli.command, ...cli.argsPrefix, ...args].map(shellQuote).join(' '));
+/**
+ * Run a long-lived, interactive command (`run`, `watch`) in a terminal whose
+ * process *is* the CLI — no shell, so no quoting, and `exitStatus` tells us
+ * whether it is still running. A terminal that is still running is never
+ * disposed without asking: it may be a game session or a watch loop.
+ */
+export async function runInTerminal(context: vscode.ExtensionContext, plan: TerminalPlan, cwd: string): Promise<vscode.Terminal | undefined> {
+  const existing = vscode.window.terminals.find((terminal) => terminal.name === plan.name);
+  if (existing) {
+    if (existing.exitStatus === undefined) {
+      const choice = await vscode.window.showWarningMessage(`${plan.name} is still running.`, 'Show', 'Restart');
+      if (choice === 'Show') {
+        existing.show();
+        return existing;
+      }
+      if (choice !== 'Restart') return undefined;
+    }
+    existing.dispose();
   }
+
+  const cli = cliInvocation(context.extensionPath);
+  const terminal = vscode.window.createTerminal({
+    name: plan.name,
+    cwd,
+    shellPath: cli.command,
+    shellArgs: [...cli.argsPrefix, ...plan.args],
+  });
   terminal.show();
   return terminal;
-}
-
-export function spawnFeather(
-  context: vscode.ExtensionContext,
-  args: string[],
-  cwd: string,
-): ChildProcess {
-  const cli = getCliInvocation(context);
-  return spawn(cli.command, [...cli.argsPrefix, ...args], { cwd, shell: false });
 }
 
 /**
@@ -68,13 +64,13 @@ export function spawnFeather(
  * are invisible unless it says so. `prepare.mjs` writes this at package time and
  * fails the build if the manifest and the bundled snapshot disagree.
  */
-export function bundledPlatform(context: vscode.ExtensionContext): {
+export function bundledPlatform(extensionPath: string): {
   featherPlatform: string;
   cli: string;
   runtime: string;
 } | null {
   try {
-    const file = join(context.extensionPath, 'bundled-bin', 'platform.json');
+    const file = join(extensionPath, 'bundled-bin', 'platform.json');
     if (!existsSync(file)) return null;
     return JSON.parse(readFileSync(file, 'utf8'));
   } catch {
