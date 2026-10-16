@@ -1222,6 +1222,166 @@ return M
         warmCount, settledCount))
   end
 
+  -- --- WebSocket transport: masking, budgets, bounds -------------------------
+  do
+    local WS = require("feather.lib.ws")
+    local bitlib = require("feather.lib.bit")
+
+    -- A socket that accepts at most `perCall` bytes per send, like a busy OS buffer.
+    local function fakeSocket(perCall)
+      local fake = { written = {}, inbox = {} }
+      function fake:send(data, i, j)
+        i = i or 1
+        j = j or #data
+        local last = math.min(j, i + perCall - 1)
+        self.written[#self.written + 1] = data:sub(i, last)
+        if last >= j then
+          return last
+        end
+        return nil, "timeout", last
+      end
+      function fake:receive()
+        local chunk = table.remove(self.inbox, 1)
+        if chunk then
+          return chunk
+        end
+        return nil, "timeout", ""
+      end
+      return fake
+    end
+
+    local function openClient(perCall)
+      local client = WS.new("127.0.0.1", 9)
+      pcall(function() client.socket:close() end)
+      client.socket = fakeSocket(perCall)
+      client.status = WS.STATUS.OPEN
+      return client
+    end
+
+    -- Decode client frames from the raw byte stream; returns payloads and keys.
+    local function decodeFrames(stream)
+      local frames, pos = {}, 1
+      while pos <= #stream do
+        local b2 = stream:byte(pos + 1)
+        local len = bitlib.band(b2, 0x7f)
+        local header = 2
+        if len == 126 then
+          len = stream:byte(pos + 2) * 256 + stream:byte(pos + 3)
+          header = 4
+        elseif len == 127 then
+          len = ((stream:byte(pos + 6) * 256 + stream:byte(pos + 7)) * 256 + stream:byte(pos + 8)) * 256
+            + stream:byte(pos + 9)
+          header = 10
+        end
+        local keyAt = pos + header
+        local key = { stream:byte(keyAt, keyAt + 3) }
+        local out = {}
+        for k = 1, len do
+          out[k] = string.char(bitlib.bxor(stream:byte(keyAt + 3 + k), key[(k - 1) % 4 + 1]))
+        end
+        frames[#frames + 1] = { payload = table.concat(out), key = table.concat(key, ",") }
+        pos = keyAt + 4 + len
+      end
+      return frames
+    end
+
+    local client = openClient(1000)
+    local messages = { "hello", string.rep("x", 300), string.rep("0123456789", 7000) } -- 5 B, 300 B, 70 KB
+    for _, message in ipairs(messages) do
+      assertTruthy(client:send(message), "a message under the limit is queued")
+    end
+    for _ = 1, 500 do
+      client:_flush()
+      if client:getQueuedBytes() == 0 then break end
+    end
+    assertEqual(client:getQueuedBytes(), 0, "the queue drains completely across updates")
+    local frames = decodeFrames(table.concat(client.socket.written))
+    assertEqual(#frames, 3, "every queued message becomes exactly one frame")
+    for index, message in ipairs(messages) do
+      assertEqual(frames[index].payload == message, true, "frame " .. index .. " unmasks to the original payload")
+    end
+    local keys = {}
+    for _, frame in ipairs(frames) do keys[frame.key] = true end
+    local distinct = 0
+    for _ in pairs(keys) do distinct = distinct + 1 end
+    assertTruthy(distinct >= 2, "each frame gets its own masking key (RFC 6455 §5.3), not one fixed key")
+
+    -- A large message is spread across updates instead of masked in one go.
+    local big = openClient(1024 * 1024 * 16)
+    big.limits.flushBudgetMs = 0.5
+    big:send(string.rep("y", 256 * 1024))
+    big:_flush()
+    assertTruthy(big:getQueuedBytes() > 0, "a 256 KiB message is not fully masked inside one 0.5 ms update")
+    local updates = 1
+    while big:getQueuedBytes() > 0 and updates < 10000 do
+      big:_flush()
+      updates = updates + 1
+    end
+    assertEqual(big:getQueuedBytes(), 0, "the large message still completes")
+    assertTruthy(big:getStats().maxFlushMs < 5,
+      string.format("no single update spends long on transport (max %.2f ms over %d updates)",
+        big:getStats().maxFlushMs, updates))
+    assertEqual(decodeFrames(table.concat(big.socket.written))[1].payload == string.rep("y", 256 * 1024), true,
+      "the incrementally masked frame decodes intact")
+
+    -- The queue is bounded, and replies keep a reserve.
+    local bounded = openClient(0)
+    bounded.socket.send = function(_, _, i) return nil, "timeout", (i or 1) - 1 end -- never drains
+    bounded.limits.maxQueuedBytes = 1000
+    bounded.limits.reserveBytes = 500
+    assertTruthy(bounded:send(string.rep("a", 900)), "under the limit is accepted")
+    local accepted, reason = bounded:send(string.rep("b", 200))
+    assertEqual(accepted, false, "past the limit an ordinary message is refused")
+    assertEqual(reason, "queue full", "and the refusal says why")
+    assertTruthy(bounded:send(string.rep("c", 200), true), "a reply to a desktop command may use the reserve")
+    assertEqual(bounded:getStats().dropped, 1, "refusals are counted")
+
+    -- An oversized incoming message is a named fault, not a silent reset.
+    local receiver = openClient(1024)
+    local errors = {}
+    function receiver:onerror(message) errors[#errors + 1] = message end
+    receiver._buf = string.char(0x81, 127, 0, 0, 0, 0, 0, 0x20, 0, 0) -- header for a 2 MiB text frame
+    for _ = 1, 16 do receiver.socket.inbox[#receiver.socket.inbox + 1] = string.rep("z", 65536 + 1) end
+    receiver:update()
+    assertEqual(receiver:getStats().receiveOverflows, 1, "a receive overflow is counted")
+    assertTruthy(errors[1] and errors[1]:find("overflow"), "and reported through onerror")
+    assertEqual(receiver.status, WS.STATUS.CLOSING, "and the connection closes instead of desynchronising")
+  end
+
+  -- --- Request correlation: replies echo the command's requestId ------------
+  do
+    local correlated = FeatherDebugger({
+      debug = true,
+      mode = "socket",
+      host = "127.0.0.1",
+      port = 9,
+      __DANGEROUS_INSECURE_CONNECTION__ = true,
+      plugins = {},
+    })
+    local onmessage = correlated.wsClient.onmessage
+    pcall(function() correlated.wsClient.socket:close() end)
+    local sent = {}
+    correlated.wsConnected = true
+    correlated.__connState = "connected"
+    correlated.wsClient = {
+      send = function(_, payload)
+        sent[#sent + 1] = json.decode(payload)
+      end,
+    }
+
+    onmessage(nil, json.encode({ type = "req:config", requestId = "req-42" }))
+    assertTruthy(#sent > 0, "req:config produces a reply")
+    assertEqual(sent[1].requestId, "req-42", "a reply echoes the command's requestId")
+
+    sent = {}
+    onmessage(nil, json.encode({ type = "req:config", requestId = 'bad"id' }))
+    assertEqual(sent[1] and sent[1].requestId, nil, "a requestId that would need escaping is not echoed")
+
+    sent = {}
+    correlated:__sendWs(json.encode({ type = "log", data = {} }))
+    assertEqual(sent[1].requestId, nil, "messages sent outside a command carry no requestId")
+  end
+
   print("[Lua E2E] LUA_E2E_PASS " .. tostring(#results) .. " assertions")
 end
 

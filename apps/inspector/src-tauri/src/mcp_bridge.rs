@@ -703,10 +703,15 @@ impl McpBridgeState {
         }
         let echoed = message.get("requestId").and_then(Value::as_str);
         let chosen = match echoed {
+            // The id must match *and* so must the shape: the runtime tags every
+            // message it sends while handling the command, so a log flushed in
+            // the same moment carries the id too and is not the answer.
             Some(request_id) => waiters
                 .iter()
                 .find(|(_, waiter)| {
-                    waiter.session_id == session_id && waiter.request_id.as_deref() == Some(request_id)
+                    waiter.session_id == session_id
+                        && waiter.request_id.as_deref() == Some(request_id)
+                        && waiter.condition.matches(message)
                 })
                 .map(|(id, _)| *id),
             None => waiters
@@ -1162,6 +1167,11 @@ mod tests {
         state.record_message(&format!(
             r#"{{"_session":"s1","type":"performance","requestId":"{second_id}","data":{{"n":2}}}}"#
         ));
+        // A message tagged with the id but of another shape is not the answer.
+        state.record_message(&format!(
+            r#"{{"_session":"s1","type":"log","requestId":"{first_id}","data":{{}}}}"#
+        ));
+        assert_eq!(state.waiter_count(), 1, "a same-id message of another type must not resolve the wait");
         state.record_message(&format!(
             r#"{{"_session":"s1","type":"performance","requestId":"{first_id}","data":{{"n":1}}}}"#
         ));

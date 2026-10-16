@@ -51,32 +51,95 @@ function _M.new(host, port, path)
     _buf = "",
     _connectAttempts = 0,
     socket = socket.tcp(),
-    -- Outbound send queue: list of fully-framed binary strings waiting to be flushed.
-    -- Using a queue avoids corrupted frames from partial socket:send() calls.
+    -- Outbound queue, indexed head..tail so draining never shifts the array.
     _outQueue = {},
-    _outQueuePos = 1,
+    _outHead = 1,
+    _outTail = 0,
+    _queuedBytes = 0,
+    limits = {},
+    stats = {
+      queuedFrames = 0,
+      dropped = 0,
+      droppedBytes = 0,
+      maxFlushMs = 0,
+      receiveOverflows = 0,
+    },
   }
+  for key, value in pairs(_M.DEFAULT_LIMITS) do
+    m.limits[key] = value
+  end
   m.socket:settimeout(0)
   m.socket:connect(host, port)
   setmetatable(m, _M)
   return m
 end
 
--- Build and enqueue a complete WS frame. Actual sending happens in _flush().
-local mask_key = { 1, 14, 5, 14 }
-local mask_str = string.char(1, 14, 5, 14)
+-- ── Outbound frames ─────────────────────────────────────────────────────────
+--
+-- A frame is queued as its header plus the *unmasked* payload, and masked a
+-- chunk at a time while it is being sent. Masking used to run over the whole
+-- payload, one Lua closure per byte, before the frame was even queued — outside
+-- the runtime's per-frame budget and proportional to the message: tens of
+-- milliseconds for a few hundred KiB. Now each update masks and sends only
+-- until its time budget is spent, and a large message simply takes several
+-- frames.
+--
+-- RFC 6455 §5.3 requires a fresh, unpredictable masking key for every client
+-- frame; the client used one fixed key for all of them.
 
-function _M:_sendFrame(message, opcode)
-  if self.status ~= STATUS.OPEN then
-    return
+local unpack = unpack or table.unpack
+local MASK_CHUNK = 4096 -- multiple of 4, so every chunk starts at key index 1
+
+--- Queue limits. A game that produces faster than the socket drains must not
+--- grow memory without bound; past `maxQueuedBytes` ordinary messages are
+--- refused (and counted), while `reserveBytes` beyond it is kept for replies
+--- to desktop commands so a flood of telemetry cannot starve them.
+_M.DEFAULT_LIMITS = {
+  maxQueuedBytes = 8 * 1024 * 1024,
+  reserveBytes = 1024 * 1024,
+  flushBudgetMs = 1.0,
+}
+
+local function randomByte()
+  if love and love.math and love.math.random then
+    return love.math.random(0, 255)
   end
-  opcode = opcode or 0x1
-  local length = #message
+  return math.random(0, 255)
+end
 
-  -- Header
-  local header
+local function now()
+  if love and love.timer and love.timer.getTime then
+    return love.timer.getTime()
+  end
+  return os.clock()
+end
+
+local function maskChunk(data, first, last, key)
+  local bytes = { data:byte(first, last) }
+  for index = 1, #bytes do
+    bytes[index] = bxor(bytes[index], key[(index - 1) % 4 + 1])
+  end
+  return string.char(unpack(bytes))
+end
+
+--- Mask a whole (small) payload at once. Used for control frames only.
+local function maskAll(payload, key)
+  local parts = {}
+  for first = 1, #payload, MASK_CHUNK do
+    parts[#parts + 1] = maskChunk(payload, first, math.min(first + MASK_CHUNK - 1, #payload), key)
+  end
+  return table.concat(parts)
+end
+_M._maskAll = maskAll
+
+local function newMaskKey()
+  local key = { randomByte(), randomByte(), randomByte(), randomByte() }
+  return key, string.char(key[1], key[2], key[3], key[4])
+end
+
+local function frameHeader(opcode, length)
   if length > 65535 then
-    header = string.char(
+    return string.char(
       bor(0x80, opcode),
       bor(127, 0x80),
       0,
@@ -89,54 +152,141 @@ function _M:_sendFrame(message, opcode)
       band(length, 0xff)
     )
   elseif length > 125 then
-    header = string.char(bor(0x80, opcode), bor(126, 0x80), band(shr(length, 8), 0xff), band(length, 0xff))
-  else
-    header = string.char(bor(0x80, opcode), bor(length, 0x80))
+    return string.char(bor(0x80, opcode), bor(126, 0x80), band(shr(length, 8), 0xff), band(length, 0xff))
   end
-
-  -- Mask payload
-  local i = 0
-  local masked = message:gsub(".", function(c)
-    i = i + 1
-    return string.char(bxor(c:byte(), mask_key[(i - 1) % 4 + 1]))
-  end)
-
-  table.insert(self._outQueue, header .. mask_str .. masked)
+  return string.char(bor(0x80, opcode), bor(length, 0x80))
 end
 
--- Drain the outbound queue, sending as many bytes as the OS buffer accepts.
--- Preserves partial-send position so no frame data is lost between calls.
--- NOTE: LuaSocket send(data, i, j) returns the last byte INDEX sent (not a count),
--- so partial must be used as an absolute position, not added to pos.
-function _M:_flush()
+--- A complete, masked control frame (close / pong). Control payloads are at
+--- most 125 bytes, so masking them in one go is fine.
+local function controlFrame(opcode, payload)
+  local key, keyString = newMaskKey()
+  return frameHeader(opcode, #payload) .. keyString .. maskAll(payload, key)
+end
+
+--- Queue one message. Returns true when queued, or false and a reason when the
+--- queue is full; the caller decides what a refused message means.
+---@param message string
+---@param opcode number|nil
+---@param priority boolean|nil  replies to desktop commands may use the reserve
+function _M:_sendFrame(message, opcode, priority)
+  if self.status ~= STATUS.OPEN then
+    return false, "not open"
+  end
+  local limits = self.limits
+  local ceiling = limits.maxQueuedBytes + (priority and limits.reserveBytes or 0)
+  if self._queuedBytes + #message > ceiling then
+    self.stats.dropped = self.stats.dropped + 1
+    self.stats.droppedBytes = self.stats.droppedBytes + #message
+    return false, "queue full"
+  end
+
+  local key, keyString = newMaskKey()
+  local tail = self._outTail + 1
+  self._outTail = tail
+  self._outQueue[tail] = {
+    data = message,
+    key = key,
+    masked = 0, -- payload bytes masked so far
+    pending = frameHeader(opcode or 0x1, #message) .. keyString, -- bytes ready to write
+    pendingPos = 1,
+  }
+  self._queuedBytes = self._queuedBytes + #message
+  self.stats.queuedFrames = tail - self._outHead + 1
+  return true
+end
+
+--- Write queued frames until the socket would block or the time budget is
+--- spent. Always makes some progress, so a tiny budget cannot stall a frame.
+---@param budgetMs number|nil
+function _M:_flush(budgetMs)
   local queue = self._outQueue
-  if not queue or #queue == 0 then
+  if self._outHead > self._outTail then
     return
   end
-  local pos = self._outQueuePos
-  while #queue > 0 do
-    local frame = queue[1]
-    local n, _, partial = self.socket:send(frame, pos, #frame)
-    if n then
-      -- Frame fully sent (n = last byte index = #frame)
-      table.remove(queue, 1)
-      pos = 1
+  local startedAt = now()
+  local deadline = startedAt + (budgetMs or self.limits.flushBudgetMs) / 1000
+  local progressed = false
+
+  while self._outHead <= self._outTail do
+    local frame = queue[self._outHead]
+
+    if frame.pendingPos > #frame.pending then
+      if frame.masked >= #frame.data then
+        -- Whole frame written.
+        queue[self._outHead] = nil
+        self._outHead = self._outHead + 1
+        self._queuedBytes = self._queuedBytes - #frame.data
+      else
+        if progressed and now() >= deadline then
+          break
+        end
+        local first = frame.masked + 1
+        local last = math.min(frame.masked + MASK_CHUNK, #frame.data)
+        frame.pending = maskChunk(frame.data, first, last, frame.key)
+        frame.pendingPos = 1
+        frame.masked = last
+      end
     else
-      -- Partial send: partial is the absolute last-byte-index sent within the frame.
-      -- Set pos to the next unsent byte. If partial is nil (0 bytes sent), don't advance.
-      pos = (partial or pos - 1) + 1
-      break
+      -- LuaSocket's send(data, i, j) returns the last byte INDEX sent (not a
+      -- count); on a partial send the third value is that index.
+      local sent, _, partial = self.socket:send(frame.pending, frame.pendingPos, #frame.pending)
+      if sent then
+        frame.pendingPos = #frame.pending + 1
+        progressed = true
+      else
+        if partial and partial >= frame.pendingPos then
+          frame.pendingPos = partial + 1
+          progressed = true
+        end
+        break -- the OS buffer is full; continue next update
+      end
     end
   end
-  self._outQueuePos = pos
+
+  local elapsedMs = (now() - startedAt) * 1000
+  if elapsedMs > self.stats.maxFlushMs then
+    self.stats.maxFlushMs = elapsedMs
+  end
+  self.stats.queuedFrames = math.max(0, self._outTail - self._outHead + 1)
 end
 
-function _M:send(message)
-  return self:_sendFrame(message, 0x1)
+--- Bytes of payload still waiting to be written.
+function _M:getQueuedBytes()
+  return self._queuedBytes
 end
 
-function _M:sendBinary(message)
-  return self:_sendFrame(message, 0x2)
+--- Transport counters for diagnostics (`featherOverhead.transport`).
+function _M:getStats()
+  local stats = self.stats
+  return {
+    queuedBytes = self._queuedBytes,
+    queuedFrames = stats.queuedFrames,
+    dropped = stats.dropped,
+    droppedBytes = stats.droppedBytes,
+    maxFlushMs = stats.maxFlushMs,
+    receiveOverflows = stats.receiveOverflows,
+  }
+end
+
+function _M:_resetQueue()
+  self._outQueue = {}
+  self._outHead = 1
+  self._outTail = 0
+  self._queuedBytes = 0
+  self.stats.queuedFrames = 0
+end
+
+---@param message string
+---@param priority boolean|nil
+function _M:send(message, priority)
+  return self:_sendFrame(message, 0x1, priority)
+end
+
+---@param message string
+---@param priority boolean|nil
+function _M:sendBinary(message, priority)
+  return self:_sendFrame(message, 0x2, priority)
 end
 
 function _M:close(code, message)
@@ -147,19 +297,11 @@ function _M:close(code, message)
   if code then
     payload = string.char(shr(code, 8), band(code, 0xff)) .. (message or "")
   end
-  local length = #payload
-  local header = string.char(0x88, bor(length, 0x80))
-  local i = 0
-  local masked = payload:gsub(".", function(c)
-    i = i + 1
-    return string.char(bxor(c:byte(), mask_key[(i - 1) % 4 + 1]))
-  end)
-  -- Close frames are small and sent immediately; flush any queued data first
-  self:_flush()
-  self.socket:send(header .. mask_str .. masked)
+  -- Close frames are small and sent immediately; flush what is queued first.
+  self:_flush(math.huge)
+  self.socket:send(controlFrame(0x8, payload))
   self.status = STATUS.CLOSING
-  self._outQueue = {}
-  self._outQueuePos = 1
+  self:_resetQueue()
 end
 
 -- Try to parse one frame from self._buf. Returns payload, opcode or nil.
@@ -250,18 +392,24 @@ function _M:update()
     -- Flush any queued outbound frames before reading
     self:_flush()
 
-    -- Read available data (non-blocking)
-    local chunk, err, partial = sock:receive(4096)
-    if err == "closed" then
-      self.status = STATUS.CLOSED
-      self._outQueue = {}
-      self._outQueuePos = 1
-      self:onclose(1006, "connection closed")
-      return
-    end
-    local data = chunk or partial
-    if data and #data > 0 then
-      self._buf = self._buf .. data
+    -- Read what is available (non-blocking). Several chunks per update: one
+    -- 4 KiB read per frame let a burst of desktop commands queue up for
+    -- seconds at 60 fps.
+    for _ = 1, 16 do
+      local chunk, err, partial = sock:receive(4096)
+      if err == "closed" then
+        self.status = STATUS.CLOSED
+        self:_resetQueue()
+        self:onclose(1006, "connection closed")
+        return
+      end
+      local data = chunk or partial
+      if data and #data > 0 then
+        self._buf = self._buf .. data
+      end
+      if not chunk then
+        break -- nothing more waiting
+      end
     end
 
     -- Parse frames (capped to prevent runaway)
@@ -280,28 +428,27 @@ function _M:update()
           reason = payload:sub(3)
         end
         self.status = STATUS.CLOSED
-        self._outQueue = {}
-        self._outQueuePos = 1
+        self:_resetQueue()
         self:onclose(code, reason)
         return
       elseif opcode == 0x9 then -- Ping → Pong
-        local plen = #payload
-        local ph = string.char(0x8A, bor(plen, 0x80))
-        local pi = 0
-        local pm = payload:gsub(".", function(c)
-          pi = pi + 1
-          return string.char(bxor(c:byte(), mask_key[(pi - 1) % 4 + 1]))
-        end)
-        sock:send(ph .. mask_str .. pm)
+        sock:send(controlFrame(0xA, payload))
       elseif opcode == 0x1 or opcode == 0x2 then -- Text/Binary
         self:onmessage(payload)
       end
       -- 0xA (Pong) — silently consume
     end
 
-    -- Hard cap: prevent buffer from growing forever
+    -- Hard cap. Emptying the buffer mid-frame (what this used to do, silently)
+    -- desynchronises the stream: the next bytes are parsed as a header and every
+    -- later command is garbage. A message this large from the desktop is a
+    -- protocol fault, so say so and close with 1009 (message too big); the
+    -- runtime reconnects cleanly.
     if #self._buf > 1048576 then
+      self.stats.receiveOverflows = self.stats.receiveOverflows + 1
       self._buf = ""
+      self:onerror("receive buffer overflow: a desktop message exceeded 1 MiB")
+      self:close(1009, "message too big")
     end
   end
 end

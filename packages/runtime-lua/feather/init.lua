@@ -349,8 +349,17 @@ function Feather:__createWsClient()
 
   function self.wsClient:onmessage(raw)
     local ok, msg = pcall(json.decode, raw)
-    if ok and msg then
-      selfRef:__handleCommand(msg)
+    if ok and type(msg) == "table" then
+      -- Request correlation: every message sent while handling a command that
+      -- carries a requestId echoes it, so the desktop can pair this reply with
+      -- the one request that asked for it. Asynchronous replies (a plugin action
+      -- finishing later) carry it themselves.
+      selfRef.__activeRequestId = selfRef:__validRequestId(msg.requestId)
+      local handled, err = xpcall(selfRef.__handleCommand, debug.traceback, selfRef, msg)
+      selfRef.__activeRequestId = nil
+      if not handled then
+        error(err, 0)
+      end
     end
   end
 
@@ -365,17 +374,41 @@ function Feather:__createWsClient()
     end
   end
 
-  function self.wsClient:onerror(_err) end
+  function self.wsClient:onerror(err)
+    -- Transport faults (a receive overflow, a failed connect) used to vanish.
+    print("[Feather] Transport error: " .. tostring(err))
+  end
+end
+
+--- A requestId is echoed into outgoing JSON, so accept only short, plain
+--- identifiers that need no escaping.
+---@param value any
+---@return string|nil
+function Feather:__validRequestId(value)
+  if type(value) == "string" and #value > 0 and #value <= 128 and value:match("^[%w%-_.:]+$") then
+    return value
+  end
+  return nil
 end
 
 --- Send a JSON string directly over the WS client.
+---
+--- Replies to a desktop command (anything sent while one is being handled) and
+--- the auth handshake may use the transport's reserve, so a backlog of
+--- telemetry cannot crowd them out. Everything else is refused once the queue
+--- is full; the transport counts what it refused.
 function Feather:__sendWs(payload)
   if self.wsConnected and self.wsClient then
+    local requestId = self.__activeRequestId
+    if requestId and type(payload) == "string" and payload:sub(1, 1) == "{" and not payload:find('"requestId"', 1, true) then
+      payload = '{"requestId":"' .. requestId .. '",' .. payload:sub(2)
+    end
     if self.overhead then
       self.overhead:recordMessage(type(payload) == "string" and #payload or 0)
     end
+    local priority = requestId ~= nil or self.__connState == "authenticating"
     pcall(function()
-      self.wsClient:send(payload)
+      self.wsClient:send(payload, priority)
     end)
   end
 end
@@ -1083,6 +1116,9 @@ function Feather:__pushPerformance(dt)
   local body = self.performance:getResponseBody(dt)
   if self.overhead then
     body.featherOverhead = self.overhead:getResponseBody()
+    if self.wsClient and self.wsClient.getStats then
+      body.featherOverhead.transport = self.wsClient:getStats()
+    end
   end
   self:__sendWs(json.encode({
     type = "performance",
@@ -1424,14 +1460,18 @@ function Feather:update(dt)
       local wsStartedAt = self.overhead and self.overhead:begin()
       self.wsClient:update()
       if self.overhead then self.overhead:recordElapsed("transport", wsStartedAt) end
-      -- Drain queued binary frames: at most 2 per game frame to avoid flooding the socket
+      -- Hand queued binaries to the transport while it has room. This used to
+      -- be "two per frame", which bounds items rather than bytes: two large
+      -- captures cost far more than many small ones. The transport masks and
+      -- writes within its own per-update budget, so what matters here is only
+      -- that it is not already holding a large backlog.
       if not self.runtimeSuspended and self.wsConnected and self._binaryDrainQueue and #self._binaryDrainQueue > 0 then
-        for _ = 1, 2 do
-          if not self:__hasRuntimeBudget("binary") then
-            break
-          end
+        local highWater = self.binaryHighWaterBytes or (1024 * 1024)
+        while #self._binaryDrainQueue > 0
+          and self.wsClient:getQueuedBytes() < highWater
+          and self:__hasRuntimeBudget("binary")
+        do
           local binary = table.remove(self._binaryDrainQueue, 1)
-          if not binary then break end
           if binary.bytes and self.wsClient.sendBinary then
             self.wsClient:sendBinary(binary.bytes)
             if self.overhead then

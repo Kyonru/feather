@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Replies from the Lua runtime echo the `requestId` of the command they answer, so Inspector and MCP can pair concurrent identical commands with their own responses.
 - Inspector's MCP backend health now reports its app, version, connected sessions, features and limits, so the `feather mcp` gateway can describe what is available.
 - Added `pnpm run down` to stop all process trees owned by active `pnpm run up` sessions while leaving reused apps running.
 - Feather Studio is now a separate application. The shader graph, texture lab and particle playground install, update and version independently of Feather Inspector, so a Studio update no longer means reinstalling your debugger and a debugger fix no longer touches your creative tools. Install either without the other from the releases page, or use Studio in a browser with no install.
@@ -51,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Added Lua transport coverage that decodes frames from a throttled fake socket: payloads survive incremental masking, each frame has its own key, a 256 KiB message spans updates within budget, the queue limit and reply reserve hold, and receive overflow closes with a named error. Added coverage that replies echo a valid `requestId` and ignore malformed ones.
 - Added Rust coverage for MCP request correlation (concurrent identical commands, legacy oldest-first matching, waiter cleanup after timeout, send failure and cancellation), the disabled-bridge fast path, oversized snapshot messages, nested secret stripping, and the bounded outbound game queue.
 - Added extension tests that execute the prepared dev launcher and assert it runs the workspace CLI at the declared platform version.
 - CI now runs the showcase end-to-end suite and the full `pnpm run verify` gate (every typecheck, lint, Lua lint, protocol, registry, plugin-catalog and repository-path checks), with suites running through Turbo so unchanged work is reused.
@@ -72,6 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Lua runtime no longer stalls the game to send a large message. WebSocket frames were masked one byte at a time, in full, before being queued — tens of milliseconds for a few hundred KiB, outside Feather's per-frame budget. Masking and sending now happen incrementally within a per-update time budget (a 256 KiB message goes out over a handful of frames at about half a millisecond each), and every frame gets its own random masking key as RFC 6455 requires, instead of one fixed key.
+- The runtime's outbound queue is bounded (8 MiB by default). Past it, ordinary telemetry is refused and counted rather than growing memory, while replies to desktop commands keep a reserve. Queue depth, refusals and the slowest flush are reported in `featherOverhead.transport`.
+- A desktop message larger than the runtime's 1 MiB receive limit now closes the connection with a named error (the runtime reconnects) instead of silently emptying the buffer mid-frame, which corrupted every later command. The runtime also reads more than one 4 KiB chunk per frame, so bursts of commands no longer queue for seconds.
 - Fixed MCP waits answering the wrong caller: two identical concurrent commands (two plugin actions, two refreshes) both received the first response. Waiting commands now carry a `requestId` that the response resolves exactly; runtimes that predate it are matched oldest-first. A wait that times out, fails to send, or is cancelled no longer leaves a dead entry behind.
 - Inspector no longer queues commands without limit for a game that has stopped reading them (for example, paused in a debugger); the command fails with an error saying the game is not reading commands, instead of memory growing until it is the limit. Sending to a session that is no longer connected now reports that instead of silently succeeding.
 - A disabled Inspector MCP bridge no longer parses, redacts and snapshots every message from every connected game.
