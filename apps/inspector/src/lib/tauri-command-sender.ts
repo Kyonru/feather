@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { useSettingsStore } from '@/store/settings';
 import type { CommandMessage, CommandSender } from '@feather/session-bridge';
+import { assertSessionAcceptsCommands } from '@/lib/protocol-gate';
 
 function withAppId(message: CommandMessage): string {
   const appId = useSettingsStore.getState().appId;
@@ -23,5 +24,8 @@ function withAppId(message: CommandMessage): string {
  * This is the only module that knows commands travel over Tauri, which is what
  * keeps `@tauri-apps/*` out of the shared packages Feather Studio also uses.
  */
-export const tauriCommandSender: CommandSender = (sessionId, message) =>
-  invoke('send_command', { sessionId, message: withAppId(message) });
+export const tauriCommandSender: CommandSender = async (sessionId, message) => {
+  // A session whose wire protocol this build cannot speak receives nothing.
+  assertSessionAcceptsCommands(sessionId);
+  await invoke('send_command', { sessionId, message: withAppId(message) });
+};

@@ -86,8 +86,8 @@ async function seedTwoConnectedSessions(page: Page) {
   });
 }
 
-async function seedTauriConnectedGame(page: Page) {
-  await page.addInitScript(() => {
+async function seedTauriConnectedGame(page: Page, helloOverrides: Record<string, unknown> = {}) {
+  await page.addInitScript((helloExtra: Record<string, unknown>) => {
     type EventCallback = (event: { id: number; event: string; payload: unknown }) => void;
 
     localStorage.setItem('feather-e2e-query-client', '1');
@@ -150,6 +150,7 @@ async function seedTauriConnectedGame(page: Page) {
               captureScreenshot: false,
               location: '/tmp/cli-example',
               sessionName: 'CLI Example',
+              ...helloExtra,
               capabilities: [],
               security: { appIdRequired: true },
               sysInfo: { os: 'MacOS', arch: 'arm64', cpuCount: 8, loveVersion: '11.5' },
@@ -258,7 +259,7 @@ async function seedTauriConnectedGame(page: Page) {
     };
 
     setTimeout(() => emitTauriEvent('feather://session-start', activeSessions[0]), 0);
-  });
+  }, helloOverrides);
 }
 
 async function seedCommandCenterState(page: Page) {
@@ -1936,6 +1937,35 @@ test('session health flags a runtime speaking an unsupported wire protocol', asy
   // The warning has to say what to actually do about it.
   await expect(page.getByText(/Update the Feather desktop app/)).toBeVisible();
   await expectNoBrokenText(page);
+});
+
+test('an incompatible wire protocol makes the session read-only', async ({ page }) => {
+  // A runtime newer than this desktop build. The session stays visible, but
+  // Inspector must not keep sending route interest, refreshes or user commands
+  // to a game it has just said it cannot trust.
+  await seedTauriConnectedGame(page, { protocolVersion: 99 });
+  await page.setViewportSize({ width: 1180, height: 760 });
+  await page.goto('/');
+  await expect(page.getByText(/Feather protocol mismatch/)).toBeVisible();
+
+  // Starting a capture sends cmd:profiler to this session when it is
+  // compatible (see 'profiler action responses refresh visible capture data').
+  // Navigate inside the app: a reload would start a fresh page that has not yet
+  // received this game's hello, which is a different situation.
+  await page.getByRole('link', { name: 'Performance', exact: true }).click();
+  await page.getByRole('tab', { name: 'Profiler' }).click();
+  await page.getByRole('button', { name: 'Record Capture' }).click();
+  await page.waitForTimeout(500);
+
+  const profilerStarts = await page.evaluate(
+    () =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ((window as any).__FEATHER_E2E_TAURI__?.commands ?? []).filter(
+        (item: { sessionId?: string; message?: { type?: string; action?: string } }) =>
+          item.sessionId === 'live-game-session' && item.message?.type === 'cmd:profiler' && item.message.action === 'start',
+      ).length,
+  );
+  expect(profilerStarts).toBe(0);
 });
 
 test('session health tolerates a runtime that predates protocol negotiation', async ({ page }) => {

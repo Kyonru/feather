@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- A game whose wire protocol this Inspector cannot speak is now read-only rather than only flagged: Inspector stops sending it refreshes, debugger setup and commands, and an action you trigger says why and what to update. What the game already sent stays readable, and runtimes from before protocol negotiation are unaffected.
 - `feather mcp` no longer requires Inspector to start. It starts with Inspector, Studio, both or neither available and reports which through the new `feather://status` resource and `feather_status` tool, with a remedy for anything missing; Studio-only creative work now uses the same single server. Studio publishes its per-launch token to `~/.feather/studio-mcp.json`, so `--studio-token` is no longer needed locally.
 - HTTP MCP clients now authenticate to `feather mcp` with the gateway's own token (`--http-token`, `FEATHER_MCP_HTTP_TOKEN`, or `~/.feather/mcp-gateway.json`, created on first HTTP start) instead of Inspector's bridge token. **Existing HTTP client configs need the new token**; stdio setups are unaffected.
 - `feather_send_command`, which forwards arbitrary command objects, is now off unless `feather mcp` is started with `--allow-raw-commands`.
@@ -56,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Added Inspector coverage that an incompatible-protocol session receives no user command (verified to fail without the guard), plus unit tests for the per-session protocol gate.
 - Added MCP gateway coverage for Studio-only startup with a published Studio token, honest backend status, the raw command tool being opt-in, backend deadlines, a private self-minted HTTP client token that rejects the Inspector token, and the HTTP body limit.
 - Added Lua transport coverage that decodes frames from a throttled fake socket: payloads survive incremental masking, each frame has its own key, a 256 KiB message spans updates within budget, the queue limit and reply reserve hold, and receive overflow closes with a named error. Added coverage that replies echo a valid `requestId` and ignore malformed ones.
 - Added Rust coverage for MCP request correlation (concurrent identical commands, legacy oldest-first matching, waiter cleanup after timeout, send failure and cancellation), the disabled-bridge fast path, oversized snapshot messages, nested secret stripping, and the bounded outbound game queue.

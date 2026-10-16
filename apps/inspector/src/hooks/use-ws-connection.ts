@@ -26,6 +26,7 @@ import { isWeb } from '@/utils/platform';
 import { useDebuggerStore, type BreakpointIssue, type DebuggerStatus, type PausedState } from '@/store/debugger';
 import { FEATHER_PLUGIN_API } from '@/constants/feather-api';
 import { evaluateProtocol } from '@/constants/feather-protocol';
+import { recordSessionProtocol } from '@/lib/protocol-gate';
 import { parseInbound } from '@feather/protocol';
 import { sessionQueryKey } from '@/lib/session-query-keys';
 import { sendCommand, sendBackgroundCommand } from '@/lib/send-command';
@@ -417,9 +418,12 @@ export const useWsConnection = () => {
             // raised here — a runtime that predates negotiation is reported in
             // Session health instead, so it does not nag on every connect.
             const protocol = evaluateProtocol(config.protocolVersion);
+            // From here on the transport refuses commands to this session if
+            // it is incompatible; the session stays readable.
+            recordSessionProtocol(sessionId, protocol);
             if (protocol.incompatible) {
               toast.error(`Feather protocol mismatch — ${protocol.summary}`, {
-                description: protocol.remediation,
+                description: `${protocol.remediation} Inspector will not send commands to this game; what it already sent stays readable.`,
                 duration: Infinity,
               });
             }
