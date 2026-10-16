@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { writeFileAtomicSync } from "../atomic-write.js";
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -195,25 +196,33 @@ function bundledRegistryPath(): string {
   return join(__dirname, "../../generated/registry.json");
 }
 
-type CacheFile = { fetchedAt: string; registry: Registry };
+type CacheFile = { fetchedAt: string; url?: string; registry: Registry };
 
-function readCache(): Registry | null {
+type CachedRegistry = { registry: Registry; fetchedAt: string; ageMs: number; fresh: boolean };
+
+function readCache(url: string): CachedRegistry | { error: string } | null {
   const path = cachePath();
   if (!existsSync(path)) return null;
   try {
-    const { fetchedAt, registry } = JSON.parse(readFileSync(path, "utf8")) as CacheFile;
-    if (Date.now() - new Date(fetchedAt).getTime() < CACHE_TTL_MS) return validateRegistry(registry);
-  } catch {
-    // ignore corrupt cache
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as CacheFile;
+    // Caches written before the URL was recorded always came from the default registry.
+    if ((parsed.url ?? REGISTRY_URL) !== url) return null;
+    const fetchedMs = new Date(parsed.fetchedAt).getTime();
+    if (!Number.isFinite(fetchedMs)) return { error: "registry cache has no valid fetchedAt" };
+    const ageMs = Math.max(0, Date.now() - fetchedMs);
+    return { registry: validateRegistry(parsed.registry), fetchedAt: parsed.fetchedAt, ageMs, fresh: ageMs < CACHE_TTL_MS };
+  } catch (error) {
+    return { error: `registry cache is unreadable (${(error as Error).message})` };
   }
-  return null;
 }
 
-function writeCache(registry: Registry): void {
-  const dir = cacheDir();
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const data: CacheFile = { fetchedAt: new Date().toISOString(), registry };
-  writeFileSync(cachePath(), JSON.stringify(data));
+function writeCache(registry: Registry, url: string, fetchedAt: string): void {
+  const data: CacheFile = { fetchedAt, url, registry };
+  try {
+    writeFileAtomicSync(cachePath(), JSON.stringify(data));
+  } catch {
+    // A cache write failure must not fail the command; the next run fetches again.
+  }
 }
 
 function readBundled(): Registry {
@@ -226,24 +235,141 @@ export type RegistryLoadOptions = {
   registryUrl?: string;
 };
 
-export async function loadRegistry(opts: RegistryLoadOptions = {}): Promise<Registry> {
-  if (opts.offline) return readBundled();
+export type RegistrySource = "network" | "cache" | "bundled";
 
-  if (!opts.refresh) {
-    const cached = readCache();
-    if (cached) return cached;
-  }
+/** Registry data plus where it came from and how old it is. */
+export type RegistryLoad = {
+  registry: Registry;
+  source: RegistrySource;
+  /** When this data was fetched from the network; null for the bundled snapshot. */
+  fetchedAt: string | null;
+  /** Milliseconds since `fetchedAt`, or since the bundled snapshot's `updatedAt`. */
+  age: number | null;
+  /** The catalog's own `updatedAt`. */
+  generatedAt: string;
+  /** True when bundled data was requested with --offline. */
+  offline: boolean;
+  /** Why fresh network data was not used, when it was wanted. */
+  fallbackReason?: string;
+};
 
+function ageSince(value: string): number | null {
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? Math.max(0, Date.now() - ms) : null;
+}
+
+function bundledLoad(offline: boolean, fallbackReason?: string): RegistryLoad {
+  const registry = readBundled();
+  return {
+    registry,
+    source: "bundled",
+    fetchedAt: null,
+    age: ageSince(registry.updatedAt),
+    generatedAt: registry.updatedAt,
+    offline,
+    ...(fallbackReason ? { fallbackReason } : {}),
+  };
+}
+
+function cacheLoad(cached: CachedRegistry, fallbackReason?: string): RegistryLoad {
+  return {
+    registry: cached.registry,
+    source: "cache",
+    fetchedAt: cached.fetchedAt,
+    age: cached.ageMs,
+    generatedAt: cached.registry.updatedAt,
+    offline: false,
+    ...(fallbackReason ? { fallbackReason } : {}),
+  };
+}
+
+async function fetchRegistry(url: string): Promise<unknown> {
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
+  return res.json();
+}
+
+/**
+ * Load the registry and report its provenance. Network failures still fall back (to the cached
+ * copy or the bundled snapshot, whichever is newer) so package commands keep working, but the
+ * result says which source was used and why.
+ */
+export async function loadRegistryWithStatus(opts: RegistryLoadOptions = {}): Promise<RegistryLoad> {
+  if (opts.offline) return bundledLoad(true);
+
+  const url = opts.registryUrl ?? REGISTRY_URL;
+  const cached = readCache(url);
+  if (!opts.refresh && cached && !("error" in cached) && cached.fresh) return cacheLoad(cached);
+
+  let reason: string;
   try {
-    const url = opts.registryUrl ?? REGISTRY_URL;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const registry = validateRegistry(await res.json());
-    writeCache(registry);
-    return registry;
-  } catch {
-    // Fall through to bundled
+    let raw: unknown;
+    try {
+      raw = await fetchRegistry(url);
+    } catch (error) {
+      throw new Error(`could not fetch the registry (${(error as Error).message})`, { cause: error });
+    }
+    let registry: Registry;
+    try {
+      registry = validateRegistry(raw);
+    } catch (error) {
+      throw new Error(`the fetched registry is invalid (${(error as Error).message})`, { cause: error });
+    }
+    const fetchedAt = new Date().toISOString();
+    writeCache(registry, url, fetchedAt);
+    return { registry, source: "network", fetchedAt, age: 0, generatedAt: registry.updatedAt, offline: false };
+  } catch (error) {
+    reason = (error as Error).message;
   }
 
-  return readBundled();
+  if (cached && "error" in cached) reason = `${reason}; ${cached.error}`;
+  const bundled = bundledLoad(false, reason);
+  if (cached && !("error" in cached) && cached.registry.updatedAt >= bundled.registry.updatedAt) {
+    return cacheLoad(cached, reason);
+  }
+  return bundled;
+}
+
+export async function loadRegistry(opts: RegistryLoadOptions = {}): Promise<Registry> {
+  return (await loadRegistryWithStatus(opts)).registry;
+}
+
+export function formatRegistryAge(ms: number | null): string {
+  if (ms === null) return "unknown age";
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 1) return "just fetched";
+  if (minutes < 60) return `${minutes} min old`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48) return `${hours} h old`;
+  return `${Math.floor(hours / 24)} days old`;
+}
+
+/**
+ * A one-line provenance notice: `warn` when fresh network data was wanted and not obtained,
+ * `info` for a cache hit or an explicit --offline, null for fresh network data.
+ */
+export function registryStatusNotice(load: RegistryLoad): { level: "info" | "warn"; message: string } | null {
+  if (load.source === "network") return null;
+  const age = formatRegistryAge(load.age);
+  if (load.fallbackReason) {
+    const what =
+      load.source === "cache"
+        ? `cached registry fetched ${load.fetchedAt} (${age})`
+        : `bundled registry snapshot from ${load.generatedAt} (${age})`;
+    return { level: "warn", message: `Using ${what}: ${load.fallbackReason}. Package versions may be out of date.` };
+  }
+  if (load.source === "cache") return { level: "info", message: `Using cached registry (${age}).` };
+  return { level: "info", message: `Using bundled registry snapshot from ${load.generatedAt} (${age}, offline).` };
+}
+
+/** Stable JSON shape for `--json` outputs. */
+export function registryStatusJson(load: RegistryLoad) {
+  return {
+    source: load.source,
+    fetchedAt: load.fetchedAt,
+    age: load.age,
+    generatedAt: load.generatedAt,
+    offline: load.offline,
+    fallbackReason: load.fallbackReason ?? null,
+  };
 }

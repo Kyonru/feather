@@ -23,7 +23,7 @@ import { auditLockfile } from '../../lib/package/audit.js';
 import { checkPackageLockCompatibility } from '../../lib/package/compat.js';
 import { readLockfile } from '../../lib/package/lockfile.js';
 import { lockfileEntrySourceSummary, lockfileUrlFindings } from '../../lib/package/provenance.js';
-import { loadRegistry } from '../../lib/package/registry.js';
+import { formatRegistryAge, loadRegistryWithStatus } from '../../lib/package/registry.js';
 import { classifyPluginTrust, dangerousPluginIds, parseManagedValue, findInstalledPluginDirs, pluginTrustLabel, readPluginManifest, type PluginTrust } from '../../lib/plugin-utils.js';
 import { pluginCatalog } from '../../generated/plugin-catalog.js';
 import {
@@ -615,7 +615,18 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
       } else {
       const auditResults = await auditLockfile(projectDir, lockfile);
       const badPackages = new Set(auditResults.filter((result) => result.status !== 'verified').map((result) => result.id));
-      const registry = await loadRegistry({ offline: true });
+      // Doctor never touches the network, so version checks below compare against the bundled
+      // snapshot. Say so, with its age, rather than presenting it as the live catalog.
+      const registryLoad = await loadRegistryWithStatus({ offline: true });
+      const registry = registryLoad.registry;
+      add(
+        checks,
+        'Packages',
+        'Package registry',
+        'info',
+        `bundled snapshot from ${registryLoad.generatedAt} (${formatRegistryAge(registryLoad.age)}); version checks use offline data`,
+        `Run \`feather package update --dir ${projectDirArg} --dry-run\` to compare against the live catalog.`,
+      );
       for (const [id, entry] of Object.entries(lockfile.packages).sort(([a], [b]) => a.localeCompare(b))) {
         packageReports.push({
           id,
@@ -644,9 +655,11 @@ export async function doctorCommand(gamePath?: string, opts: DoctorOptions = {})
         const packageResults = auditResults.filter((result) => result.id === id && result.status !== 'verified');
         const missing = packageResults.filter((result) => result.status === 'missing').length;
         const modified = packageResults.filter((result) => result.status === 'modified').length;
+        const unsafe = packageResults.filter((result) => result.status === 'unsafe').length;
         const details = [
           missing > 0 ? `${missing} missing` : '',
           modified > 0 ? `${modified} modified` : '',
+          unsafe > 0 ? `${unsafe} outside the project` : '',
         ].filter(Boolean).join(', ');
         add(
           checks,

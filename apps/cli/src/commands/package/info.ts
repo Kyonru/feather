@@ -3,7 +3,8 @@ import { fail } from '../../lib/command.js';
 import { printBlank, printJson, printLine, printMuted, style } from '../../lib/output.js';
 import { trustBadge } from '../../lib/trust.js';
 import { packageCatalogJson, packageLockJson } from './json.js';
-import { loadRegistryOrExit, resolvePackageProjectDir } from './shared.js';
+import { registryStatusJson } from '../../lib/package/registry.js';
+import { loadRegistryStatusOrExit, resolvePackageProjectDir } from './shared.js';
 
 export type PackageInfoOptions = {
   offline?: boolean;
@@ -16,8 +17,9 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
   const projectDir = resolvePackageProjectDir(opts.dir);
   const lockfile = readCompatibleLockfile(projectDir);
 
-  const registry = await loadRegistryOrExit({ offline: opts.offline, registryUrl: opts.registryUrl });
-  if (!registry) return;
+  const load = await loadRegistryStatusOrExit({ offline: opts.offline, registryUrl: opts.registryUrl, json: opts.json });
+  if (!load) return;
+  const { registry } = load;
 
   const entry = registry.packages[name];
   if (!entry) {
@@ -33,6 +35,7 @@ export async function packageInfoCommand(name: string, opts: PackageInfoOptions 
       files: entry.install.files,
       dependencyAliases: entry.dependencyAliases ?? [],
       usage: entry.example ?? `local lib = require("${entry.require}")`,
+      registry: registryStatusJson(load),
     });
     return;
   }
