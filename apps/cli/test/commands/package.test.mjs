@@ -590,7 +590,7 @@ test('audit: missing file exits 1 and reports missing', () => {
       version: 'v2.3.1',
       trust: 'verified',
       source: { repo: 'kikito/anim8', tag: 'v2.3.1' },
-      files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: 'abc123' }],
+      files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: sha256('return {}') }],
     },
   });
   const { stdout, exitCode } = run(['package', 'audit', '--dir', dir]);
@@ -676,7 +676,7 @@ test('remove: installed package requires --yes in non-interactive mode', () => {
       version: 'v2.3.1',
       trust: 'verified',
       source: { repo: 'kikito/anim8', tag: 'v2.3.1' },
-      files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: 'any' }],
+      files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: sha256('return {}') }],
     },
   });
   const result = run(['package', 'remove', 'anim8', '--dir', dir]);
@@ -694,7 +694,7 @@ test('remove: deletes file and removes lockfile entry', () => {
       version: 'v2.3.1',
       trust: 'verified',
       source: { repo: 'kikito/anim8', tag: 'v2.3.1' },
-      files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: 'any' }],
+      files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: sha256('return {}') }],
     },
   });
   const { exitCode } = run(['package', 'remove', 'anim8', '--dir', dir, '--yes']);
@@ -715,8 +715,8 @@ test('remove: deletes package license files with the owning package', () => {
       trust: 'verified',
       source: { repo: 'kikito/anim8', tag: 'v2.3.1' },
       files: [
-        { name: 'anim8.lua', target: 'lib/anim8.lua', sha256: 'any' },
-        { name: 'LICENSE', target: 'lib/anim8.LICENSE', sha256: 'any', role: 'license' },
+        { name: 'anim8.lua', target: 'lib/anim8.lua', sha256: sha256('return {}') },
+        { name: 'LICENSE', target: 'lib/anim8.LICENSE', sha256: sha256('license'), role: 'license' },
       ],
     },
   });
@@ -736,13 +736,13 @@ test('remove: does not touch files belonging to other packages', () => {
       version: 'v2.3.1',
       trust: 'verified',
       source: { repo: 'kikito/anim8', tag: 'v2.3.1' },
-      files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: 'any' }],
+      files: [{ name: 'anim8.lua', target: 'lib/anim8.lua', sha256: sha256('return {}') }],
     },
     bump: {
       version: 'v3.1.7',
       trust: 'verified',
       source: { repo: 'kikito/bump.lua', tag: 'v3.1.7' },
-      files: [{ name: 'bump.lua', target: 'lib/bump.lua', sha256: 'any' }],
+      files: [{ name: 'bump.lua', target: 'lib/bump.lua', sha256: sha256('return {}') }],
     },
   });
   run(['package', 'remove', 'anim8', '--dir', dir, '--yes']);
@@ -823,7 +823,7 @@ function writeUrlLock(dir, id, files) {
 test('list --installed: shows url package with experimental trust', () => {
   const dir = makeTmp();
   writeUrlLock(dir, 'my-helper', [
-    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: 'abc' },
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('return {}') },
   ]);
   const { stdout, exitCode } = run(['package', 'list', '--installed', '--dir', dir]);
   assert.equal(exitCode, 0);
@@ -848,7 +848,7 @@ test('audit: url package with correct file reports verified', () => {
 test('audit: url package with missing file exits 1 and reports missing', () => {
   const dir = makeTmp();
   writeUrlLock(dir, 'my-helper', [
-    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: 'abc' },
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('return {}') },
   ]);
   const { stdout, exitCode } = run(['package', 'audit', '--dir', dir]);
   assert.equal(exitCode, 1);
@@ -938,7 +938,7 @@ test('remove: url package removes file and lockfile entry', () => {
   mkdirSync(join(dir, 'lib'), { recursive: true });
   writeFileSync(join(dir, 'lib', 'helper.lua'), 'return {}');
   writeUrlLock(dir, 'my-helper', [
-    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: 'any' },
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('return {}') },
   ]);
   const { exitCode } = run(['package', 'remove', 'my-helper', '--dir', dir, '--yes']);
   assert.equal(exitCode, 0);
@@ -953,8 +953,8 @@ test('remove: url package with multiple files removes all of them', () => {
   writeFileSync(join(dir, 'lib', 'mypkg', 'a.lua'), 'return "a"');
   writeFileSync(join(dir, 'lib', 'mypkg', 'b.lua'), 'return "b"');
   writeUrlLock(dir, 'mypkg', [
-    { name: 'a.lua', url: 'https://example.com/a.lua', target: 'lib/mypkg/a.lua', sha256: 'any' },
-    { name: 'b.lua', url: 'https://example.com/b.lua', target: 'lib/mypkg/b.lua', sha256: 'any' },
+    { name: 'a.lua', url: 'https://example.com/a.lua', target: 'lib/mypkg/a.lua', sha256: sha256('return "a"') },
+    { name: 'b.lua', url: 'https://example.com/b.lua', target: 'lib/mypkg/b.lua', sha256: sha256('return "b"') },
   ]);
   const { exitCode } = run(['package', 'remove', 'mypkg', '--dir', dir, '--yes']);
   assert.equal(exitCode, 0);
@@ -1008,7 +1008,7 @@ test('output: command and lib sources route terminal writes through output helpe
 test('update: url package is skipped with experimental message', () => {
   const dir = makeTmp();
   writeUrlLock(dir, 'my-helper', [
-    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: 'abc' },
+    { name: 'helper.lua', url: 'https://example.com/helper.lua', target: 'lib/helper.lua', sha256: sha256('return {}') },
   ]);
   const { stdout, exitCode } = run(['package', 'update', '--offline', '--dir', dir]);
   assert.equal(exitCode, 0);

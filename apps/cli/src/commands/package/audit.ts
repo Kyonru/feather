@@ -67,7 +67,12 @@ export async function packageAuditCommand(opts: PackageAuditOptions = {}): Promi
       status: result.status === 'verified' ? icon.success : result.status === 'missing' ? icon.warning : icon.error,
       id: result.id,
       target: result.target,
-      message: result.status === 'modified' ? 'MODIFIED  ← SHA-256 mismatch' : result.status,
+      message:
+        result.status === 'modified'
+          ? 'MODIFIED  ← SHA-256 mismatch'
+          : result.status === 'unsafe'
+            ? 'UNSAFE  ← resolves outside the project (not read)'
+            : result.status,
     })),
   });
 

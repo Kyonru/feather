@@ -1,9 +1,13 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, lstatSync } from "node:fs";
 import { sha256File } from "./checksum.js";
 import type { Lockfile } from "./lockfile.js";
+import { resolveProjectTarget } from "./target.js";
 
-export type AuditStatus = "verified" | "modified" | "missing";
+/**
+ * `unsafe` means the locked target resolves outside the project (for example through a symlinked
+ * directory) and was not read.
+ */
+export type AuditStatus = "verified" | "modified" | "missing" | "unsafe";
 
 export type AuditEntry = {
   id: string;
@@ -22,10 +26,20 @@ export async function auditLockfile(
 
   for (const [id, entry] of Object.entries(lockfile.packages)) {
     for (const file of entry.files) {
-      const absPath = join(projectDir, file.target);
+      const absPath = resolveProjectTarget(projectDir, file.target);
+      if (!absPath) {
+        results.push({ id, file: file.name, target: file.target, status: "unsafe", expected: file.sha256, actual: null });
+        continue;
+      }
 
       if (!existsSync(absPath)) {
         results.push({ id, file: file.name, target: file.target, status: "missing", expected: file.sha256, actual: null });
+        continue;
+      }
+
+      if (!lstatSync(absPath).isFile()) {
+        // A directory or symlink where a package file belongs is not the locked file.
+        results.push({ id, file: file.name, target: file.target, status: "modified", expected: file.sha256, actual: null });
         continue;
       }
 
