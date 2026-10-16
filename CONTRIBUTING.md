@@ -503,6 +503,7 @@ along with it. See `V4.md` §5.6 for the full model.
 | `runtime-v<semver>` | Lua runtime alone | LuaRocks + GitHub release |
 | `desktop-v<semver>` | Desktop app alone | 4 signed binaries |
 | `ext-v<semver>` | VS Code extension alone | Marketplace + Open VSX |
+| `studio-v<semver>` | Feather Studio alone | Studio desktop binaries |
 
 Set a train's version before tagging. The script only touches the files owned by
 the train you name:
@@ -512,8 +513,26 @@ bash scripts/set-version.sh cli 4.0.1        # then: git tag cli-v4.0.1
 bash scripts/set-version.sh runtime 4.0.1    # then: git tag runtime-v4.0.1
 bash scripts/set-version.sh desktop 4.0.1    # then: git tag desktop-v4.0.1
 bash scripts/set-version.sh ext 4.0.1        # then: git tag ext-v4.0.1
+bash scripts/set-version.sh studio 0.2.0     # then: git tag studio-v0.2.0
 bash scripts/set-version.sh platform 4.1.0   # then: git tag v4.1.0
 ```
+
+After committing the version change, use the repository release command instead
+of creating or pushing tags by hand. It checks a clean worktree, every version
+file owned by the train, local and remote tag collisions, and the exact tag
+vocabulary. The default is a non-mutating dry run; `--push` is required to ship:
+
+```sh
+pnpm run release:cli
+pnpm run release:desktop -- --push       # `release:inspector` is an alias
+pnpm run release:studio -- --push
+pnpm run release:runtime -- --push
+pnpm run release:extension -- --push
+pnpm run release:platform -- --push      # runtime + CLI + Inspector
+```
+
+Pass `--version <semver>` to assert an expected version. The command never bumps
+or commits versions; use `set-version.sh`, review the diff, and commit first.
 
 Notes:
 
