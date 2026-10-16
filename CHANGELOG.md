@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Inspector starts faster: Performance, Debugger, Console, Plugins, Assets, Observability, Time Travel, Session Replay and Compare load when first opened, cutting the startup bundle from 2.6 MB to 2.0 MB (794 kB to 597 kB compressed). Logs and Session still open instantly.
 - A game whose wire protocol this Inspector cannot speak is now read-only rather than only flagged: Inspector stops sending it refreshes, debugger setup and commands, and an action you trigger says why and what to update. What the game already sent stays readable, and runtimes from before protocol negotiation are unaffected.
 - `feather mcp` no longer requires Inspector to start. It starts with Inspector, Studio, both or neither available and reports which through the new `feather://status` resource and `feather_status` tool, with a remedy for anything missing; Studio-only creative work now uses the same single server. Studio publishes its per-launch token to `~/.feather/studio-mcp.json`, so `--studio-token` is no longer needed locally.
+- Particle Playground MCP tools now read and mutate Studio's active local workspace by default, including project, Lua and ZIP-asset exports without Inspector or a running game. Passing `sessionId` explicitly keeps live-game actions routed through Inspector.
 - HTTP MCP clients now authenticate to `feather mcp` with the gateway's own token (`--http-token`, `FEATHER_MCP_HTTP_TOKEN`, or `~/.feather/mcp-gateway.json`, created on first HTTP start) instead of Inspector's bridge token. **Existing HTTP client configs need the new token**; stdio setups are unaffected.
 - `feather_send_command`, which forwards arbitrary command objects, is now off unless `feather mcp` is started with `--allow-raw-commands`.
 - Every `feather mcp` call to Inspector or Studio has a deadline and fails with "… did not answer within N ms" instead of hanging on a stalled application; HTTP request bodies are limited to 1 MiB; the server reports its real version instead of `3.3.1`.
@@ -38,10 +39,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Package installs and updates are transactional, validate and atomically write `feather.lock.json`, protect untracked and locally modified files unless `--force` is explicit, and report whether registry data came from the network, cache or bundled snapshot.
 - Package removal preserves modified/shared files and requires `--cascade` before removing installed dependents.
 - Plugin activation now enforces declared capabilities and runtime policy, schedules work within budgets, validates action contracts, and reports plugin health.
+- Plugin output is now bounded by serialized size, nesting, node, string and binary-attachment limits before transport and again before Inspector renders it; rejected output becomes an actionable plugin error instead of risking the whole Plugins page.
+- Inspector can export the current filtered log view as a reloadable `.featherlog` file, and reports save failures instead of silently dropping them.
 - The VS Code extension now runs cancellable managed jobs with explicit project selection and build configuration instead of relying on ambient workspace state.
 
 ### Fixed
 
+- `pnpm run up` now verifies Inspector's WebSocket identity and Studio's application identity before reusing their ports, and stops with actionable guidance when another service owns one instead of launching against the wrong process.
+- VSIX packaging now resolves the post-v4 icon source, includes the canonical license, excludes obsolete pre-v4 CLI/Lua bundle directories, and restores the development launcher after producing the package.
 - Root development commands accept both pnpm argument-forwarding forms, so the documented `pnpm run feather -- ...` and `pnpm run up -- ...` commands work under pnpm 11 as well as older pnpm releases.
 - Studio now derives its Inspector bridge identity from its package version, preventing compatibility checks from reporting the original `0.1.0` after an independent Studio release. Pairing copy now accurately describes the currently supported scoped Shader Graph preview.
 - Added `test:ready` and `test:ready:gui` as explicit whole-product handoff gates, expanded the Rust gate to both desktop applications, and made the VS Code Extension Host test execute a real managed Doctor job.
@@ -71,6 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Added Studio browser coverage that authors work in all three tools, abruptly closes the renderer, and verifies the active workspace survives intact in a fresh renderer.
+- Added Inspector browser coverage for filtered log exports and plugin payload rejection/health states.
+- Added Lua, unit and Inspector browser coverage for oversized, deep, cyclic and malformed plugin payloads, attachment limits, structured health, and the bounded error state.
 - Added unit coverage that session end and hello events only affect their own session.
 - Added unit coverage that a batched log update is equivalent to the per-entry updates it replaces and that performance history stays bounded.
 - Added Inspector coverage that an incompatible-protocol session receives no user command (verified to fail without the guard), plus unit tests for the per-session protocol gate.
