@@ -14,7 +14,10 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
-use tauri::{AppHandle, Emitter};
+use tauri::{
+    ipc::{Channel, InvokeResponseBody},
+    AppHandle, Emitter,
+};
 use tokio::{sync::mpsc, time::{timeout, Duration}};
 use uuid::Uuid;
 
@@ -101,8 +104,36 @@ trait WsEventSink: Send + Sync {
     fn session_end(&self, session_id: String);
 }
 
+/// The webview's raw binary channel, when it has subscribed one.
+///
+/// Binary frames from games (asset previews, screenshots, captures) used to go
+/// out as a Tauri event, which serializes `Vec<u8>` as a JSON number array —
+/// about 3.6x the bytes — that the webview then parses and copies into a
+/// `Uint8Array`. A channel carries the bytes raw; Tauri fetches large payloads
+/// as binary. The event remains the fallback when nothing has subscribed.
+pub type BinaryChannelState = Arc<Mutex<Option<Channel<InvokeResponseBody>>>>;
+
+/// `[u16 BE session id length][session id UTF-8][payload]`, so one channel can
+/// carry every session's binaries.
+pub(crate) fn encode_binary_frame(session_id: &str, bytes: &[u8]) -> Vec<u8> {
+    let id = session_id.as_bytes();
+    let id_len = id.len().min(u16::MAX as usize);
+    let mut frame = Vec::with_capacity(2 + id_len + bytes.len());
+    frame.extend_from_slice(&(id_len as u16).to_be_bytes());
+    frame.extend_from_slice(&id[..id_len]);
+    frame.extend_from_slice(bytes);
+    frame
+}
+
+/// Tauri command: the webview hands over the channel binaries should use.
+#[tauri::command]
+pub fn subscribe_binary(channel: Channel<InvokeResponseBody>, state: tauri::State<BinaryChannelState>) {
+    *state.lock().unwrap_or_else(|e| e.into_inner()) = Some(channel);
+}
+
 struct TauriEventSink {
     app_handle: AppHandle,
+    binary_channel: BinaryChannelState,
 }
 
 impl WsEventSink for TauriEventSink {
@@ -115,6 +146,16 @@ impl WsEventSink for TauriEventSink {
     }
 
     fn binary(&self, payload: BinaryPayload) {
+        let mut channel = self.binary_channel.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(active) = channel.as_ref() {
+            let frame = encode_binary_frame(&payload._session, &payload.bytes);
+            if active.send(InvokeResponseBody::Raw(frame)).is_ok() {
+                return;
+            }
+            // The webview that subscribed is gone; fall back until it resubscribes.
+            *channel = None;
+        }
+        drop(channel);
         let _ = self.app_handle.emit("feather://binary", payload);
     }
 
@@ -124,11 +165,18 @@ impl WsEventSink for TauriEventSink {
 }
 
 /// Start the WebSocket server. Called once during Tauri setup.
-pub fn start(app_handle: AppHandle, port: u16, sessions: Sessions, app_id: AppId, mcp_bridge: McpBridgeState) {
+pub fn start(
+    app_handle: AppHandle,
+    port: u16,
+    sessions: Sessions,
+    app_id: AppId,
+    mcp_bridge: McpBridgeState,
+    binary_channel: BinaryChannelState,
+) {
     let state = AppState {
         sessions,
         app_id,
-        events: Arc::new(TauriEventSink { app_handle }),
+        events: Arc::new(TauriEventSink { app_handle, binary_channel }),
         mcp_bridge,
     };
 
@@ -555,6 +603,15 @@ mod tests {
             .await
             .expect("client should close cleanly");
         server.abort();
+    }
+
+    #[test]
+    fn binary_frames_carry_their_session() {
+        let frame = encode_binary_frame("session-1", &[1, 2, 3]);
+        assert_eq!(&frame[..2], &[0, 9]);
+        assert_eq!(&frame[2..11], b"session-1");
+        assert_eq!(&frame[11..], &[1, 2, 3]);
+        assert_eq!(encode_binary_frame("", &[]), vec![0, 0]);
     }
 
     #[test]

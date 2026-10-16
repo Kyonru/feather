@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { listen } from '@tauri-apps/api/event';
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
+import { decodeBinaryFrame } from '@/lib/binary-frame';
 import { save as saveFileDialog } from '@tauri-apps/plugin-dialog';
 import { writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { useQueryClient } from '@tanstack/react-query';
@@ -297,13 +298,11 @@ export const useWsConnection = () => {
         pendingBinaryRef.current[sessionId] = queue;
       };
 
-      const unlistenBinary = await listen<BinaryEvent>('feather://binary', (event) => {
+      const handleBinary = (sessionId: string, byteArray: Uint8Array<ArrayBuffer>) => {
         if (cancelled) return;
-        const { _session: sessionId, bytes } = event.payload;
         const pending = pendingBinaryRef.current[sessionId]?.shift();
         if (!pending) return;
 
-        const byteArray = new Uint8Array(bytes);
         const replacement =
           pending.mode === 'text'
             ? new TextDecoder().decode(byteArray)
@@ -369,6 +368,20 @@ export const useWsConnection = () => {
           sessionQueryKey.plugin(sessionId, pending.target.pluginId),
           (prev) => replaceBinaryValue(prev, pending.id, replacement) as PluginContentProps,
         );
+      };
+
+      // Binaries arrive raw on a channel when the native side supports it, and
+      // as a JSON number-array event otherwise (older builds, the e2e mock).
+      // Native sends each frame one way, never both.
+      const binaryChannel = new Channel<ArrayBuffer>((buffer) => {
+        const frame = decodeBinaryFrame(buffer);
+        if (frame) handleBinary(frame.sessionId, frame.bytes);
+      });
+      invoke('subscribe_binary', { channel: binaryChannel }).catch(() => {
+        // Not available: the event below carries binaries instead.
+      });
+      const unlistenBinary = await listen<BinaryEvent>('feather://binary', (event) => {
+        handleBinary(event.payload._session, new Uint8Array(event.payload.bytes));
       });
 
       // Game → desktop messages

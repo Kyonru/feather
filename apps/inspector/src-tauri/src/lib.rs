@@ -77,6 +77,7 @@ pub fn run() {
     let app_id: AppId = Arc::new(Mutex::new(String::new()));
     let mcp_bridge = mcp_bridge::new_state(sessions.clone(), app_id.clone());
     let cli_actions = cli_actions::CliActionState::default();
+    let binary_channel: ws_server::BinaryChannelState = Arc::new(Mutex::new(None));
 
     // Answers Studio's one-time preferences handoff; the payload lives in this
     // app's webview storage, so the export has to be relayed through it.
@@ -91,6 +92,7 @@ pub fn run() {
         .manage(app_id.clone())
         .manage(mcp_bridge.clone())
         .manage(cli_actions)
+        .manage(binary_channel.clone())
         .manage(preferences_exporter.clone())
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -109,6 +111,7 @@ pub fn run() {
                 sessions.clone(),
                 app_id.clone(),
                 mcp_bridge.clone(),
+                binary_channel.clone(),
             );
             mcp_bridge::start(mcp_bridge.clone(), mcp_port);
 
@@ -131,6 +134,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             studio_bridge::resolve_studio_preferences_export,
             ws_server::send_command,
+            ws_server::subscribe_binary,
             ws_server::get_active_sessions,
             ws_server::close_session,
             ws_server::set_app_id,

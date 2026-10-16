@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Binary data from the game (asset previews, screenshots, captures) now reaches Inspector's window as raw bytes over a Tauri channel instead of as a JSON array of numbers, which was about 3.6 times the size and was parsed and copied again on arrival.
 - Inspector starts faster: Performance, Debugger, Console, Plugins, Assets, Observability, Time Travel, Session Replay and Compare load when first opened, cutting the startup bundle from 2.6 MB to 2.0 MB (794 kB to 597 kB compressed). Logs and Session still open instantly.
 - A game whose wire protocol this Inspector cannot speak is now read-only rather than only flagged: Inspector stops sending it refreshes, debugger setup and commands, and an action you trigger says why and what to update. What the game already sent stays readable, and runtimes from before protocol negotiation are unaffected.
 - `feather mcp` no longer requires Inspector to start. It starts with Inspector, Studio, both or neither available and reports which through the new `feather://status` resource and `feather_status` tool, with a remedy for anything missing; Studio-only creative work now uses the same single server. Studio publishes its per-launch token to `~/.feather/studio-mcp.json`, so `--studio-token` is no longer needed locally.
