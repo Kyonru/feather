@@ -12,7 +12,7 @@ import { easeParticleTimelineValue } from '../../apps/studio/src/tools/particle-
  *
  * The fixture is generated from `core.lua`, which is the authority because it
  * is what ships. This test holds the TypeScript side to it; the Lua e2e suite
- * holds `core.lua` to the same file. See V4-PARTICLES.md §1.
+ * holds `core.lua` to the same file. See V4.md, Particles §1.
  */
 const contract = JSON.parse(
   readFileSync(new URL('./fixtures/particle-easing-contract.json', import.meta.url), 'utf8'),
@@ -37,7 +37,7 @@ test('the editor curve matches the curve that plays, for every easing', () => {
 
 test('the overshoot easings really do leave [0,1] — the reason resolved values are clamped', () => {
   // If these ever stop overshooting, Core.resolve's clamps look pointless and
-  // someone will remove them. They are not pointless; see V4-PARTICLES.md §4.3.
+  // someone will remove them. They are not pointless; see V4.md, Particles §4.3.
   const below = (name: string) => Math.min(...contract.curves[name].map(Number));
   const above = (name: string) => Math.max(...contract.curves[name].map(Number));
 

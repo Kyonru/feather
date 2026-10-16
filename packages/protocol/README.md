@@ -20,8 +20,9 @@ registry and the live dispatch tables disagree:
 ## Scope
 
 This package currently describes **which messages exist**, not their payload
-shapes. Payload schemas and the Lua/Rust generators are the remainder of V4.md
-Phase 02b. The message set alone is what makes drift mechanically detectable,
+shapes. Payload schemas are deliberately declined until a handler has a
+load-bearing reason to own one (V4.md D14), and Rust stays a transparent relay
+(D15). The message set alone is what makes drift mechanically detectable,
 which is the part that matters once the release trains can ship separately.
 
 The negotiated wire protocol *version* lives separately, in

@@ -5,7 +5,7 @@
 - Scope: Inspector and the architecture that feeds, automates, packages, and extends it
 
 This directory turns the architecture review into bounded workstreams. It complements `V4.md`
-(release boundaries) and `V4-ENHANCED.md` (interface refinement); it does not replace either one.
+(release boundaries) and its §6 (interface refinement); it does not replace either one.
 Studio implementation is deliberately not reviewed here because it is being changed in parallel.
 Only the Inspector-to-Studio process boundary is covered.
 
@@ -80,5 +80,5 @@ security boundary, or materially stall the game. `P1` is the next reliability/pe
 - Inspector never imports or bundles Studio code.
 - Existing log virtualization, bounded persisted log history, protocol message registry, plugin
   error isolation, registry checksums, and extension snapshot verification are good foundations.
-- `V4-ENHANCED.md` remains the source for visual, interaction, accessibility, and panel-level UX
+- `V4.md` §6 remains the source for visual, interaction, accessibility, and panel-level UX
   refinement. This audit should not create a competing UI plan.

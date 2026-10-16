@@ -480,7 +480,7 @@ async function seedHealthySessionConfig(page: Page, overrides: Record<string, un
       root_path: '/tmp/demo',
       sourceDir: '/tmp/demo',
       // Deliberately NOT the desktop app version. Under v2 the Lua runtime and
-      // the desktop app ship on separate release trains (V4.md section 6), so
+      // the desktop app ship on separate release trains (V4.md §5.6), so
       // they are expected to differ. Keeping them different here asserts that
       // runtime/desktop version drift alone does not degrade session health —
       // API is the compatibility signal, not string equality.
@@ -1365,7 +1365,7 @@ test('typing in the log search survives a log the runtime sent without a message
 test('settings are findable from the command palette', async ({ page }) => {
   // The palette advertised pages, plugins, snippets, sessions and docs, and
   // could not find a single setting — 1,789 lines of them, reachable only by
-  // opening the dialog and hunting. V4-ENHANCED 6.12.
+  // opening the dialog and hunting. V4.md §6.3 (6.12).
   await seedSession(page);
   await page.goto('/');
   await page.getByRole('button', { name: /Demo Session/ }).click();
@@ -1422,7 +1422,7 @@ test('an empty panel caused by a stale filter offers a way out', async ({ page }
 
 test('panel filters survive leaving the panel and coming back', async ({ page }) => {
   // The most frequent cost this tool imposed: filter the log, step away to check
-  // a number, come back to unfiltered output and type it again. V4-ENHANCED C1.
+  // a number, come back to unfiltered output and type it again. V4.md C1.
   await seedSession(page);
   await page.goto('/');
   await page.getByRole('button', { name: /Demo Session/ }).click();
@@ -2974,7 +2974,7 @@ test('assets degraded matrix handles empty and partial catalogs', async ({ page 
 
 test('a breakpoint problem count can be opened to see which breakpoints', async ({ page }) => {
   // It was a bare badge reading "1 condition error" — a number with no route to
-  // which breakpoint, in which file, or why. V4-ENHANCED C3 at the panel level.
+  // which breakpoint, in which file, or why. V4.md C3 at the panel level.
   await seedDebuggerSession(page);
   await page.setViewportSize({ width: 1366, height: 820 });
   await page.goto('/debugger');
@@ -3054,7 +3054,7 @@ test('debugger renders stable single-row header and three panels', async ({ page
 });
 
 test('the debugger can be driven from the keyboard while paused', async ({ page }) => {
-  // Half of V4-ENHANCED 6.4's acceptance line: hit a breakpoint, inspect, and
+  // Half of the Debugger's acceptance line (V4.md §6.3, 6.4): hit a breakpoint, inspect, and
   // step out mostly from the keyboard. Bindings that exist but do not fire are
   // worse than none, because the tooltip promises them.
   await seedDebuggerProbeSession(page);

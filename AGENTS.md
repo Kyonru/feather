@@ -6,23 +6,18 @@ Feather is a CLI debugger, inspector, desktop devtool, VS Code companion, and pa
 
 ## Active Architecture Work
 
-Feather is mid-migration to a v4 architecture organized around release boundaries. **Read `V4.md`
-before starting any structural, build, release, or packaging work.** It carries the goals, the
-invariants that hold for every commit, the phase order (which is load-bearing), and a status board
-showing what is done and what is next.
+Feather is finishing a v4 architecture organized around release boundaries. **[`V4.md`](./V4.md) is
+the single v4 document.** Read it before any structural, build, release or packaging work, before
+changing an existing feature's behaviour or UI, and before touching `apps/studio/`.
 
-**Read [`V4-ENHANCED.md`](./V4-ENHANCED.md) before changing any existing feature's behaviour or
-UI.** It is the companion track: V4.md moves things, V4-ENHANCED refines them. It carries the
-evaluation lens, the cross-cutting findings, and a per-surface status board. Its one hard rule is
-**refine, do not add** — a change that introduces a new capability does not belong to that work.
+- §3 lists the steps left before v4 is complete, each with its acceptance check. Take them in order.
+- §5 is the architecture and its invariants, which hold for every commit.
+- §6 is the design reference: the refinement rule (**refine, do not add**), the lens, Inspector's
+  direction, Studio's workbench rules, and the particle runtime's semantics.
+- §8 is the decision log. Read it before reopening anything it settles.
 
-**Read [`V4-STUDIO.md`](./V4-STUDIO.md) before touching `apps/studio/`.** Feather Studio ships
-25,500 lines of creative tools its shell never renders, so it cannot currently be opened and used.
-That document is the specification for fixing it, with the file-level detail to start from.
-
-`V4.md` governs *what to build and in what order*. `V4-ENHANCED.md` governs *how good the existing
-features have to be*. `V4-STUDIO.md` governs *making Studio exist*. This file governs *how to work
-in this repo*. All four apply.
+`V4.md` governs *what is left to build and the rules it follows*. This file governs *how to work in
+this repo*. Both apply. Do not add new tracking documents; record progress in `V4.md`.
 
 ## Project Layout
 

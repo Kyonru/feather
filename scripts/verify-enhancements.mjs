@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-undef */
 /**
- * `pnpm run verify:enhanced` — check the V4-ENHANCED work, and say how to see it.
+ * `pnpm run verify:enhanced` — check the v4 refinement work (V4.md §6.2), and say how to see it.
  *
  * Two audiences. For an agent or CI it is a pass/fail gate over the properties
  * each finding claims to have fixed, measured rather than asserted. For a person

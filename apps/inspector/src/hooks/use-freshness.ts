@@ -17,7 +17,7 @@ import { useSessionStore } from '@/store/session';
  * currently attached: data that arrived before this game started is from a
  * previous run, full stop, however recent the clock says it is.
  *
- * See V4-ENHANCED.md §5 (C2).
+ * See V4.md §6.2 (C2).
  */
 
 /** Below this, "just now" is more honest than a number that churns every second. */

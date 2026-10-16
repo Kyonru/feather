@@ -65,7 +65,7 @@ export default function ParticleSystemPlaygroundPage() {
   const activeSession = useSessionStore((state) => (state.sessionId ? state.sessions[state.sessionId] : null));
   // Local is the default. This used to ask `isCreativeSession`, which is false
   // when no game is attached, so it selected the *live* controller in exactly
-  // the situation Studio is normally in — see V4-STUDIO.md S3.
+  // the situation Studio is normally in — see V4.md §6.4, session semantics.
   const localMode = useIsLocalMode();
   const livePlayground = useParticleSystemPlayground();
   const localPlayground = useLocalParticlePlayground(localMode ? LOCAL_WORKSPACE_ID : activeSession?.id);

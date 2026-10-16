@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Parse a Feather release tag into its train and version.
 #
-# Feather v4 tag vocabulary (see V4.md section 6):
+# Feather v4 tag vocabulary (see V4.md §5.6):
 #
 #   v<semver>            platform  - runtime + cli + desktop, released together
 #   cli-v<semver>        cli       - npm only

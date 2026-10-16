@@ -3461,7 +3461,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   local hasTextureAtlas = false
   local timeline = normalizeTimeline(entry.timeline, timelineSystemsForPlugin(self, name))
 
-  -- V4-PARTICLES.md §5.2: an effect pays only for the tier it uses. If no lane
+  -- V4.md, Particles §5.2: an effect pays only for the tier it uses. If no lane
   -- varies over time, the exported file needs no timeline machinery at all —
   -- the values are set once and never touched again, which is the shape Hot
   -- Particles emits. Decided by core.lua on the compiled result rather than by
@@ -3869,7 +3869,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   -- code that evaluated it in the preview, and the setters are sent by the same
   -- change detector. Unconditionally: this used to be emitted only when a lane
   -- needed the "full" evaluator, which meant simple effects ran a *different*
-  -- evaluator from the one the editor showed. See V4-PARTICLES.md P1 and P5.
+  -- evaluator from the one the editor showed. See V4.md, Particles P1 and P5.
   local coreSource = TimelineRuntimeBundle.coreSource()
   if not coreSource then
     error("particle export: cannot read core.lua to embed; refusing to emit a stale copy")
@@ -3893,7 +3893,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   -- them. Everything below used to be emitted as generated Lua: mode
   -- normalization, clamping, a keyframe evaluator, clip gating, and a bespoke
   -- change detector — each a copy of something in core.lua or apply.lua, and
-  -- each free to drift from it. See V4-PARTICLES.md P5.
+  -- each free to drift from it. See V4.md, Particles P5.
   lines[#lines + 1] = "local function timelineMode(instance)"
   lines[#lines + 1] = "  if instance and instance.mode ~= nil then return ParticleCore.normalizeMode(instance.mode, instance.loop) end"
   lines[#lines + 1] = "  if timelineState.mode ~= nil then return ParticleCore.normalizeMode(timelineState.mode, timelineState.loop) end"
@@ -4200,7 +4200,7 @@ function ParticleSystemPlaygroundPlugin:_generateCode(name)
   lines[#lines + 1] = "      end"
   lines[#lines + 1] = "      instance.time = nextTime"
   lines[#lines + 1] = "    end"
-  -- Tier 0 (V4-PARTICLES.md §5.2): with no varying lane there is nothing for a
+  -- Tier 0 (V4.md, Particles §5.2): with no varying lane there is nothing for a
   -- per-frame apply to do. The values were set once when the emitter started
   -- and cannot change, so the exported file does not carry the call at all.
   if timelineIsStatic then

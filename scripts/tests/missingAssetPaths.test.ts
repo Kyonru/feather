@@ -11,7 +11,7 @@ import test from 'node:test';
  * filter — the panel confidently reported nothing wrong. That is the L1 failure
  * the lens calls non-negotiable: worse than not offering the answer at all.
  *
- * See V4-ENHANCED.md §6.6.
+ * See V4.md §6.3 (6.6).
  */
 
 const { findMissingPaths } = await import('../../apps/inspector/src/pages/assets/missing-paths.ts');

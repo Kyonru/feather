@@ -103,7 +103,7 @@
   --color-destructive: var(--destructive);
   /* Semantic state colours. Derived per theme by @feather/ui/theme/semantic;
      these are the light-theme fallbacks for before a theme is applied.
-     See V4-STUDIO.md S5 and V4-ENHANCED.md §4 (C0). */
+     See V4.md §6.2 (C0). */
   --color-ok: var(--ok);
   --color-ok-surface: var(--ok-surface);
   --color-ok-border: var(--ok-border);
@@ -148,7 +148,7 @@
  * `.surface`        a region — a value step up from its parent, no outline.
  * `.surface-inset`  a region *within* a region — a step the other way.
  *
- * Neither draws a border, per V4-STUDIO.md **W2b**: a border is a line you have
+ * Neither draws a border, per V4.md **W2b**: a border is a line you have
  * to look at, and a value step says "different region" then stops registering.
  * Anything you click into keeps its border, because there the edge is an
  * affordance rather than decoration.

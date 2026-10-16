@@ -21,7 +21,7 @@ export type PluginNavItem = {
  * `.toLowerCase()`, and this list is the sidebar — one odd manifest would have
  * taken navigation down for the whole app.
  *
- * See V4-ENHANCED.md §6.7 (C5).
+ * See V4.md §6.3 (6.7, C5).
  */
 export function pluginNavItems(plugins: Record<string, unknown> | undefined): PluginNavItem[] {
   if (!plugins || typeof plugins !== 'object') return [];

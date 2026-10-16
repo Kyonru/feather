@@ -14,7 +14,7 @@ import test from 'node:test';
  * Searching is the worst place to be fragile: it is what someone reaches for
  * when the output already looks wrong.
  *
- * See V4-ENHANCED.md §6.1.
+ * See V4.md §6.3 (6.1).
  */
 
 const { schema } = await import('../../apps/inspector/src/hooks/use-logs.ts');

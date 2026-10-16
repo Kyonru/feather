@@ -177,7 +177,7 @@ test('the three tools share one visual language', async ({ page }) => {
     // `border-border` base rule draws every container in the *text* colour.
     // Studio shipped that way once: 172 near-black outlines in Shader Graph
     // alone, which is what "strong border on every container" looked like.
-    // See V4-STUDIO.md §5 (W2b).
+    // See V4.md W2b.
     expect(harsh, `${tool} draws borders in the text colour`).toEqual([]);
   }
 });

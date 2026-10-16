@@ -27,7 +27,7 @@ export type { CommandMessage } from '@feather/session-bridge';
  * `action` completes the sentence "Could not ..." — pass "stop the replay", not
  * "Stop replay failed".
  *
- * See V4-ENHANCED.md §5 (C4).
+ * See V4.md §6.2 (C4).
  */
 export async function sendUserCommand(
   sessionId: string,
@@ -57,7 +57,7 @@ export async function sendUserCommand(
  * What the user *does* get is the panel saying its data is stale, which is the
  * honest signal and is C2's job rather than this one's.
  *
- * See V4-ENHANCED.md §5 (C4).
+ * See V4.md §6.2 (C4).
  */
 export function sendBackgroundCommand(sessionId: string, message: CommandMessage): void {
   void sendCommand(sessionId, message).catch(() => {

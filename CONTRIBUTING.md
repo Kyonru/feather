@@ -229,11 +229,9 @@ Playwright, `packages/session-bridge/test/` for the bridge, and `scripts/tests/`
 symlink to `apps/vscode-extension/README.md`. Edit the source file directly when your editor has
 trouble writing through symlinks.
 
-Architecture, release trains, and the reasoning behind the split are in [`V4.md`](./V4.md).
-Feature-level refinement work — what each existing surface has to be good at, and where it is not
-yet — is in [`V4-ENHANCED.md`](./V4-ENHANCED.md). Feather Studio has its own specification in
-[`V4-STUDIO.md`](./V4-STUDIO.md): it currently renders none of the tools it ships, and that document
-is the plan for making it usable.
+Architecture, release trains, the reasoning behind the split, and the design rules for Inspector,
+Studio and the particle runtime are in [`V4.md`](./V4.md), along with the steps left before v4 is
+complete.
 
 ## CLI-Managed Examples
 
@@ -468,7 +466,7 @@ Plugin contribution tips:
 
 Feather v4 releases each artifact on its own train. There is no single repo-wide
 version — a CLI patch must not drag the desktop app, Lua runtime, or extension
-along with it. See `V4.md` for the full model.
+along with it. See `V4.md` §5.6 for the full model.
 
 | Tag | Ships | Publishes to |
 | --- | --- | --- |

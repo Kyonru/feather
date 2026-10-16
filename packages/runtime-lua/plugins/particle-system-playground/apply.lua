@@ -2,7 +2,7 @@
 --
 -- `core.lua` decides what the values are; this decides which of them are worth
 -- sending. If nothing moved since last frame, nothing is sent — which is the
--- whole of V4-PARTICLES.md **P2**: Lua's job per frame is to notice what
+-- whole of V4.md, Particles **P2**: Lua's job per frame is to notice what
 -- changed, and if nothing did, its job that frame is nothing.
 --
 -- Measured before this existed: a six-emitter composite issued 3,600 setter

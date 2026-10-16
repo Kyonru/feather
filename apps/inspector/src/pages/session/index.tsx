@@ -70,7 +70,7 @@ type SessionWarning = {
    * What to do about it.
    *
    * A warning that names a failure without naming a fix leaves the reader
-   * exactly where their question starts — see V4-ENHANCED.md L3. Every warning
+   * exactly where their question starts — see V4.md L3. Every warning
    * here should be able to answer "so what do I do?", and the ones that cannot
    * are usually a sign the warning is not worth showing.
    */

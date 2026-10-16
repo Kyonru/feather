@@ -15,7 +15,7 @@ import { STUDIO_TOOLS, useStudioUiStore, type StudioToolId } from './store/studi
  *
  * A frame, not a page. The tool being used owns everything below a thin strip,
  * and the shell contributes no color of its own, because the artifact someone is
- * authoring is the only thing here that should be colorful. See V4-STUDIO.md §5.
+ * authoring is the only thing here that should be colorful. See V4.md §6.4.
  *
  * **Regions are separated by background value, not borders.** A border is a line
  * you have to look at; a half-step of value does the same job and stops
@@ -39,7 +39,7 @@ const TOOLS: Record<StudioToolId, { label: string; icon: ElementType; render: ()
  * The Inspector connection.
  *
  * Not connected is a neutral fact, never an error: Studio is a local authoring
- * tool and a game is an addition to it (V4-STUDIO.md **P2**). The dot is
+ * tool and a game is an addition to it (V4.md **Studio P2**). The dot is
  * achromatic for the same reason the rest of the shell is — connection is
  * chrome, not state, and color near a preview competes with the artifact.
  */

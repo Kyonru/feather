@@ -76,7 +76,7 @@ export const EMPTY_PROFILER_STATE: ProfilerState = {
  * Returns null when there is nothing worth carrying, so the caller can skip the
  * write rather than replacing real state with an empty shell.
  *
- * See V4-ENHANCED.md §6.3.
+ * See V4.md §6.3 (6.3).
  */
 export function profilerStateForNewSession(previous: ProfilerState | undefined): ProfilerState | null {
   if (!previous?.snapshots?.length) return null;
