@@ -12,6 +12,11 @@ const sourceLua = join(repoRoot, 'packages/runtime-lua');
 const cliGenerated = join(repoRoot, 'apps', 'cli', 'dist', 'generated');
 const bundledBin = join(extensionRoot, 'bundled-bin');
 
+// VSIX packaging is rooted at apps/vscode-extension, so vsce cannot discover
+// the repository license on its own. Keep the packaged copy generated from the
+// canonical root file instead of maintaining a second license by hand.
+cpSync(join(repoRoot, 'LICENSE'), join(extensionRoot, 'LICENSE'));
+
 const luaSource = existsSync(join(cliLua, 'feather', 'init.lua')) ? cliLua : sourceLua;
 if (!existsSync(join(luaSource, 'feather', 'init.lua'))) {
   throw new Error('Missing Lua runtime. Run `pnpm --filter @kyonru/feather run bundle:lua` first.');

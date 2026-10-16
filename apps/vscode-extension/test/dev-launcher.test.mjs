@@ -31,3 +31,13 @@ test('the bundled snapshot records the platform it vendors', () => {
   const manifest = JSON.parse(readFileSync(join(extensionRoot, 'package.json'), 'utf8'));
   assert.equal(platform.featherPlatform, manifest.featherPlatform);
 });
+
+test('the marketplace icon generator resolves the post-v4 repository asset', () => {
+  const generator = readFileSync(join(extensionRoot, 'scripts', 'generate-icon.mjs'), 'utf8');
+  assert.match(generator, /join\(extensionRoot, '\.\.', '\.\.'\)/);
+  assert.ok(existsSync(join(repoRoot, 'public', 'feather.svg')), 'the marketplace icon source is missing');
+});
+
+test('the prepared package carries the canonical repository license', () => {
+  assert.equal(readFileSync(join(extensionRoot, 'LICENSE'), 'utf8'), readFileSync(join(repoRoot, 'LICENSE'), 'utf8'));
+});

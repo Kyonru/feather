@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const extensionRoot = join(__dirname, '..');
-const repoRoot = join(extensionRoot, '..');
+const repoRoot = join(extensionRoot, '..', '..');
 const source = join(repoRoot, 'public', 'feather.svg');
 const output = join(extensionRoot, 'icon.png');
 const size = 128;
