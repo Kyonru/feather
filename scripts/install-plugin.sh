@@ -14,7 +14,7 @@ set -euo pipefail
 REPO="Kyonru/feather"
 BRANCH="${FEATHER_BRANCH:-main}"
 INSTALL_DIR="${FEATHER_DIR:-feather}"
-BASE_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/src-lua"
+BASE_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/packages/runtime-lua"
 
 # Colors
 RED='\033[0;31m'

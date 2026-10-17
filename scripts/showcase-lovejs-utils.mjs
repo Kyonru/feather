@@ -247,12 +247,29 @@ export async function copyLoveJsVendor({ root, outDir, required = true, fetchIfM
 }
 
 export async function buildShowcaseLove({ root, outDir } = {}) {
-  const sourceDir = path.join(root, 'src-lua/example/showcase_preview');
+  const sourceDir = path.join(root, 'packages/runtime-lua/example/showcase_preview');
   const files = {
     'main.lua': await readFile(path.join(sourceDir, 'main.lua'), 'utf8'),
     'conf.lua': await readFile(path.join(sourceDir, 'conf.lua'), 'utf8'),
     'shader-graph/preview_runtime.lua': await readFile(
-      path.join(root, 'src-lua/plugins/shader-graph/preview_runtime.lua'),
+      path.join(root, 'packages/runtime-lua/plugins/shader-graph/preview_runtime.lua'),
+      'utf8',
+    ),
+    // Particle timeline semantics. The preview used to carry its own copy of
+    // the easing and keyframe maths, which had already drifted from the copy
+    // the game and the export use — the preview clamped nothing, so an
+    // inElastic size lane rendered negative sizes here and zero everywhere
+    // else. See packages/runtime-lua/plugins/particle-system-playground/README.md, Particles P1.
+    'plugins/particle-system-playground/core.lua': await readFile(
+      path.join(root, 'packages/runtime-lua/plugins/particle-system-playground/core.lua'),
+      'utf8',
+    ),
+    'plugins/particle-system-playground/apply.lua': await readFile(
+      path.join(root, 'packages/runtime-lua/plugins/particle-system-playground/apply.lua'),
+      'utf8',
+    ),
+    'plugins/particle-system-playground/lifecycle.lua': await readFile(
+      path.join(root, 'packages/runtime-lua/plugins/particle-system-playground/lifecycle.lua'),
       'utf8',
     ),
   };

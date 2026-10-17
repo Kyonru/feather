@@ -1,0 +1,210 @@
+import { readTextFileLines } from '@tauri-apps/plugin-fs';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { sendCommand, sendUserCommand } from '@/lib/send-command';
+import { timeout } from '@/utils/timers';
+import { useConfigStore } from '@/store/config';
+import { useSessionStore } from '@/store/session';
+import { z } from 'zod';
+import { useSettingsStore } from '@/store/settings';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { sessionQueryKey } from './use-ws-connection';
+import { toast } from 'sonner';
+import { mergeLogLists, useLogHistoryStore } from '@/store/log-history';
+
+export enum LogType {
+  OUTPUT = 'output',
+  ERROR = 'error',
+  FATAL = 'fatal',
+  FEATHER_START = 'feather:start',
+  FEATHER_FINISH = 'feather:finish',
+}
+
+/**
+ * `str` and `trace` carry defaults rather than being required.
+ *
+ * They were declared `z.string()` while nothing ever validated against this
+ * schema, so the type promised a string and the runtime delivered `undefined`
+ * whenever a log arrived without them — which is how searching the logs could
+ * throw on `log.str.toLowerCase()`.
+ *
+ * Defaulting rather than rejecting is deliberate: a log line missing its message
+ * is still evidence that something happened, and dropping it would hide exactly
+ * the malformed output someone is most likely to be hunting.
+ */
+export const schema = z.object({
+  id: z.string(),
+  count: z.number(),
+  time: z.number(),
+  firstTime: z.number().optional(),
+  lastTime: z.number().optional(),
+  type: z.string(),
+  str: z.string().default(''),
+  trace: z.string().default(''),
+  screenshot: z.string().optional(),
+});
+
+export type Log = z.infer<typeof schema>;
+
+function parseLogLine(line: string): Log | null {
+  const jsonStart = line.indexOf('{');
+  if (jsonStart === -1) return null;
+  try {
+    // Parsed through the schema, not cast past it. This is the boundary the
+    // schema existed for and was never wired to.
+    const parsed = schema.safeParse(JSON.parse(line.slice(jsonStart)));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+export const useLogs = (): {
+  data: { logs: Log[]; screenshotEnabled: boolean };
+  isPending: boolean;
+  clear: (visibleIds?: string[]) => void;
+  onScreenshotChange: () => void;
+} => {
+  const queryClient = useQueryClient();
+  const sessionId = useSessionStore((state) => state.sessionId);
+  const overrideLogFile = useConfigStore((state) => state.overrideConfig?.outfile || '');
+  const captureScreenshot = useConfigStore((state) => state.config?.captureScreenshot || false);
+  const pausedLogs = useSettingsStore((state) => state.pausedLogs);
+  const [screenshotEnabled, setScreenshotEnabled] = useState(false);
+  const [clearTime, setClearTime] = useState(0);
+  const [pausedSnapshot, setPausedSnapshot] = useState<Log[] | null>(null);
+  const lineOffsetRef = useRef<number>(0);
+
+  useEffect(() => {
+    setClearTime(0);
+  }, [sessionId]);
+
+  useEffect(() => {
+    lineOffsetRef.current = 0;
+  }, [overrideLogFile]);
+
+  // --- Live session path: reactive subscription to query cache ---
+  const queryKey = sessionId ? sessionQueryKey.logs(sessionId) : ['noop-logs'];
+
+  useEffect(() => {
+    if (!sessionId || sessionId.startsWith('file:')) return;
+
+    const existing = queryClient.getQueryData<Log[]>(sessionQueryKey.logs(sessionId));
+    if (existing?.length) return;
+
+    const history = useLogHistoryStore.getState();
+    const restoredLogs = mergeLogLists(
+      history.getLogsForSession(sessionId),
+      history.getLogsForHistoryKeys(history.sessionHistoryKeys[sessionId]),
+    );
+    if (restoredLogs.length > 0) {
+      queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), restoredLogs);
+    }
+  }, [queryClient, sessionId]);
+
+  const { data: liveLogs } = useQuery<Log[]>({
+    queryKey,
+    queryFn: () => [],
+    enabled: false, // data is pushed via WS or file reader, not fetched
+  });
+
+  const filteredLiveLogs = useMemo(
+    () => {
+      const logs = liveLogs ?? [];
+      return clearTime > 0 ? logs.filter((log) => log.time > clearTime) : logs;
+    },
+    [liveLogs, clearTime],
+  );
+
+
+  // --- Override file path: incremental file read (disk mode / manual open) ---
+  // Reads the file and pushes parsed logs into the active session's query cache,
+  // so the useSyncExternalStore live path picks them up naturally.
+  const fileQueryKey = ['file-reader', overrideLogFile];
+
+  /* eslint-disable @tanstack/query/exhaustive-deps */
+  const { isPending } = useQuery({
+    queryKey: fileQueryKey,
+    queryFn: async (): Promise<null> => {
+      if (!sessionId) return null;
+
+      const existing = queryClient.getQueryData<Log[]>(queryKey) ?? [];
+
+      const newLines: Log[] = [];
+      const lines = await readTextFileLines(overrideLogFile);
+      let lineIndex = 0;
+
+      for await (const line of lines) {
+        if (lineIndex < lineOffsetRef.current) {
+          lineIndex++;
+          continue;
+        }
+        lineIndex++;
+        const log = parseLogLine(line);
+        if (log) newLines.push(log);
+      }
+
+      lineOffsetRef.current = lineIndex;
+      setScreenshotEnabled(captureScreenshot);
+
+      if (newLines.length > 0) {
+        queryClient.setQueryData<Log[]>(queryKey, [...existing, ...newLines]);
+      }
+
+      return null;
+    },
+    // Poll override file at 1s — game may still be writing to it (disk mode).
+    // When paused, still do the initial read but stop polling.
+    refetchInterval: pausedLogs ? false : 1000,
+    enabled: !!overrideLogFile && !!sessionId,
+  });
+  /* eslint-enable @tanstack/query/exhaustive-deps */
+
+  useEffect(() => {
+    if (pausedLogs) {
+      setPausedSnapshot((current) => current ?? filteredLiveLogs);
+    } else {
+      setPausedSnapshot(null);
+    }
+  }, [filteredLiveLogs, pausedLogs]);
+
+  const logs = pausedSnapshot ?? filteredLiveLogs;
+
+  const toggleScreenshotsMutation = useMutation({
+    mutationFn: async () => {
+      if (!sessionId) return;
+      setScreenshotEnabled((prev) => !prev);
+      try {
+        await timeout(
+          3000,
+          sendCommand(sessionId, { type: 'cmd:log', action: 'toggle-screenshots' }),
+        );
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Failed to toggle screenshots');
+      }
+    },
+  });
+
+  const clear = (visibleIds?: string[]) => {
+    const visibleSet = visibleIds ? new Set(visibleIds) : null;
+    const lastNow = logs[logs.length - 1]?.time ?? 0;
+    if (!visibleSet) setClearTime(lastNow);
+    if (sessionId) {
+      queryClient.setQueryData<Log[]>(sessionQueryKey.logs(sessionId), (current) =>
+        visibleSet ? (current ?? []).filter((log) => !visibleSet.has(log.id)) : [],
+      );
+      const history = useLogHistoryStore.getState();
+      history.removeLogs(sessionId, visibleIds, history.sessionHistoryKeys[sessionId]);
+      sendUserCommand(sessionId, { type: 'cmd:log', action: 'clear' }, 'clear the logs');
+    }
+    setPausedSnapshot((current) =>
+      current && visibleSet ? current.filter((log) => !visibleSet.has(log.id)) : visibleSet ? current : [],
+    );
+  };
+
+  return {
+    data: { logs, screenshotEnabled },
+    isPending: overrideLogFile ? isPending : false,
+    clear,
+    onScreenshotChange: () => toggleScreenshotsMutation.mutate(),
+  };
+};

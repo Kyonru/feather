@@ -1,0 +1,26 @@
+-- feather.config.lua
+-- Used by: npm run feather -- run src-lua/example/test_cli
+
+return {
+  sessionName = "CLI Example",
+  include = { "screenshots", "console", "particle-system-playground", "ingame-overlay", "session-replay" },
+  capabilities = { "draw", "filesystem", "particle-system-playground" },
+  exclude = { "hump.signal", "lua-state-machine", "animation-inspector" },
+  sampleRate = 1,
+  captureScreenshot = false,
+  assetPreview = true,
+  autoRegisterErrorHandler = true,
+  apiKey = "testing_i_guess",
+  debugger = true,
+  appId = "feather-app-bf32d50f-60fa-4037-8cfe-3577302be92d",
+  -- Security: set ONE of the two options below.
+  --
+  -- Option A (recommended): bind to your specific Feather desktop instance.
+  --   Copy from Feather desktop app → Settings → Security → Desktop App ID.
+  --   The game will reject commands from any other Feather instance.
+  -- appId = "feather-app-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  --
+  -- Option B: explicitly allow any desktop to send commands (acknowledge the risk).
+  --   Required when appId is not set — Feather will error at startup otherwise.
+  __DANGEROUS_INSECURE_CONNECTION__ = true,
+}

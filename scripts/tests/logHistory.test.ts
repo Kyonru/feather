@@ -33,7 +33,7 @@ const {
   resolveLogHistoryKeys,
   sanitizeLogForHistory,
   useLogHistoryStore,
-} = await import('../../src/store/log-history.ts');
+} = await import('../../apps/inspector/src/store/log-history.ts');
 
 const log = (id: string, str: string, time: number) => ({
   id,

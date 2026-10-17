@@ -24,4 +24,4 @@ postcss.config.js
 src-tauri/
 
 ## Lua
-src-lua/
+packages/runtime-lua/

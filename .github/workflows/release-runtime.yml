@@ -1,0 +1,29 @@
+name: Release Lua runtime
+
+# `runtime-v*`  -> runtime alone
+# `v*`          -> runtime as part of a full platform release
+#
+# The reusable workflow skips the LuaRocks publish when packages/runtime-lua/feather is
+# unchanged since the previous runtime release, so a platform tag never burns a
+# rock version for an unmodified runtime.
+on:
+  push:
+    tags:
+      - "runtime-v*"
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Publish even when the runtime is unchanged"
+        type: boolean
+        default: false
+
+jobs:
+  runtime:
+    name: Lua runtime
+    permissions:
+      contents: write
+    uses: ./.github/workflows/_release-runtime.yml
+    with:
+      force: ${{ inputs.force == true }}
+    secrets: inherit

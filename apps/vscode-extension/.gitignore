@@ -1,0 +1,5 @@
+icon.png
+LICENSE
+# @vscode/test-electron downloads now go to node_modules/.vscode-test; keep any
+# older download out of git too.
+.vscode-test/

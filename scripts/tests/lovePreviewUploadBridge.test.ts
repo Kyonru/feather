@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { patchLoveJsPlayer, writeWebglPreviewFallback } from '../showcase-lovejs-utils.mjs';
-import { stripLovePreviewUploads } from '../../src/utils/love-preview-upload-bridge';
+import { stripLovePreviewUploads } from '../../apps/studio/src/utils/love-preview-upload-bridge';
 
 type TestWindow = Window & {
   __featherPreviewUploadCache?: Record<string, string>;

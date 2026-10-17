@@ -5,14 +5,14 @@
 The desktop app has three layers:
 
 ```
-React (src/)  ←→  Tauri bridge  ←→  Rust (src-tauri/)
+React (apps/inspector/src/)  ←→  Tauri bridge  ←→  Rust (apps/inspector/src-tauri/)
                                           ↕
                                     WebSocket server
                                           ↕
                                     Lua runtime (game)
 ```
 
-Rust source lives in `src-tauri/src/`:
+Rust source lives in `apps/inspector/src-tauri/src/`:
 
 - `ws_server.rs` — axum WebSocket server, auth handshake, session lifecycle, message relay.
 - `lib.rs` — Tauri commands exposed to React; starts the WS server on app init.
@@ -30,7 +30,7 @@ The WS server emits Tauri events after auth succeeds:
 | `feather://message` | JSON string | Text message from game |
 | `feather://binary` | `{ _session, bytes }` | Binary message from game |
 
-React listens via `@tauri-apps/api/event` `listen()` inside `src/hooks/use-ws-connection.ts`. Do not add new event names without a matching listener.
+React listens via `@tauri-apps/api/event` `listen()` inside `apps/inspector/src/hooks/use-ws-connection.ts`. Do not add new event names without a matching listener.
 
 ## Tauri commands (React → Rust)
 
@@ -64,29 +64,29 @@ Use the existing `WsEventSink` testing seam for WebSocket server behavior. Add R
 
 ## When to touch the Rust layer
 
-Most game protocol changes only need Lua runtime + React changes — the Rust layer is a transparent relay. Touch `src-tauri/` when:
+Most game protocol changes only need Lua runtime + React changes — the Rust layer is a transparent relay. Touch `apps/inspector/src-tauri/` when:
 
 - A new Tauri command is needed (new React → Rust → native capability).
 - A new Tauri event name is needed (new Rust → React push path).
 - Auth or session lifecycle behavior needs to change.
 - WS server port, binary/text framing, or session management changes.
 
-After changing Rust code, `npm run tauri dev` rebuilds automatically. For production, `npm run tauri build` produces the full desktop app.
+After changing Rust code, `pnpm run inspector:tauri` rebuilds automatically. For production, `pnpm run tauri build` produces the full desktop app.
 
 ## Adding a protocol feature
 
 - Define the Lua payload shape, React consumer, and any Rust relay behavior together so session and auth assumptions stay coherent.
 - Keep Rust as a relay unless the feature needs native access or changes auth/session lifecycle.
 - Do not emit new game data before WebSocket auth succeeds.
-- Add listener handling in `src/hooks/use-ws-connection.ts` for any new Tauri event names.
+- Add listener handling in `apps/inspector/src/hooks/use-ws-connection.ts` for any new Tauri event names.
 - Add Rust tests for auth, lifecycle, binary forwarding, or session cleanup when touching `ws_server.rs`.
 - Add Lua e2e plus desktop Playwright coverage when the protocol change affects a visible workflow.
 - Update protocol/config docs and `CHANGELOG.md` for user-visible payload, auth, or compatibility changes.
 
 ## Showcase app
 
-`src/showcase/` is a standalone browser-only build (no Tauri, no WS) that hosts the particle-system playground and shader graph as embeddable demos. It has its own entry (`showcase.html`), Vite config (`vite.showcase.config.ts`), and Playwright config (`playwright.showcase.config.ts`).
+`apps/showcase/` is a standalone browser-only build (no Tauri, no WS) of Feather Studio. It has no page code: `apps/showcase/src/main.tsx` imports Studio's web mount from `apps/studio/src/showcase/`. Its Vite and Playwright configs live in `apps/showcase/`.
 
-Showcase-relevant e2e tests live in `e2e/showcase.spec.ts`. Run with `npm run test:showcase:e2e`.
+Showcase-relevant e2e tests live in `apps/showcase/e2e/showcase.spec.ts`. Run with `pnpm run test:showcase:e2e`.
 
 Do not add Tauri API calls or WS-dependent code to showcase components.

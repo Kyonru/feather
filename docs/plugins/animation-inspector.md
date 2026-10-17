@@ -1,1 +1,0 @@
-../../src-lua/plugins/animation-inspector/README.md

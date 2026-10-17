@@ -1,0 +1,182 @@
+/**
+ * Feather Studio's design tokens.
+ *
+ * Two separate jobs, both required, and Studio had neither:
+ *
+ * 1. `@theme inline` maps the tokens onto Tailwind's colour utilities, which is
+ *    what makes `bg-card` and `text-muted-foreground` *exist* as classes. The
+ *    tools use them 394 times. Without this block Tailwind never generates them
+ *    and the classes are inert, whatever the values are.
+ * 2. The `:root` block is the fallback that paints before `ThemeProvider` writes
+ *    the resolved theme onto the root element, so the first frame is not
+ *    unstyled.
+ *
+ * Shared by the Studio application and the showcase, which is why it lives in
+ * its own file: they render the same tools and must not drift apart on what a
+ * card looks like.
+ */
+
+:root {
+  --ok: #137245;
+  --ok-surface: #e2f8ee;
+  --ok-border: #b1e7ce;
+  --warn: #85580a;
+  --warn-surface: #f8f0e2;
+  --warn-border: #e7d3b1;
+  --danger: #b4271d;
+  --danger-surface: #f8e4e2;
+  --danger-border: #e7b5b1;
+  --info: #2161ab;
+  --info-surface: #e2ecf8;
+  --info-border: #b1cae7;
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  color: #403f53;
+  background-color: #f0f4f8;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  --radius: 0.625rem;
+  --background: #f0f4f8;
+  --foreground: #403f53;
+  --card: #f8fbff;
+  --card-foreground: #403f53;
+  --popover: #f8fbff;
+  --popover-foreground: #403f53;
+  --primary: #ad5b68;
+  --primary-foreground: #ffffff;
+  --secondary: #e5ebf3;
+  --secondary-foreground: #403f53;
+  --muted: #e5ebf3;
+  --muted-foreground: #6c6f85;
+  --accent: #f3dfe4;
+  --accent-foreground: #873f4d;
+  --destructive: #d3423e;
+  --border: #d4dce8;
+  --input: #c9d3e3;
+  --ring: #ad5b68;
+  --chart-1: #ad5b68;
+  --chart-2: #0c969b;
+  --chart-3: #994cc3;
+  --chart-4: #c96765;
+  --chart-5: #d3423e;
+  --sidebar: #e8eef6;
+  --sidebar-foreground: #403f53;
+  --sidebar-primary: #ad5b68;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0dce3;
+  --sidebar-accent-foreground: #873f4d;
+  --sidebar-border: #d4dce8;
+  --sidebar-ring: #ad5b68;
+  --plugin-accent: #8a5a9f;
+  --plugin-active: #eee1f2;
+  --plugin-active-foreground: #563965;
+  --plugin-active-icon: #74498a;
+  --plugin-active-border: #d5bddf;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  /* Semantic state colours. Derived per theme by @feather/ui/theme/semantic;
+     these are the light-theme fallbacks for before a theme is applied.
+     See skills/feather-desktop-app/references/design-rules.md §6.2 (C0). */
+  --color-ok: var(--ok);
+  --color-ok-surface: var(--ok-surface);
+  --color-ok-border: var(--ok-border);
+  --color-warn: var(--warn);
+  --color-warn-surface: var(--warn-surface);
+  --color-warn-border: var(--warn-border);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
+  --color-info-border: var(--info-border);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/**
+ * The workbench surface idiom.
+ *
+ * Studio's three tools were built at different times inside Inspector and each
+ * accumulated its own way of drawing a box: 98 containers across eight distinct
+ * class combinations — `rounded border`, `rounded-md border border-border/70`,
+ * `rounded border bg-background`, and so on. The result read as three products
+ * sharing a window, and every container arrived with a drawn outline.
+ *
+ * These are the two things a container can be, named once:
+ *
+ * `.surface`        a region — a value step up from its parent, no outline.
+ * `.surface-inset`  a region *within* a region — a step the other way.
+ *
+ * Neither draws a border, per skills/feather-desktop-app/references/design-rules.md **W2b**: a border is a line you have
+ * to look at, and a value step says "different region" then stops registering.
+ * Anything you click into keeps its border, because there the edge is an
+ * affordance rather than decoration.
+ *
+ * Changing how a container looks is now one edit here rather than 98.
+ */
+@layer components {
+  .surface {
+    background-color: var(--card);
+    border-radius: var(--radius-sm, 0.25rem);
+  }
+
+  .surface-inset {
+    background-color: color-mix(in srgb, var(--muted) 55%, transparent);
+    border-radius: var(--radius-sm, 0.25rem);
+  }
+
+  /* The label above a group of controls. The three tools had written this
+     eight ways — 10px/11px/xs, semibold/medium, wider/wide — which is the
+     kind of drift nobody introduces on purpose and everybody notices as
+     "these screens don't match". Named once, it is now a decision rather
+     than a copy. */
+  .section-label {
+    font-size: 10px;
+    line-height: 1.4;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-foreground);
+  }
+}

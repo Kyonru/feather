@@ -1,0 +1,261 @@
+@import 'tailwindcss';
+
+/* Explicit rather than implicit. Tailwind currently finds these because the
+   Inspector's Vite root is the repository root, which stops being true when
+   src/ moves to apps/inspector. The showcase already hit exactly that: its
+   Radix select classes silently vanished from the bundle. */
+@source "./";
+@source "../../../packages/ui/src";
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  color: #403f53;
+  background-color: #f0f4f8;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  --radius: 0.625rem;
+  --background: #f0f4f8;
+  --foreground: #403f53;
+  --card: #f8fbff;
+  --card-foreground: #403f53;
+  --popover: #f8fbff;
+  --popover-foreground: #403f53;
+  --primary: #ad5b68;
+  --primary-foreground: #ffffff;
+  --secondary: #e5ebf3;
+  --secondary-foreground: #403f53;
+  --muted: #e5ebf3;
+  --muted-foreground: #6c6f85;
+  --accent: #f3dfe4;
+  --accent-foreground: #873f4d;
+  --destructive: #d3423e;
+  --border: #d4dce8;
+  --input: #c9d3e3;
+  --ring: #ad5b68;
+  --chart-1: #ad5b68;
+  --chart-2: #0c969b;
+  --chart-3: #994cc3;
+  --chart-4: #c96765;
+  --chart-5: #d3423e;
+  --sidebar: #e8eef6;
+  --sidebar-foreground: #403f53;
+  --sidebar-primary: #ad5b68;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0dce3;
+  --sidebar-accent-foreground: #873f4d;
+  --sidebar-border: #d4dce8;
+  --sidebar-ring: #ad5b68;
+  --plugin-accent: #8a5a9f;
+  --plugin-active: #eee1f2;
+  --plugin-active-foreground: #563965;
+  --plugin-active-icon: #74498a;
+  --plugin-active-border: #d5bddf;
+
+  /* Semantic state colors. These four are the whole signal channel: color
+     anywhere else in the UI is chrome, color here means something. The values
+     match what `assets/theme/registry/semantic.ts` derives for this background,
+     so an unthemed render and a themed one agree. See skills/feather-desktop-app/references/design-rules.md §6.2 (C0). */
+  --ok: #137245;
+  --ok-surface: #e2f8ee;
+  --ok-border: #b1e7ce;
+  --warn: #85580a;
+  --warn-surface: #f8f0e2;
+  --warn-border: #e7d3b1;
+  --danger: #b4271d;
+  --danger-surface: #f8e4e2;
+  --danger-border: #e7b5b1;
+  --info: #2161ab;
+  --info-surface: #e2ecf8;
+  --info-border: #b1cae7;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-plugin-accent: var(--plugin-accent);
+  --color-plugin-active: var(--plugin-active);
+  --color-plugin-active-foreground: var(--plugin-active-foreground);
+  --color-plugin-active-icon: var(--plugin-active-icon);
+  --color-plugin-active-border: var(--plugin-active-border);
+  --color-ok: var(--ok);
+  --color-ok-surface: var(--ok-surface);
+  --color-ok-border: var(--ok-border);
+  --color-warn: var(--warn);
+  --color-warn-surface: var(--warn-surface);
+  --color-warn-border: var(--warn-border);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
+  --color-info-border: var(--info-border);
+}
+
+.dark {
+  --background: #0d1117;
+  --foreground: #c9d1d9;
+  --card: #161b22;
+  --card-foreground: #c9d1d9;
+  --popover: #161b22;
+  --popover-foreground: #c9d1d9;
+  --primary: #8b949e;
+  --primary-foreground: #0d1117;
+  --secondary: #21262d;
+  --secondary-foreground: #c9d1d9;
+  --muted: #21262d;
+  --muted-foreground: #8b949e;
+  --accent: #30363d;
+  --accent-foreground: #c9d1d9;
+  --destructive: #f85149;
+  --border: #30363d;
+  --input: #30363d;
+  --ring: #8b949e;
+  --chart-1: #8b949e;
+  --chart-2: #3fb950;
+  --chart-3: #bc8cff;
+  --chart-4: #d29922;
+  --chart-5: #f85149;
+  --sidebar: #161b22;
+  --sidebar-foreground: #c9d1d9;
+  --sidebar-primary: #8b949e;
+  --sidebar-primary-foreground: #0d1117;
+  --sidebar-accent: #21262d;
+  --sidebar-accent-foreground: #c9d1d9;
+  --sidebar-border: #30363d;
+  --sidebar-ring: #ff9aa2;
+  --plugin-accent: #c9a0dc;
+  --plugin-active: #31263a;
+  --plugin-active-foreground: #f1def8;
+  --plugin-active-icon: #dfb7f0;
+  --plugin-active-border: #7f4d94;
+
+  /* Derived for #0d1117 — see the light block above. */
+  --ok: #20c578;
+  --ok-surface: #1d3a2c;
+  --ok-border: #2f6a4e;
+  --warn: #e49611;
+  --warn-surface: #3a2f1d;
+  --warn-border: #6a542f;
+  --danger: #e87a73;
+  --danger-surface: #3a1f1d;
+  --danger-border: #6a332f;
+  --info: #659fe2;
+  --info-surface: #1d2a3a;
+  --info-border: #2f4b6a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes shader-node-drop-enter {
+  0% {
+    opacity: 0.72;
+    box-shadow:
+      0 0 0 0 color-mix(in oklab, var(--primary) 55%, transparent),
+      0 12px 28px color-mix(in oklab, var(--primary) 22%, transparent);
+    filter: saturate(1.18);
+  }
+  52% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 6px color-mix(in oklab, var(--primary) 0%, transparent),
+      0 10px 24px color-mix(in oklab, var(--primary) 15%, transparent);
+    filter: saturate(1.08);
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 10%, transparent);
+    filter: saturate(1);
+  }
+}
+
+.shader-node-drop-enter {
+  animation: shader-node-drop-enter 520ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shader-node-drop-enter {
+    animation: none;
+  }
+}
+
+
+@layer utilities {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+}

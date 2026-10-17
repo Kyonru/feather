@@ -8,7 +8,7 @@ import {
   themeSelectorGroups,
   THEME_CSS_VARIABLES,
   type ThemeId,
-} from '../../src/assets/theme/registry/index.ts';
+} from '../../packages/ui/src/theme/registry/index.ts';
 
 const noctisThemeIds: ThemeId[] = [
   'noctis-lux',

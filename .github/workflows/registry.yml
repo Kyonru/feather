@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "packages/**"
+      - "catalog/packages/**"
   workflow_dispatch:
 
 jobs:
@@ -24,12 +24,14 @@ jobs:
         run: |
           git config --local user.email "github-actions@github.com"
           git config --local user.name "GitHub Actions"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install Love2D
         run: |
@@ -37,13 +39,13 @@ jobs:
           sudo apt-get install -y love xvfb
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Generate registry
         run: node scripts/generate-registry.mjs
 
       - name: Build CLI
-        run: npm run cli:build
+        run: pnpm run cli:build
 
       - name: Run package e2e
         run: node scripts/package-e2e.mjs
@@ -59,12 +61,12 @@ jobs:
           # Set up a worktree pointing at the packages branch.
           # If the branch doesn't exist yet, create it as an orphan.
           if git ls-remote --exit-code origin packages > /dev/null 2>&1; then
-            git worktree add /tmp/registry-branch packages
+            git worktree add /tmp/registry-branch refs/heads/packages
           else
             git worktree add --orphan -b packages /tmp/registry-branch
           fi
 
-          cp cli/src/generated/registry.json /tmp/registry-branch/registry.json
+          cp apps/cli/src/generated/registry.json /tmp/registry-branch/registry.json
 
           cd /tmp/registry-branch
           git add registry.json

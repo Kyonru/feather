@@ -28,7 +28,7 @@ if [ "$INCLUDE_HOT_RELOAD" != "1" ]; then
   _DEFAULT_SKIP="hot-reload,${_DEFAULT_SKIP}"
 fi
 SKIP_PLUGINS="${FEATHER_SKIP_PLUGINS:-${_DEFAULT_SKIP}}"
-BASE_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/src-lua"
+BASE_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/packages/runtime-lua"
 
 # Colors
 RED='\033[0;31m'

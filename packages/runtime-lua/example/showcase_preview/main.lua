@@ -1,0 +1,1115 @@
+-- Standalone LÖVE preview target for the Feather showcase.
+-- Polls window._featherPayload (set by the postMessage bridge in player.js)
+-- via love.js.eval and renders live shader graph and particle system previews.
+
+pcall(require, "normalize1")
+pcall(require, "normalize2")
+
+local function ensureLoveJsEval()
+  love.js = love.js or {}
+  if type(love.js.eval) == "function" then
+    return
+  end
+  if type(love.system) ~= "table" then
+    local ok, system = pcall(require, "love.system")
+    if ok then
+      love.system = system
+    end
+  end
+  if type(love.system) ~= "table" or type(love.system.openURL) ~= "function" or type(io) ~= "table" or type(io.read) ~= "function" then
+    return
+  end
+
+  local cache = {}
+  function love.js.eval(cmd)
+    love.system.openURL("javascript:" .. tostring(cmd or ""))
+    for i = 1, 2 ^ 32 do
+      local line = io.read()
+      if not line then
+        break
+      end
+      cache[i] = line
+    end
+    local output = table.concat(cache, "\n")
+    for i = #cache, 1, -1 do
+      cache[i] = nil
+    end
+    return output
+  end
+end
+
+ensureLoveJsEval()
+
+local _loveJs = type(love) == "table" and rawget(love, "js") or nil
+local isLoveJs = type(_loveJs) == "table" and type(rawget(_loveJs, "eval")) == "function"
+local _jsEval = isLoveJs and _loveJs.eval or nil
+
+local PreviewRuntime = require("shader-graph.preview_runtime")
+-- Particle timeline semantics: one definition, shared with the in-game plugin
+-- and the exported file. This preview used to carry its own copy, which
+-- clamped nothing. See packages/runtime-lua/plugins/particle-system-playground/README.md, Particles P1.
+local ParticleCore = require("plugins.particle-system-playground.core")
+local ParticleApply = require("plugins.particle-system-playground.apply")
+local ParticleLifecycle = require("plugins.particle-system-playground.lifecycle")
+
+-- Minimal JSON parser
+
+local function parseJson(src)
+  local pos = 1
+  local function skip()
+    while pos <= #src and src:byte(pos) <= 32 do
+      pos = pos + 1
+    end
+  end
+  local parseValue
+  local function parseStr()
+    pos = pos + 1
+    local buf = {}
+    while pos <= #src do
+      local c = src:sub(pos, pos)
+      if c == '"' then
+        pos = pos + 1
+        break
+      elseif c == "\\" then
+        local e = src:sub(pos + 1, pos + 1)
+        if e == "n" then
+          buf[#buf + 1] = "\n"
+        elseif e == "t" then
+          buf[#buf + 1] = "\t"
+        elseif e == "r" then
+          buf[#buf + 1] = "\r"
+        elseif e == '"' then
+          buf[#buf + 1] = '"'
+        elseif e == "\\" then
+          buf[#buf + 1] = "\\"
+        elseif e == "/" then
+          buf[#buf + 1] = "/"
+        else
+          buf[#buf + 1] = e
+        end
+        pos = pos + 2
+      else
+        buf[#buf + 1] = c
+        pos = pos + 1
+      end
+    end
+    return table.concat(buf)
+  end
+  local function parseObj()
+    pos = pos + 1
+    skip()
+    local obj = {}
+    if src:sub(pos, pos) == "}" then
+      pos = pos + 1
+      return obj
+    end
+    while true do
+      skip()
+      local k = parseStr()
+      skip()
+      pos = pos + 1
+      skip()
+      obj[k] = parseValue()
+      skip()
+      if src:sub(pos, pos) == "}" then
+        pos = pos + 1
+        break
+      end
+      pos = pos + 1
+    end
+    return obj
+  end
+  local function parseArr()
+    pos = pos + 1
+    skip()
+    local arr = {}
+    if src:sub(pos, pos) == "]" then
+      pos = pos + 1
+      return arr
+    end
+    while true do
+      skip()
+      arr[#arr + 1] = parseValue()
+      skip()
+      if src:sub(pos, pos) == "]" then
+        pos = pos + 1
+        break
+      end
+      pos = pos + 1
+    end
+    return arr
+  end
+  parseValue = function()
+    skip()
+    local c = src:sub(pos, pos)
+    if c == '"' then
+      return parseStr()
+    elseif c == "{" then
+      return parseObj()
+    elseif c == "[" then
+      return parseArr()
+    elseif src:sub(pos, pos + 3) == "true" then
+      pos = pos + 4
+      return true
+    elseif src:sub(pos, pos + 4) == "false" then
+      pos = pos + 5
+      return false
+    elseif src:sub(pos, pos + 3) == "null" then
+      pos = pos + 4
+      return nil
+    else
+      local num, np = src:match("^(-?%d+%.?%d*[eE]?[+-]?%d*)()", pos)
+      if num then
+        pos = np
+        return tonumber(num)
+      end
+    end
+  end
+  local ok, v = pcall(parseValue)
+  return ok and v or nil
+end
+
+local function parseCsvNumbers(s)
+  local vals = {}
+  for part in tostring(s or ""):gmatch("[^,]+") do
+    local n = tonumber(part)
+    if n then
+      vals[#vals + 1] = n
+    end
+  end
+  return vals
+end
+
+local function jsString(value)
+  value = tostring(value or "")
+  value = value:gsub("\\", "\\\\")
+  value = value:gsub('"', '\\"')
+  value = value:gsub("\n", "\\n")
+  value = value:gsub("\r", "\\r")
+  return '"' .. value .. '"'
+end
+
+local function hydrateUpload(upload)
+  if type(upload) ~= "table" then
+    return upload
+  end
+  if type(upload.dataBase64) == "string" and upload.dataBase64 ~= "" then
+    return upload
+  end
+  if not _jsEval or type(upload.dataKey) ~= "string" then
+    return upload
+  end
+
+  local length = tonumber(upload.dataLength) or 0
+  if length <= 0 then
+    return upload
+  end
+
+  local chunks = {}
+  local chunkSize = 32768
+  local offset = 0
+  while offset < length do
+    local remaining = math.min(chunkSize, length - offset)
+    local expression = string.format(
+      "window._featherUploadChunk && window._featherUploadChunk(%s,%d,%d) || ''",
+      jsString(upload.dataKey),
+      offset,
+      remaining
+    )
+    local ok, chunk = pcall(_jsEval, expression)
+    if not ok or type(chunk) ~= "string" or chunk == "" then
+      return upload
+    end
+    chunks[#chunks + 1] = chunk
+    offset = offset + remaining
+  end
+
+  local copy = {}
+  for key, value in pairs(upload) do
+    copy[key] = value
+  end
+  copy.dataBase64 = table.concat(chunks)
+  return copy
+end
+
+local function hydrateUploadList(uploads)
+  if type(uploads) ~= "table" then
+    return uploads
+  end
+  local hydrated = {}
+  for index, upload in ipairs(uploads) do
+    hydrated[index] = hydrateUpload(upload)
+  end
+  return hydrated
+end
+
+-- Preset particle textures
+
+local TWO_PI = math.pi * 2
+local presetImageCache = {}
+
+local function generatePresetImage(name)
+  if presetImageCache[name] then
+    return presetImageCache[name]
+  end
+  local size = 64
+  local data = love.image.newImageData(size, size)
+  local cx, cy = (size - 1) / 2, (size - 1) / 2
+  local radius = size / 2 - 1
+  data:mapPixel(function(x, y)
+    local dx, dy = x - cx, y - cy
+    local dist = math.sqrt(dx * dx + dy * dy)
+    local angle = math.atan2(dy, dx)
+    local alpha
+    if name == "ring" then
+      alpha = (dist > radius * 0.62 and dist < radius * 0.9) and 1 or 0
+    elseif name == "light" then
+      local t = math.min(1, dist / radius)
+      alpha = (1 - t) * (1 - t)
+    elseif name == "star" then
+      local wave = (math.cos(angle * 5) + 1) / 2
+      local edge = radius * (0.48 + wave * 0.42)
+      alpha = dist <= edge and 1 or 0
+    elseif name == "spiral" then
+      local t = dist / radius
+      local target = t * TWO_PI * 2.6
+      local delta = math.abs(((angle - target + math.pi) % TWO_PI) - math.pi)
+      alpha = (delta < 0.2 and t < 0.96) and 1 or 0
+    else
+      alpha = dist <= radius and 1 or 0
+    end
+    return 1, 1, 1, math.max(0, math.min(1, alpha or 0))
+  end)
+  local img = love.graphics.newImage(data)
+  presetImageCache[name] = img
+  return img
+end
+
+-- Shader preview
+
+local shaderState = {
+  shader = nil,
+  drawable = nil,
+  textures = nil,
+  error = nil,
+  shape = "circle",
+  name = "shader graph",
+  zoom = 1,
+}
+
+local function normalizePreviewZoom(value)
+  value = tonumber(value) or 1
+  if value < 0.4 then
+    return 0.4
+  elseif value > 2.5 then
+    return 2.5
+  end
+  return value
+end
+
+local function publishShaderStatus()
+  if not _jsEval then
+    return
+  end
+  local textureCount = type(shaderState.textures) == "table" and #shaderState.textures or 0
+  local expression = string.format(
+    "window._featherShaderPreviewStatus={tool:'shader-graph',shader:%s,drawable:%s,textureCount:%d,error:%s,name:%s}",
+    shaderState.shader and "true" or "false",
+    shaderState.drawable and "true" or "false",
+    textureCount,
+    jsString(shaderState.error or ""),
+    jsString(shaderState.name or "shader graph")
+  )
+  pcall(_jsEval, expression)
+end
+
+local function applyShaderPayload(payload)
+  local pixel = tostring(payload.pixel or "")
+  local vertex = tostring(payload.vertex or "")
+  local shape = PreviewRuntime.normalizeShape(payload.previewShape)
+  local color = PreviewRuntime.colorFromHex(payload.previewColor or "#ffffff")
+  local name = tostring(payload.shaderName or "shader graph")
+  local zoom = normalizePreviewZoom(payload.previewZoom)
+  local errorMessage = nil
+
+  local shader = nil
+  if pixel ~= "" then
+    local pixelError, vertexError
+    shader, pixelError, vertexError = PreviewRuntime.buildShader(pixel, vertex, true)
+    if not shader then
+      errorMessage = pixelError or vertexError or "Shader compile failed"
+    elseif vertexError then
+      errorMessage = vertexError
+    end
+  end
+
+  local drawable = nil
+  local bt = hydrateUpload(payload.baseTexture)
+  if type(bt) == "table" and type(bt.dataBase64) == "string" and bt.dataBase64 ~= "" then
+    local image, imageErr = PreviewRuntime.imageFromUpload(bt, bt.filename or "preview-texture.png")
+    if image then
+      drawable = image
+    else
+      errorMessage = imageErr or "Preview texture failed to load"
+    end
+  end
+
+  if not drawable then
+    local ok, cv = pcall(PreviewRuntime.makePreviewImage, shape, 256, color)
+    if ok then
+      drawable = cv
+    end
+  end
+
+  local textures, textureErr = PreviewRuntime.sendTextureUniforms(shader, payload.textureUniforms, hydrateUploadList(payload.textures), {
+    allowUploadListOnly = true,
+    fallbackMissing = false,
+  })
+  if not textures and textureErr then
+    errorMessage = textureErr
+  end
+  local parametersOk, parameterErr = PreviewRuntime.sendShaderParameters(shader, payload.parameters)
+  if not parametersOk and parameterErr then
+    errorMessage = parameterErr
+  end
+
+  shaderState.shader = shader
+  shaderState.drawable = drawable
+  shaderState.textures = textures or {}
+  shaderState.error = errorMessage
+  shaderState.shape = shape
+  shaderState.name = name
+  shaderState.zoom = zoom
+  publishShaderStatus()
+end
+
+local function drawShaderPreview(w, h)
+  local drawable = shaderState.drawable
+  local shader = shaderState.shader
+
+  if not drawable then
+    local r = math.min(w, h) * 0.22
+    local x, y = w * 0.5, h * 0.5
+    love.graphics.setColor(0.22, 0.74, 0.97, 1)
+    love.graphics.circle("fill", x, y, r)
+    love.graphics.setColor(0.49, 0.23, 0.93, 0.55)
+    love.graphics.circle("fill", x + r * 0.18, y + r * 0.12, r * 0.7)
+    love.graphics.setColor(1, 1, 1, 0.9)
+    love.graphics.printf(shaderState.name, x - r, y + r + 18, r * 2, "center")
+    return
+  end
+
+  local prevBlend, prevAlphaMode = love.graphics.getBlendMode()
+  local prevShader = love.graphics.getShader()
+  local pr, pg, pb, pa = love.graphics.getColor()
+  local prevLW = love.graphics.getLineWidth()
+
+  local dw = drawable:getWidth()
+  local dh = drawable:getHeight()
+  local previewSize = math.min(280, math.max(128, math.min(w, h) * 0.42)) * normalizePreviewZoom(shaderState.zoom)
+  local aspect = (dw > 0 and dh > 0) and (dw / dh) or 1
+  local drawW = aspect >= 1 and previewSize or previewSize * aspect
+  local drawH = aspect >= 1 and previewSize / aspect or previewSize
+  local scale = drawW / (dw > 0 and dw or 256)
+  local x = (w - drawW) / 2
+  local y = (h - drawH) / 2
+
+  love.graphics.push()
+  love.graphics.origin()
+  love.graphics.setShader()
+  love.graphics.setBlendMode("alpha")
+  love.graphics.setColor(0.04, 0.05, 0.07, 0.74)
+  love.graphics.rectangle("fill", x - 10, y - 10, drawW + 20, drawH + 42, 6, 6)
+  love.graphics.setColor(1, 1, 1, 0.22)
+  love.graphics.setLineWidth(1)
+  love.graphics.rectangle("line", x - 10, y - 10, drawW + 20, drawH + 42, 6, 6)
+
+  if shader then
+    if love.timer then
+      pcall(shader.send, shader, "u_time", love.timer.getTime())
+    end
+    love.graphics.setShader(shader)
+  end
+  love.graphics.setColor(1, 1, 1, 1)
+  love.graphics.draw(drawable, x, y, 0, scale, scale)
+
+  love.graphics.setShader()
+  love.graphics.setColor(1, 1, 1, 0.72)
+  love.graphics.print("Shader Preview: " .. shaderState.shape, x - 4, y + drawH + 12)
+  if shaderState.error then
+    love.graphics.setColor(1, 0.35, 0.24, 0.95)
+    love.graphics.printf(shaderState.error, x - 4, y + drawH + 28, drawW + 8, "left")
+  end
+
+  love.graphics.setBlendMode(prevBlend, prevAlphaMode)
+  love.graphics.setShader(prevShader)
+  love.graphics.setColor(pr, pg, pb, pa)
+  love.graphics.setLineWidth(prevLW)
+  love.graphics.pop()
+end
+
+-- Particle system preview
+
+local particleState = {
+  systems = {},
+  timeline = nil,
+  timelineState = { time = 0, playing = false },
+  payloadSignature = "",
+  lastScrubVersion = -1,
+  lastBurstCount = 0,
+}
+
+local TIMELINE_LANES = {
+  "opacity",
+  "emissionRate",
+  "speedScale",
+  "sizeScale",
+  "direction",
+  "spread",
+  "offsetX",
+  "offsetY",
+}
+
+local function applySystemProperties(ps, props)
+  pcall(ps.setEmissionRate, ps, tonumber(props.emissionRate) or 100)
+  pcall(ps.setEmitterLifetime, ps, tonumber(props.emitterLifetime) or -1)
+  pcall(
+    ps.setParticleLifetime,
+    ps,
+    tonumber(props.particleLifetimeMin) or 0.35,
+    tonumber(props.particleLifetimeMax) or 1.3
+  )
+  pcall(ps.setDirection, ps, tonumber(props.direction) or (-math.pi / 2))
+  pcall(ps.setSpread, ps, tonumber(props.spread) or (math.pi / 3))
+  pcall(ps.setSpeed, ps, tonumber(props.speedMin) or 40, tonumber(props.speedMax) or 140)
+  pcall(
+    ps.setLinearAcceleration,
+    ps,
+    tonumber(props.linearAccelXMin) or 0,
+    tonumber(props.linearAccelYMin) or 0,
+    tonumber(props.linearAccelXMax) or 0,
+    tonumber(props.linearAccelYMax) or 0
+  )
+  pcall(ps.setRadialAcceleration, ps, tonumber(props.radialAccelMin) or 0, tonumber(props.radialAccelMax) or 0)
+  pcall(
+    ps.setTangentialAcceleration,
+    ps,
+    tonumber(props.tangentialAccelMin) or 0,
+    tonumber(props.tangentialAccelMax) or 0
+  )
+  pcall(ps.setLinearDamping, ps, tonumber(props.linearDampingMin) or 0, tonumber(props.linearDampingMax) or 0)
+  pcall(ps.setSizeVariation, ps, tonumber(props.sizeVariation) or 0)
+  pcall(ps.setRotation, ps, tonumber(props.rotationMin) or 0, tonumber(props.rotationMax) or 0)
+  pcall(ps.setRelativeRotation, ps, props.relativeRotation == true)
+  pcall(ps.setSpin, ps, tonumber(props.spinMin) or 0, tonumber(props.spinMax) or 0)
+  pcall(ps.setSpinVariation, ps, tonumber(props.spinVariation) or 0)
+  pcall(ps.setOffset, ps, tonumber(props.offsetX) or 0, tonumber(props.offsetY) or 0)
+  pcall(ps.setInsertMode, ps, tostring(props.insertMode or "top"))
+
+  local sizes = parseCsvNumbers(props.sizes)
+  if #sizes > 0 then
+    pcall(ps.setSizes, ps, unpack(sizes))
+  end
+
+  local colors = parseCsvNumbers(props.colors)
+  if #colors >= 4 then
+    pcall(ps.setColors, ps, unpack(colors))
+  end
+
+  local emDist = tostring(props.emissionAreaDist or "none")
+  if emDist ~= "none" and emDist ~= "" then
+    pcall(
+      ps.setEmissionArea,
+      ps,
+      emDist,
+      tonumber(props.emissionAreaDx) or 0,
+      tonumber(props.emissionAreaDy) or 0,
+      tonumber(props.emissionAreaAngle) or 0,
+      props.emissionAreaRelative == true
+    )
+  end
+end
+
+local function normalizeTimeline(timeline, systems)
+  if type(timeline) ~= "table" then
+    timeline = {}
+  end
+  -- The plugin clamped duration to [0.25, 60] and this preview only to a 0.25
+  -- floor, so a 90-second timeline looped at a different point in each.
+  local duration = ParticleCore.normalizeDuration(timeline.duration, 3)
+  local mode = ParticleCore.normalizeMode(timeline.mode, timeline.loop)
+  local tracksByIndex = {}
+  if type(timeline.tracks) == "table" then
+    for _, track in ipairs(timeline.tracks) do
+      if type(track) == "table" then
+        tracksByIndex[tonumber(track.systemIndex) or 0] = track
+      end
+    end
+  end
+  local normalized = { duration = duration, mode = mode, loop = mode == "loop", tracks = {} }
+  for index, sys in ipairs(systems or {}) do
+    local source = tracksByIndex[index] or {}
+    local track = { systemIndex = index, clips = {}, lanes = {} }
+    if type(source.clips) == "table" then
+      for _, clip in ipairs(source.clips) do
+        if type(clip) == "table" then
+          local startTime = math.max(0, math.min(duration, tonumber(clip.start) or 0))
+          local endTime = math.max(startTime + 0.01, math.min(duration, tonumber(clip["end"]) or duration))
+          track.clips[#track.clips + 1] = {
+            start = startTime,
+            ["end"] = endTime,
+            emit = tonumber(clip.emit) or tonumber(sys.emitAtStart) or 0,
+          }
+        end
+      end
+    end
+    if #track.clips == 0 then
+      track.clips[1] = { start = 0, ["end"] = duration, emit = tonumber(sys.emitAtStart) or 0 }
+    end
+    if type(source.lanes) == "table" then
+      for _, lane in ipairs(TIMELINE_LANES) do
+        local points = source.lanes[lane]
+        if type(points) == "table" then
+          track.lanes[lane] = {}
+          for _, point in ipairs(points) do
+            if type(point) == "table" then
+              track.lanes[lane][#track.lanes[lane] + 1] = {
+                time = math.max(0, math.min(duration, tonumber(point.time) or 0)),
+                value = tonumber(point.value) or 0,
+                easing = ParticleCore.normalizeEasing(point.easing),
+              }
+            end
+          end
+          table.sort(track.lanes[lane], function(a, b)
+            return a.time < b.time
+          end)
+        end
+      end
+    end
+    normalized.tracks[index] = track
+  end
+  return normalized
+end
+
+local function stableSignature(value)
+  local valueType = type(value)
+  if valueType == "table" then
+    local keys = {}
+    for key in pairs(value) do
+      if key ~= "timelineState" then
+        keys[#keys + 1] = key
+      end
+    end
+    table.sort(keys, function(a, b)
+      return tostring(a) < tostring(b)
+    end)
+    local parts = { "{" }
+    for _, key in ipairs(keys) do
+      parts[#parts + 1] = tostring(key)
+      parts[#parts + 1] = ":"
+      parts[#parts + 1] = stableSignature(value[key])
+      parts[#parts + 1] = ";"
+    end
+    parts[#parts + 1] = "}"
+    return table.concat(parts)
+  elseif valueType == "number" then
+    return string.format("%.6f", value)
+  elseif valueType == "boolean" then
+    return value and "true" or "false"
+  end
+  return tostring(value)
+end
+
+local function particlePayloadSignature(payload)
+  local composite = type(payload) == "table" and payload.composite or nil
+  if type(composite) ~= "table" then
+    return ""
+  end
+  return stableSignature({
+    activeComposite = payload.activeComposite,
+    composite = composite,
+  })
+end
+
+local function publishParticleStatus()
+  if not _jsEval then
+    return
+  end
+
+  local total = 0
+  local systems = {}
+  for _, entry in ipairs(particleState.systems) do
+    local count = 0
+    if entry.ps and type(entry.ps.getCount) == "function" then
+      local ok, value = pcall(entry.ps.getCount, entry.ps)
+      if ok then
+        count = tonumber(value) or 0
+      end
+    end
+    total = total + count
+    systems[#systems + 1] = string.format(
+      "{enabled:%s,particleCount:%d}",
+      entry.enabled ~= false and "true" or "false",
+      count
+    )
+  end
+
+  local mode = "one-shot"
+  if type(particleState.timeline) == "table" and type(particleState.timeline.mode) == "string" then
+    mode = particleState.timeline.mode
+  end
+  local state = particleState.timelineState or {}
+  local expression = string.format(
+    "window._featherParticlePreviewStatus={time:%.6f,playing:%s,mode:%s,particleCount:%d,lastBurstCount:%d,systems:[%s]}",
+    tonumber(state.time) or 0,
+    state.playing == true and "true" or "false",
+    jsString(mode),
+    total,
+    tonumber(particleState.lastBurstCount) or 0,
+    table.concat(systems, ",")
+  )
+  pcall(_jsEval, expression)
+end
+
+local function applyTimelineAt(time, allowEmission)
+  local timeline = particleState.timeline
+  if type(timeline) ~= "table" then
+    return
+  end
+  local duration = ParticleCore.normalizeDuration(timeline.duration, 3)
+  for index, track in ipairs(timeline.tracks or {}) do
+    local entry = particleState.systems[index]
+    if entry and entry.ps and entry.enabled then
+      local base = entry.base or {}
+
+      -- Compile once per track, not per frame. The timeline table is replaced
+      -- when the payload changes, so a reference check is the invalidation
+      -- signal, and baking happens on edit rather than sixty times a second.
+      if entry.timelineTrack ~= track or entry.timelineDuration ~= duration then
+        entry.timelineCompiled = ParticleCore.compileTrack(track, duration)
+        entry.timelineTrack = track
+        entry.timelineDuration = duration
+        entry.applyState = ParticleApply.newState()
+      end
+      entry.applyState = entry.applyState or ParticleApply.newState()
+
+      entry.tickOptions = entry.tickOptions or {}
+      entry.tickOptions.mode = timeline.mode
+      entry.tickOptions.allowEmission = allowEmission == true
+
+      local resolved = ParticleApply.tick(
+        entry.applyState,
+        entry.ps,
+        entry.timelineCompiled,
+        time,
+        base,
+        entry.tickOptions
+      )
+      entry.opacity = resolved.opacity
+    end
+  end
+end
+
+local function emitTimelineStarts(previousTime, nextTime)
+  local timeline = particleState.timeline
+  if type(timeline) ~= "table" then
+    return 0
+  end
+  local emitted = 0
+  for index, track in ipairs(timeline.tracks or {}) do
+    local entry = particleState.systems[index]
+    if entry and entry.ps and entry.enabled then
+      for _, clip in ipairs(track.clips or {}) do
+        local startTime = tonumber(clip.start) or 0
+        if previousTime <= startTime and nextTime >= startTime then
+          local base = entry.base or {}
+          local count = math.max(0, math.floor(tonumber(clip.emit) or tonumber(entry.emitAtStart) or 0))
+          pcall(entry.ps.setEmitterLifetime, entry.ps, tonumber(base.emitterLifetime) or -1)
+          pcall(entry.ps.start, entry.ps)
+          if count > 0 then
+            pcall(entry.ps.emit, entry.ps, count)
+            emitted = emitted + count
+          end
+        end
+      end
+    end
+  end
+  particleState.lastBurstCount = (tonumber(particleState.lastBurstCount) or 0) + emitted
+  return emitted
+end
+
+local function emitTimelineStartsForAdvance(previousTime, elapsed, duration)
+  local timeline = particleState.timeline
+  if type(timeline) ~= "table" or elapsed <= 0 then
+    return previousTime
+  end
+
+  local cursor = previousTime
+  local remaining = elapsed
+  local guard = 0
+  while remaining > 0 and guard < 128 do
+    if cursor >= duration then
+      cursor = 0
+    end
+    local room = math.max(0, duration - cursor)
+    if room <= 0 then
+      cursor = 0
+      room = duration
+    end
+    local segment = math.min(remaining, room)
+    local nextCursor = cursor + segment
+    if segment > 0 then
+      emitTimelineStarts(cursor, nextCursor)
+    end
+    remaining = remaining - segment
+    cursor = nextCursor
+    if remaining > 0 and cursor >= duration then
+      cursor = 0
+    end
+    guard = guard + 1
+  end
+
+  return cursor >= duration and 0 or cursor
+end
+
+local function resetParticleSystems()
+  particleState.lastBurstCount = 0
+  local mode = particleState.timeline and particleState.timeline.mode
+  for _, entry in ipairs(particleState.systems) do
+    if entry.ps then
+      pcall(entry.ps.reset, entry.ps)
+      local base = entry.base or {}
+      pcall(entry.ps.setEmitterLifetime, entry.ps, tonumber(base.emitterLifetime) or -1)
+      pcall(entry.ps.start, entry.ps)
+      if entry.applyState then
+        ParticleApply.invalidate(entry.applyState)
+      end
+      -- Warm to the steady state before the first draw, using the same rule
+      -- the game and the exported file use. This preview ignored kickStart
+      -- entirely, so an ambient effect always began empty here.
+      ParticleLifecycle.warm(function(dt)
+        pcall(entry.ps.update, entry.ps, dt)
+      end, entry.warm, mode)
+    end
+  end
+end
+
+local function seekParticleTimeline(time, playing)
+  local timeline = particleState.timeline
+  if type(timeline) ~= "table" then
+    return
+  end
+  local duration = tonumber(timeline.duration) or 3
+  local target = math.max(0, math.min(duration, tonumber(time) or 0))
+  resetParticleSystems()
+  particleState.timelineState.time = target
+  particleState.timelineState.playing = playing == true
+
+  local current = 0
+  local step = 1 / 60
+  local steps = 0
+  while current < target and steps < 600 do
+    local nextTime = math.min(target, current + step)
+    emitTimelineStarts(current, nextTime)
+    applyTimelineAt(nextTime, true)
+    for _, entry in ipairs(particleState.systems) do
+      if entry.ps and entry.enabled then
+        pcall(entry.ps.update, entry.ps, nextTime - current)
+      end
+    end
+    current = nextTime
+    steps = steps + 1
+  end
+  applyTimelineAt(target, playing == true)
+end
+
+local function syncParticleTimelineState(state)
+  if type(state) ~= "table" or type(particleState.timeline) ~= "table" then
+    return
+  end
+
+  local duration = tonumber(particleState.timeline.duration) or 3
+  local currentTime = tonumber(particleState.timelineState.time) or 0
+  local target = math.max(0, math.min(duration, tonumber(state.time) or currentTime))
+  local incomingPlaying = state.playing == true
+  local scrubVersion = tonumber(state.scrubVersion) or particleState.lastScrubVersion
+  local wasPlaying = particleState.timelineState.playing == true
+  local explicitSeek = scrubVersion ~= particleState.lastScrubVersion and not wasPlaying and not incomingPlaying
+
+  if incomingPlaying and wasPlaying then
+    -- Once playback has started, the simulation clock in love.update is the
+    -- authority. The browser also advances a UI playhead and posts it every
+    -- few frames; copying that delayed value back into Lua made timeline
+    -- offsets and the emission source jump backwards every poll interval.
+    -- Play/pause transitions and explicit seeks still synchronize below.
+    particleState.timelineState.playing = true
+  elseif explicitSeek then
+    seekParticleTimeline(target, incomingPlaying)
+  else
+    particleState.timelineState.time = target
+    particleState.timelineState.playing = incomingPlaying
+    applyTimelineAt(target, incomingPlaying)
+  end
+
+  particleState.lastScrubVersion = scrubVersion
+end
+
+local function applyParticlePayload(payload)
+  for _, entry in ipairs(particleState.systems) do
+    if entry.ps then
+      pcall(entry.ps.release, entry.ps)
+    end
+  end
+  particleState.systems = {}
+
+  local composite = payload.composite
+  if type(composite) ~= "table" then
+    return
+  end
+
+  local systems = composite.systems
+  if type(systems) ~= "table" then
+    return
+  end
+
+  for _, sysData in ipairs(systems) do
+    if type(sysData) == "table" then
+      local preset = tostring(sysData.texturePreset or "circle")
+      local ok0, img = pcall(generatePresetImage, preset)
+      if not ok0 or not img then
+        ok0, img = pcall(generatePresetImage, "circle")
+      end
+      if ok0 and img then
+        local bufSize = math.max(
+          100,
+          math.min(
+            5000,
+            tonumber((type(sysData.properties) == "table" and sysData.properties.bufferSize) or 1000) or 1000
+          )
+        )
+        local okPs, ps = pcall(love.graphics.newParticleSystem, img, bufSize)
+        if okPs and ps then
+          if type(sysData.properties) == "table" then
+            pcall(applySystemProperties, ps, sysData.properties)
+          end
+          pcall(ps.start, ps)
+          local props = type(sysData.properties) == "table" and sysData.properties or {}
+          particleState.systems[#particleState.systems + 1] = {
+            ps = ps,
+            blendMode = tostring(sysData.blendMode or "alpha"),
+            enabled = sysData.enabled ~= false,
+            x = tonumber(sysData.x) or 0,
+            y = tonumber(sysData.y) or 0,
+            emitAtStart = tonumber(sysData.emitAtStart) or 0,
+            -- Carried through so the preview can warm the way the game and the
+            -- exported file do. These were authored in Studio and sent in the
+            -- payload, and this preview simply dropped them on the floor.
+            warm = {
+              kickStartSteps = sysData.kickStartSteps,
+              kickStartDt = sysData.kickStartDt,
+              particleLifetimeMin = tonumber(props.particleLifetimeMin),
+              particleLifetimeMax = tonumber(props.particleLifetimeMax),
+            },
+            opacity = 1,
+            base = {
+              emissionRate = tonumber(props.emissionRate) or 100,
+              emitterLifetime = tonumber(props.emitterLifetime) or -1,
+              speedMin = tonumber(props.speedMin) or 40,
+              speedMax = tonumber(props.speedMax) or 140,
+              sizes = parseCsvNumbers(props.sizes),
+              direction = tonumber(props.direction) or (-math.pi / 2),
+              spread = tonumber(props.spread) or (math.pi / 3),
+              offsetX = tonumber(props.offsetX) or 0,
+              offsetY = tonumber(props.offsetY) or 0,
+            },
+          }
+        end
+      end
+    end
+  end
+
+  particleState.timeline = normalizeTimeline(composite.timeline, systems)
+  local incomingState = type(composite.timelineState) == "table" and composite.timelineState or {}
+  particleState.lastScrubVersion = tonumber(incomingState.scrubVersion) or -1
+  seekParticleTimeline(tonumber(incomingState.time) or 0, incomingState.playing == true)
+  publishParticleStatus()
+end
+
+local function drawParticlePreview(w, h)
+  local cx = w * 0.5
+  local cy = h * 0.56
+
+  if #particleState.systems == 0 then
+    love.graphics.setColor(1, 0.45 + 0.35, 0.12, 0.6)
+    local r = math.min(w, h) * 0.04
+    for i = 1, 24 do
+      local angle = i * 2.399
+      local spread = 30 + r * 2
+      local px = cx + math.cos(angle) * spread
+      local py = cy - spread * 0.5 + math.sin(angle * 1.7) * spread * 0.18
+      love.graphics.circle("fill", px, py, r)
+    end
+    return
+  end
+
+  local prevBlend, prevAlphaMode = love.graphics.getBlendMode()
+  local pr, pg, pb, pa = love.graphics.getColor()
+
+  for _, entry in ipairs(particleState.systems) do
+    if entry.ps then
+      if entry.blendMode == "add" then
+        love.graphics.setBlendMode("add")
+      else
+        love.graphics.setBlendMode("alpha")
+      end
+      love.graphics.setColor(1, 1, 1, entry.opacity or 1)
+      love.graphics.draw(entry.ps, cx + entry.x, cy + entry.y)
+    end
+  end
+
+  love.graphics.setBlendMode(prevBlend, prevAlphaMode)
+  love.graphics.setColor(pr, pg, pb, pa)
+end
+
+-- Payload polling
+
+local pollState = {
+  tool = "idle",
+  previewGround = "dark",
+  time = 0,
+  pollTimer = 0,
+  lastPayloadJson = "",
+}
+
+local function pollPayload()
+  if not _jsEval then
+    return
+  end
+  local ok, json = pcall(_jsEval, "JSON.stringify(window._featherPayload || null)")
+  if not ok or not json or json == "" or json == "null" then
+    return
+  end
+  if json == pollState.lastPayloadJson then
+    return
+  end
+  pollState.lastPayloadJson = json
+
+  local payload = parseJson(json)
+  if type(payload) ~= "table" then
+    return
+  end
+
+  local tool = tostring(payload.tool or "idle")
+  pollState.tool = tool
+  local previewGround = tostring(payload.previewGround or "dark")
+  if previewGround ~= "dark" and previewGround ~= "neutral" and previewGround ~= "light" and previewGround ~= "checker" then
+    previewGround = "dark"
+  end
+  pollState.previewGround = previewGround
+  if tool == "shader-graph" then
+    particleState.payloadSignature = ""
+    local okApply, applyErr = pcall(applyShaderPayload, payload)
+    if not okApply then
+      shaderState.error = tostring(applyErr)
+      shaderState.shader = nil
+      shaderState.textures = {}
+      publishShaderStatus()
+    end
+  elseif tool == "particle-system-playground" then
+    local signature = particlePayloadSignature(payload)
+    if signature ~= particleState.payloadSignature then
+      particleState.payloadSignature = signature
+      pcall(applyParticlePayload, payload)
+    else
+      local composite = type(payload.composite) == "table" and payload.composite or nil
+      pcall(syncParticleTimelineState, type(composite) == "table" and composite.timelineState or nil)
+    end
+  else
+    particleState.payloadSignature = ""
+  end
+end
+
+-- love callbacks
+
+---@diagnostic disable-next-line: duplicate-set-field
+function love.update(dt)
+  pollState.time = pollState.time + dt
+  pollState.pollTimer = pollState.pollTimer + dt
+  if pollState.pollTimer >= 0.12 then
+    pollState.pollTimer = 0
+    pollPayload()
+  end
+  if pollState.tool == "particle-system-playground" then
+    particleState.lastBurstCount = 0
+    local timeline = particleState.timeline
+    if type(timeline) == "table" and particleState.timelineState.playing then
+      local duration = tonumber(timeline.duration) or 3
+      local previous = particleState.timelineState.time or 0
+      local nextTime = previous + dt
+      if nextTime > duration then
+        if timeline.mode == "loop" then
+          nextTime = emitTimelineStartsForAdvance(previous, dt, duration)
+        elseif timeline.mode == "ambient" then
+          emitTimelineStarts(previous, duration)
+          nextTime = duration
+          particleState.timelineState.playing = true
+        else
+          emitTimelineStarts(previous, duration)
+          nextTime = duration
+          particleState.timelineState.playing = false
+        end
+      else
+        emitTimelineStarts(previous, nextTime)
+      end
+      particleState.timelineState.time = nextTime
+    end
+    applyTimelineAt(particleState.timelineState.time or 0, particleState.timelineState.playing == true)
+    for _, entry in ipairs(particleState.systems) do
+      if entry.ps then
+        pcall(entry.ps.update, entry.ps, dt)
+      end
+    end
+    publishParticleStatus()
+  end
+end
+
+---@diagnostic disable-next-line: duplicate-set-field
+function love.draw()
+  local w, h = love.graphics.getDimensions()
+  if pollState.previewGround == "neutral" then
+    love.graphics.clear(0.463, 0.463, 0.463, 1)
+  elseif pollState.previewGround == "light" then
+    love.graphics.clear(0.831, 0.831, 0.831, 1)
+  elseif pollState.previewGround == "checker" then
+    love.graphics.clear(0.353, 0.353, 0.353, 1)
+    love.graphics.setColor(0.435, 0.435, 0.435, 1)
+    local cell = 16
+    for y = 0, h, cell do
+      for x = 0, w, cell do
+        if (math.floor(x / cell) + math.floor(y / cell)) % 2 == 0 then
+          love.graphics.rectangle("fill", x, y, cell, cell)
+        end
+      end
+    end
+  else
+    love.graphics.clear(0.02, 0.03, 0.05, 1)
+  end
+
+  if pollState.tool == "particle-system-playground" then
+    drawParticlePreview(w, h)
+  elseif pollState.tool == "shader-graph" then
+    drawShaderPreview(w, h)
+  else
+    love.graphics.setColor(0.84, 0.87, 0.91, 0.35)
+    local r = math.min(w, h) * 0.22
+    love.graphics.setLineWidth(1)
+    love.graphics.circle("line", w * 0.5, h * 0.5, r)
+  end
+
+  if pollState.previewGround == "light" then
+    love.graphics.setColor(0.08, 0.08, 0.08, 0.62)
+  else
+    love.graphics.setColor(0.84, 0.87, 0.91, 0.72)
+  end
+  love.graphics.print("Feather standalone preview target", 12, 12)
+end

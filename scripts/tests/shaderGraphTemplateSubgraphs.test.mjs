@@ -1,10 +1,10 @@
 /* eslint-disable no-undef */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { codegen } from '../../src/pages/shader-graph/codegen.ts';
-import { diagnoseShaderGraph } from '../../src/pages/shader-graph/diagnostics.ts';
-import { instantiateShaderGraphPreset, SHADER_GRAPH_PRESETS } from '../../src/pages/shader-graph/presets.ts';
-import { adaptLoveShader } from '../../src/pages/shader-graph/webglPreview.ts';
+import { codegen } from '../../apps/studio/src/tools/shader-graph/codegen.ts';
+import { diagnoseShaderGraph } from '../../apps/studio/src/tools/shader-graph/diagnostics.ts';
+import { instantiateShaderGraphPreset, SHADER_GRAPH_PRESETS } from '../../apps/studio/src/tools/shader-graph/presets.ts';
+import { adaptLoveShader } from '../../apps/studio/src/tools/shader-graph/webglPreview.ts';
 
 if (typeof globalThis.btoa === 'undefined') {
   globalThis.btoa = (value) => Buffer.from(value, 'binary').toString('base64');

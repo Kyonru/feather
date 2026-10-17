@@ -1,0 +1,24 @@
+# Feather v4 workspace.
+#
+# This file is the only workspace inventory; root `package.json` deliberately
+# has no `workspaces` field, so the two cannot disagree. Listed explicitly
+# rather than globbed so adding a package is a visible decision (apps/docs/architecture.md §1: a
+# directory earns package status only as a release boundary or a contract).
+# `apps/inspector` and `apps/showcase` are built from the root package.
+packages:
+  - apps/studio
+  - apps/cli
+  - packages/host
+  - packages/protocol
+  - packages/runtime-lua
+  - packages/session-bridge
+  - packages/ui
+  - apps/vscode-extension
+
+# pnpm blocks dependency build scripts by default. These three genuinely need
+# theirs: esbuild fetches its platform binary (Vite depends on it), and keytar
+# and vsce-sign are native modules used when packaging the VS Code extension.
+allowBuilds:
+  '@vscode/vsce-sign': true
+  esbuild: true
+  keytar: true

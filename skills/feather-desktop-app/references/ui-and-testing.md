@@ -24,19 +24,19 @@ If a new node type is added, update Lua helpers, desktop renderer, docs, and tes
 
 ## Verification commands
 
-- `npm run typecheck:web`
-- `npm run build`
-- `npm run test:app:e2e`
-- `npm run test:showcase:e2e`
+- `pnpm run typecheck:web` (Inspector) / `pnpm run typecheck:studio` (Studio)
+- `pnpm run build`
+- `pnpm run test:inspector:e2e` / `pnpm run test:studio:e2e`
+- `pnpm run test:showcase:e2e`
 
 For UI changes, use Playwright screenshots or app smoke checks when visual regressions are plausible.
 
 ## Test taxonomy
 
-- App workflows: `e2e/app.spec.ts` via `npm run test:app:e2e`.
-- Showcase/browser-only creative tools: `e2e/showcase.spec.ts` via `npm run test:showcase:e2e`.
-- Tauri/Rust protocol behavior: Rust tests in `src-tauri/src/ws_server.rs` via the relevant cargo test.
-- Lua/plugin wire payloads: `npm run test:lua:e2e`.
+- App workflows: `apps/inspector/e2e/app.spec.ts` via `pnpm run test:inspector:e2e`.
+- Showcase/browser-only creative tools: `apps/showcase/e2e/showcase.spec.ts` via `pnpm run test:showcase:e2e`.
+- Tauri/Rust protocol behavior: Rust tests in `apps/inspector/src-tauri/src/ws_server.rs` via the relevant cargo test.
+- Lua/plugin wire payloads: `pnpm run test:lua:e2e`.
 
 ## Accessibility and resilience
 

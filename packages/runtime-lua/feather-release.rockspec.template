@@ -1,0 +1,39 @@
+local git_ref = '$git_ref'
+local modrev = '$modrev'
+local specrev = '$specrev'
+
+local repo_url = '$repo_url'
+
+rockspec_format = '3.0'
+package = '$package'
+version = modrev .. '-' .. specrev
+
+description = {
+  summary = '$summary',
+  detailed = $detailed_description,
+  labels = $labels,
+  homepage = '$homepage',
+  $license
+}
+
+dependencies = $dependencies
+
+test_dependencies = $test_dependencies
+
+source = {
+  url = repo_url .. '/archive/' .. git_ref .. '.zip',
+  -- GitHub strips the leading "v" from conventional v* archive directories,
+  -- but keeps Feather's independent train prefix for runtime-v* tags.
+  dir = '$repo_name-' .. (git_ref:match('^v') and git_ref:sub(2) or git_ref),
+}
+
+if modrev == 'scm' or modrev == 'dev' then
+  source = {
+    url = repo_url:gsub('https', 'git')
+  }
+end
+
+build = {
+  type = 'builtin',
+  copy_directories = $copy_directories,
+}

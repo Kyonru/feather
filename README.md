@@ -37,11 +37,11 @@ The goal is to make the day-to-day loop of writing and testing a LÖVE game fast
 
 ---
 
-![log tab](docs/images/logs.png)
-![performance tab](docs/images/performance.png)
-![observability tab](docs/images/observable.png)
-![!assets tab](docs/images/assets.png)
-![!debugger tab](docs/images/debugger.png)
+![log tab](apps/docs/images/logs.png)
+![performance tab](apps/docs/images/performance.png)
+![observability tab](apps/docs/images/observable.png)
+![!assets tab](apps/docs/images/assets.png)
+![!debugger tab](apps/docs/images/debugger.png)
 
 ---
 
@@ -103,7 +103,7 @@ feather --help
 feather run --help
 ```
 
-See the [CLI docs](docs/cli.md) for `feather run`, `feather doctor`, `feather build`, and `feather upload`.
+See the [CLI docs](apps/docs/cli.md) for `feather run`, `feather doctor`, `feather build`, and `feather upload`.
 
 ---
 
@@ -118,20 +118,40 @@ feather package audit               # verify checksums of installed files
 feather package list                # browse the catalog
 ```
 
-Available libraries include anim8, bump, hump, lume, flux, inspect, middleclass, classic, push, sti, and windfield. See [packages/README.md](packages/README.md) for the full list and command reference.
+Available libraries include anim8, bump, hump, lume, flux, inspect, middleclass, classic, push, sti, and windfield. See [catalog/packages/README.md](catalog/packages/README.md) for the full list and command reference.
 
 ---
 
 ## [Documentation](https://kyonru.github.io/feather)
 
-- [Installation](docs/installation.md)
-- [CLI](docs/cli.md)
-- [Configuration](docs/configuration.md)
-- [Usage](docs/usage.md) — observers, logging, console, step debugger
-- [Session Replay](docs/session-replay.md)
-- [Plugins](docs/plugins.md)
-- [Packages](packages/README.md)
-- [Recommendations](docs/recommendations.md) — security, performance, release builds
+- [Installation](apps/docs/installation.md)
+- [CLI](apps/docs/cli.md)
+- [Configuration](apps/docs/configuration.md)
+- [Usage](apps/docs/usage.md) — observers, logging, console, step debugger
+- [Session Replay](apps/docs/session-replay.md)
+- [Plugins](apps/docs/plugins.md)
+- [Packages](catalog/packages/README.md)
+- [Recommendations](apps/docs/recommendations.md) — security, performance, release builds
+
+---
+
+## Contributing
+
+Feather is a pnpm + Turborepo monorepo. Everything runs from the repo root:
+
+```sh
+pnpm install
+pnpm run up                 # Inspector + an example game connected to it
+pnpm run inspector:tauri    # or just the Inspector desktop app
+pnpm run studio:tauri       # or just Feather Studio
+pnpm run feather --help     # the CLI
+pnpm run verify             # typecheck, lint, and drift checks
+pnpm run test               # standard pre-push test lanes
+pnpm run test:ready         # full headless release-readiness gate
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide and the
+[architecture reference](apps/docs/architecture.md) for application boundaries and release trains.
 
 ---
 
@@ -163,7 +183,7 @@ Available libraries include anim8, bump, hump, lume, flux, inspect, middleclass,
 
 The license applies to products that directly replicate the logic or purpose of this tool. It does not apply to games built using it as a development tool.
 
-See [LICENSE.md](LICENSE.md).
+See [LICENSE](LICENSE).
 
 ## AI usage
 

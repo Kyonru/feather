@@ -1,1 +1,0 @@
-../../src-lua/plugins/config-tweaker/README.md

@@ -1,20 +1,39 @@
-npm run typecheck
-npm run lint
+# Turbo caches these, so a re-commit after a trivial fix is near-instant.
+pnpm exec turbo run //#lint //#typecheck:web //#typecheck:protocol //#typecheck:lua
 
 bash scripts/generate-manifest.sh
-if ! git diff --exit-code src-lua/manifest.txt; then
+if ! git diff --exit-code packages/runtime-lua/manifest.txt; then
   echo "[feather] manifest.txt is out of date — it has been updated, please stage it and commit again."
   exit 1
 fi
 
-npm run generate:plugin-catalog
-if ! git diff --exit-code cli/src/generated/plugin-catalog.ts; then
+pnpm run generate:plugin-catalog
+if ! git diff --exit-code apps/cli/src/generated/plugin-catalog.ts; then
   echo "[feather] plugin catalog is out of date — it has been updated, please stage it and commit again."
   exit 1
 fi
 
-bash scripts/set-version.sh
-if ! git diff --exit-code package.json src-lua/feather/init.lua src-tauri/Cargo.toml src-tauri/tauri.conf.json cli/package.json vscode-extension/package.json; then
-  echo "[feather] Version files are out of sync — they have been updated, please stage them and commit again."
+# The Lua runtime and the desktop app negotiate a wire protocol version at
+# feather:hello. They live in different languages and cannot import each other,
+# so this guard is what stops the two declarations from drifting apart.
+pnpm run check:protocol
+
+# Feather v4: versions are per release train (see apps/docs/architecture.md §5.6). The trains
+# deliberately drift apart — a CLI patch must NOT drag the desktop app, runtime,
+# or extension along with it. The only cross-file constraint left is the desktop
+# trio, which is one artifact described in three files and must agree with itself.
+#
+# Compare the trio before and after set-version rather than against the index:
+# package.json routinely carries other unstaged edits, and `git diff` on it made
+# every such commit fail as "out of sync" when set-version had changed nothing.
+DESKTOP_TRIO="package.json apps/inspector/src-tauri/Cargo.toml apps/inspector/src-tauri/tauri.conf.json"
+# shellcheck disable=SC2086
+TRIO_BEFORE=$(cat $DESKTOP_TRIO | git hash-object --stdin)
+bash scripts/set-version.sh desktop
+# shellcheck disable=SC2086
+TRIO_AFTER=$(cat $DESKTOP_TRIO | git hash-object --stdin)
+if [ "$TRIO_BEFORE" != "$TRIO_AFTER" ]; then
+  echo "[feather] Desktop version files were out of sync — set-version has aligned them; stage them and commit again."
+  echo "[feather] Note: cli, runtime, and ext version independently. See apps/docs/architecture.md §5.6."
   exit 1
 fi

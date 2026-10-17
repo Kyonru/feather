@@ -11,15 +11,15 @@ Use this skill when changing or reviewing Feather CLI behavior, command options,
 
 ## First pass
 
-- Start with `cli/src/index.ts` to see the Commander command surface and option names.
-- Follow command handlers into `cli/src/commands/` and shared behavior into `cli/src/lib/`.
+- Start with `apps/cli/src/index.ts` to see the Commander command surface and option names.
+- Follow command handlers into `apps/cli/src/commands/` and shared behavior into `apps/cli/src/lib/`.
 - For build or upload work, load [build config and safety](references/build-config-and-safety.md).
 - For command behavior, tests, and scripts, load [commands and verification](references/commands-and-verification.md).
 
 ## Core rules
 
 - Preserve the public `feather` command shape unless the task explicitly asks for a breaking change.
-- Prefer adding behavior in `cli/src/commands/*` and reusable helpers in `cli/src/lib/*`.
+- Prefer adding behavior in `apps/cli/src/commands/*` and reusable helpers in `apps/cli/src/lib/*`.
 - Keep command options consistent across `run`, `watch`, `build`, `release`, and `upload`; aliases such as `--build-config` and `--disable-debugger` exist for compatibility.
 - CLI-managed mode is the default for `feather init`; embedded `auto` and `manual` modes are escape hatches.
 - Treat `feather.config.lua`, `feather.build.json`, and `feather.lock.json` as user project files. Validate and write them deliberately.
@@ -29,33 +29,33 @@ Use this skill when changing or reviewing Feather CLI behavior, command options,
 
 ## Common implementation map
 
-- Command registration: `cli/src/index.ts`.
-- CLI command handlers: `cli/src/commands/`.
-- Project scaffolding: `cli/src/commands/create.ts`, `cli/src/ui/create-workflow.js`.
-- Runtime config parsing/writing: `cli/src/lib/config.ts`.
-- Build config and targets: `cli/src/lib/build/config.ts`.
-- Build staging and artifacts: `cli/src/lib/build/build.ts`, `cli/src/lib/build/files.ts`, `cli/src/lib/build/debug-stage.ts`.
-- Platform builders: `cli/src/lib/build/web.ts`, `android.ts`, `ios.ts`, `desktop.ts`.
-- Vendor fetching/listing: `cli/src/lib/build/vendor.ts`.
-- Release and upload: `cli/src/lib/build/release.ts`, `upload.ts`, `upload-safety.ts`.
+- Command registration: `apps/cli/src/index.ts`.
+- CLI command handlers: `apps/cli/src/commands/`.
+- Project scaffolding: `apps/cli/src/commands/create.ts`, `apps/cli/src/ui/create-workflow.tsx`.
+- Runtime config parsing/writing: `apps/cli/src/lib/config.ts`.
+- Build config and targets: `apps/cli/src/lib/build/config.ts`.
+- Build staging and artifacts: `apps/cli/src/lib/build/build.ts`, `apps/cli/src/lib/build/files.ts`, `apps/cli/src/lib/build/debug-stage.ts`.
+- Platform builders: `apps/cli/src/lib/build/web.ts`, `android.ts`, `ios.ts`, `desktop.ts`.
+- Vendor fetching/listing: `apps/cli/src/lib/build/vendor.ts`.
+- Release and upload: `apps/cli/src/lib/build/release.ts`, `upload.ts`, `upload-safety.ts`.
 
 ## Verification
 
-- Add or update CLI e2e coverage for command behavior changes; prefer `cli/test/commands/*.test.mjs` for CLI command scenarios.
-- Build CLI after code changes: `npm run cli:build`.
-- Run CLI command tests: `node --test cli/test/commands/*.test.mjs`.
-- Use root wrapper for local command smoke checks: `npm run feather -- --help`.
-- For Lua/runtime impact, also run `npm run test:lua:e2e`.
-- For package catalog side effects, also run `npm run check:registry`.
+- Add or update CLI e2e coverage for command behavior changes; prefer `apps/cli/test/commands/*.test.mjs` for CLI command scenarios.
+- Build CLI after code changes: `pnpm run cli:build`.
+- Run CLI command tests: `node --test apps/cli/test/commands/*.test.mjs`.
+- Use root wrapper for local command smoke checks: `pnpm run feather --help`.
+- For Lua/runtime impact, also run `pnpm run test:lua:e2e`.
+- For package catalog side effects, also run `pnpm run check:registry`.
 
 ## Docs touchpoints
 
 - Update docs for user-facing CLI behavior in the same change as the implementation.
 - Update `CHANGELOG.md` for user-visible command, option, build, release, upload, doctor, safety, or e2e coverage changes.
-- User-facing CLI behavior belongs in `cli/README.md`; `docs/cli.md` points there.
-- Build, release, upload, and production-safety behavior may also need `docs/recommendations.md`.
-- Configuration fields may need `docs/configuration.md`.
-- When a docs page can live beside the CLI source, keep the canonical file in `cli/` and expose it through `docs/` with a symlink.
+- User-facing CLI behavior belongs in `apps/cli/README.md`; `apps/docs/cli.md` points there.
+- Build, release, upload, and production-safety behavior may also need `apps/docs/recommendations.md`.
+- Configuration fields may need `apps/docs/configuration.md`.
+- When a docs page can live beside the CLI source, keep the canonical file in `apps/cli/` and expose it through `apps/docs/` with a symlink.
 
 ## Avoid
 

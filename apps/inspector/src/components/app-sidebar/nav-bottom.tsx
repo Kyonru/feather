@@ -1,0 +1,76 @@
+import * as React from 'react';
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@feather/ui/sidebar';
+import { CloudDownloadIcon, InfoIcon, SettingsIcon } from 'lucide-react';
+import { useSettingsStore } from '@/store/settings';
+import { useAboutStore } from '@/store/about';
+
+export function NavBottom({ ...props }: {} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+  const setSettingsOpen = useSettingsStore((state) => state.setOpen);
+  const setAboutOpen = useAboutStore((state) => state.setOpen);
+  const isLatestVersion = useSettingsStore((state) => state.isLatestVersion);
+
+  const aboutIcon = React.useMemo(() => {
+    if (!isLatestVersion) {
+      return CloudDownloadIcon;
+    }
+
+    return InfoIcon;
+  }, [isLatestVersion]);
+
+  const aboutClassName = React.useMemo(() => {
+    if (!isLatestVersion) {
+      return 'bg-info-surface animate-pulse';
+    }
+
+    return '';
+  }, [isLatestVersion]);
+
+  const aboutTitle = React.useMemo(() => {
+    if (!isLatestVersion) {
+      return 'Update available';
+    }
+
+    return 'About';
+  }, [isLatestVersion]);
+
+  const items = [
+    {
+      title: 'Settings',
+      onPress: () => {
+        setSettingsOpen(true);
+      },
+      icon: SettingsIcon,
+    },
+    {
+      title: aboutTitle,
+      onPress: () => {
+        setAboutOpen(true);
+      },
+      icon: aboutIcon,
+      className: aboutClassName,
+    },
+  ];
+
+  return (
+    <SidebarGroup {...props}>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton type="button" className={item.className} onClick={item.onPress}>
+                {item.icon && <item.icon />}
+                <span>{item.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}

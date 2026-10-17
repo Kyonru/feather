@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { codegen } from '../../src/pages/shader-graph/codegen.ts';
-import { adaptLoveShader } from '../../src/pages/shader-graph/webglPreview.ts';
+import { codegen } from '../../apps/studio/src/tools/shader-graph/codegen.ts';
+import { adaptLoveShader } from '../../apps/studio/src/tools/shader-graph/webglPreview.ts';
 
 if (typeof globalThis.btoa === 'undefined') {
   globalThis.btoa = (value) => Buffer.from(value, 'binary').toString('base64');

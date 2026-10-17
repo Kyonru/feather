@@ -1,19 +1,23 @@
 ---
 name: feather-desktop-app
-description: Work on Feather's React and Tauri desktop app, pages, hooks, stores, WebSocket session model, plugin UI rendering, design patterns, and Playwright checks.
+description: Work on Feather's two React + Tauri desktop apps — Inspector (session debugging, pages, hooks, stores, WebSocket session model, plugin UI rendering) and Studio (shader graph, texture lab, particle playground) — plus the web showcase and their Playwright checks.
 ---
 
-# Feather Desktop App
+# Feather Desktop Apps
 
 ## When to use
 
-Use this skill when changing the desktop React/Tauri app, session UI, settings, plugin rendering, shader or particle tools, WebSocket state, or app-level tests.
+Use this skill when changing Inspector (session UI, settings, plugin rendering, WebSocket state), Studio (the shader, texture and particle tools), the showcase, or their app-level tests.
+
+They are separate applications ([architecture](../../apps/docs/architecture.md)): Inspector owns the game session; Studio is a local authoring tool that can optionally pair with Inspector through `packages/session-bridge`. Neither imports the other — `no-restricted-imports` enforces it and `pnpm run check:artifact-boundary` checks the built bundles. Shared code goes in `packages/ui` or `packages/host`. Read [design rules](references/design-rules.md) before changing an existing feature's behaviour or UI.
 
 ## First pass
 
-- Start with `src/router.tsx`, `src/providers.tsx`, and the relevant page under `src/pages/`.
-- Follow data flow through `src/hooks/`, `src/store/`, and `src/lib/send-command.ts`.
+- Inspector: start with `apps/inspector/src/router.tsx`, `apps/inspector/src/providers.tsx`, and the relevant page under `apps/inspector/src/pages/`.
+- Studio: start with `apps/studio/src/StudioApp.tsx` and the tool under `apps/studio/src/tools/`.
+- Follow data flow through `apps/inspector/src/hooks/`, `apps/inspector/src/store/`, and `apps/inspector/src/lib/send-command.ts`.
 - For architecture and session flow, load [app architecture](references/app-architecture.md).
+- For product direction, interface semantics, and the Inspector/Studio distinction, load [design rules](references/design-rules.md).
 - For UI conventions and testing, load [UI and testing](references/ui-and-testing.md).
 - For Tauri commands, WS events, auth, and the Rust layer, load [tauri and protocol](references/tauri-and-protocol.md).
 - If the change affects plugin payload rendering, also use `feather-plugin-authoring`.
@@ -30,33 +34,35 @@ Use this skill when changing the desktop React/Tauri app, session UI, settings, 
 
 ## Common implementation map
 
-- App entry: `src/main.tsx`, `src/providers.tsx`, `src/router.tsx`.
-- Pages: `src/pages/`.
-- Shared components: `src/components/`.
-- Hooks: `src/hooks/`.
-- Stores: `src/store/`.
-- Protocol constants: `src/constants/feather-api.ts`, `src/constants/server.ts`.
-- Command sending: `src/lib/send-command.ts`.
-- Tauri utilities: `src/utils/linking.ts`, `src/utils/file.ts`, `src/utils/platform.ts`.
-- Tauri/Rust layer: `src-tauri/src/ws_server.rs`, `lib.rs`, `cli_status.rs`.
-- Showcase app: `src/showcase/` (browser-only, no Tauri, own Vite/Playwright configs).
+- App entry: `apps/inspector/src/main.tsx`, `apps/inspector/src/providers.tsx`, `apps/inspector/src/router.tsx`.
+- Pages: `apps/inspector/src/pages/`.
+- Shared components: `apps/inspector/src/components/`.
+- Hooks: `apps/inspector/src/hooks/`.
+- Stores: `apps/inspector/src/store/`.
+- Protocol constants: `apps/inspector/src/constants/feather-api.ts`, `apps/inspector/src/constants/server.ts`.
+- Command sending: `apps/inspector/src/lib/send-command.ts`.
+- Tauri utilities: `apps/inspector/src/utils/linking.ts`, `apps/inspector/src/utils/file.ts`, `apps/inspector/src/utils/platform.ts`.
+- Tauri/Rust layer: `apps/inspector/src-tauri/src/ws_server.rs`, `lib.rs`, `cli_status.rs`.
+- Studio: shell `apps/studio/src/StudioApp.tsx`, tools `apps/studio/src/tools/{shader-graph,particle-system-playground,texture-lab}/`, Inspector pairing `apps/studio/src/useInspectorBridge.ts`, Rust shell `apps/studio/src-tauri/`.
+- Showcase: `apps/showcase/` is a thin web shell; what it renders is Studio's public web mount in `apps/studio/src/showcase/` (browser-only, no Tauri, no session bridge).
 
 ## Verification
 
 - Add or update e2e coverage for desktop behavior changes; use Playwright app e2e for desktop workflows and showcase e2e for browser-only creative tools.
-- Typecheck/build web app: `npm run build` or targeted typecheck when appropriate.
-- Run Playwright app e2e: `npm run test:app:e2e`.
-- Run showcase e2e when showcase or creative tools change: `npm run test:showcase:e2e`.
+- Typecheck: `pnpm run verify` (every app and package), or `pnpm run typecheck:web` / `pnpm run typecheck:studio` for one.
+- Run Playwright app e2e: `pnpm run test:inspector:e2e` (Inspector) and `pnpm run test:studio:e2e` (Studio).
+- Run showcase e2e when Studio's tools or the showcase change: `pnpm run test:showcase:e2e`.
+- After changing either app's build or imports: `pnpm run build && pnpm run studio:build && pnpm run check:artifact-boundary`.
 - For Tauri-specific behavior, use relevant Rust/Tauri tests where available.
 
 ## Docs touchpoints
 
 - Update docs for user-visible desktop behavior, settings, protocol behavior, or creative tool workflows in the same change as the implementation.
 - Update `CHANGELOG.md` for user-visible app UI, settings, protocol, Tauri, showcase, or Playwright e2e coverage changes.
-- User-visible desktop workflows may need `docs/usage.md`, `docs/debugger.md`, `docs/assets.md`, or `docs/session-replay.md`.
-- Showcase-specific changes may need `docs/standalone-showcase.md`.
-- Protocol or security changes may need `docs/configuration.md` and `docs/recommendations.md`.
-- When a desktop workflow is backed by a plugin or subsystem README, prefer editing that source-side doc and exposing it through `docs/` with a symlink.
+- User-visible desktop workflows may need `apps/docs/usage.md`, `apps/docs/debugger.md`, `apps/docs/assets.md`, or `apps/docs/session-replay.md`.
+- Showcase-specific changes may need `apps/docs/standalone-showcase.md`.
+- Protocol or security changes may need `apps/docs/configuration.md` and `apps/docs/recommendations.md`.
+- When a desktop workflow is backed by a plugin or subsystem README, prefer editing that source-side doc and exposing it through `apps/docs/` with a symlink.
 
 ## Avoid
 

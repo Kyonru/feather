@@ -5,9 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v4.1.0] - 2026-10-16 - The one with better beginnings
+
+### Added
+
+- The custom-package wizard now selects any repository files—not only Lua sources—while preselecting Lua by default; VS Code exposes that GitHub, authenticated Git, and direct-URL flow and restores all project dependencies, including checksum-locked custom sources, from `feather.lock.json`.
+- `feather create --keep-lua-https` can retain Oval-Tutu's complete native HTTPS runtime, starter initialization, Android build integration, Nix configuration, and guide; new projects omit that payload by default.
+- `feather create` now offers first-class TUA projects with canonical `tua.toml`, typed `src/` source, generated `game/` output compatible with the Oval-Tutu build system, TUA editor recommendations, and build-aware Feather commands.
+- Project creation now produces a focused README, project-specific workspace and product identity, Feather editor configuration, convenient Make targets, and a fresh one-commit history; a smaller bundled starter is also available with `--template feather`.
+- Project creation now accepts `--app-id`, prompts for the Desktop App ID interactively, and keeps missing connection setup visible without enabling insecure access by default.
+
+### Changed
+
+- Updated catalog pins for `feel` to v1.4.1 and `glyph` to v0.4.0, including their newly shipped modules, and added the checksum-pinned `gpuparticles` v0.2.0 runtime and GLSL sources.
+- `feather create` still uses the Oval-Tutu bootstrap by default, but now deeply cleans its sample game, placeholder product identity, funding metadata, workspace words, README, and stale usage examples while preserving its build workflows, legal attribution, and required build dependencies.
+
+### Tests
+
+- Expanded CLI create coverage for Oval-Tutu cleanup boundaries, preserved build assets and attribution, TUA layout/configuration, generated-output targeting, editor recommendations, the optional bundled scaffold, and git recovery guidance.
+
+### Fixed
+
+- LuaRocks source archives now resolve correctly from both full-platform `v*` tags and independent `runtime-v*` tags. The runtime portion of this release is published as [runtime-v4.1.0].
+
 ## [v4.0.0] - 2026-06-14 - The one with MCPs
 
 ### Added
+
+- Replies from the Lua runtime echo the `requestId` of the command they answer, so Inspector and MCP can pair concurrent identical commands with their own responses.
+- Inspector's MCP backend health now reports its app, version, connected sessions, features and limits, so the `feather mcp` gateway can describe what is available.
+- Added `pnpm run down` to stop all process trees owned by active `pnpm run up` sessions while leaving reused apps running.
+- Feather Studio is now a separate application. The shader graph, texture lab and particle playground install, update and version independently of Feather Inspector, so a Studio update no longer means reinstalling your debugger and a debugger fix no longer touches your creative tools. Install either without the other from the releases page, or use Studio in a browser with no install.
+- Studio works fully on its own. Authoring, saving and loading all work with no Inspector running; "Not connected" is a state rather than an error.
+- Studio can pair with a running Inspector to push shaders, textures and particle systems straight into a live game. Pairing is explicit, loopback-only, gated on a short-lived key Inspector issues, and version-negotiated first so a mismatched pair tells you which application to update instead of failing obscurely.
+- Existing texture recipes, saved workspaces and timeline settings move across on first pairing. The copy inside Inspector is kept, so importing twice is harmless and nothing is lost if you go back.
+- The Lua runtime now advertises a wire protocol version at connect, and the desktop app checks it against the range it supports. A game running a protocol the desktop cannot speak now says so directly, with what to do about it, instead of behaving unpredictably. Session detail shows both the game's protocol version and the desktop's.
+- A game running a Feather runtime from before protocol negotiation still connects and stays healthy; it is reported as `legacy` rather than treated as a fault.
+- Studio now has named application-level workspaces shared by Shader Graph, Particle Playground and Texture Lab, with safe migration of existing per-tool work and confirmed deletion.
+- Studio's Inspector pairing is scoped to an explicitly selected game and a narrow creative-preview capability, with session-aware preview freshness and local work preserved on disconnect.
+
+### Changed
+
+- Binary data from the game (asset previews, screenshots, captures) now reaches Inspector's window as raw bytes over a Tauri channel instead of as a JSON array of numbers, which was about 3.6 times the size and was parsed and copied again on arrival.
+- Inspector starts faster: Performance, Debugger, Console, Plugins, Assets, Observability, Time Travel, Session Replay and Compare load when first opened, cutting the startup bundle from 2.6 MB to 2.0 MB (794 kB to 597 kB compressed). Logs and Session still open instantly.
+- A game whose wire protocol this Inspector cannot speak is now read-only rather than only flagged: Inspector stops sending it refreshes, debugger setup and commands, and an action you trigger says why and what to update. What the game already sent stays readable, and runtimes from before protocol negotiation are unaffected.
+- `feather mcp` no longer requires Inspector to start. It starts with Inspector, Studio, both or neither available and reports which through the new `feather://status` resource and `feather_status` tool, with a remedy for anything missing; Studio-only creative work now uses the same single server. Studio publishes its per-launch token to `~/.feather/studio-mcp.json`, so `--studio-token` is no longer needed locally.
+- Particle Playground MCP tools now read and mutate Studio's active local workspace by default, including project, Lua and ZIP-asset exports without Inspector or a running game. Passing `sessionId` explicitly keeps live-game actions routed through Inspector.
+- HTTP MCP clients now authenticate to `feather mcp` with the gateway's own token (`--http-token`, `FEATHER_MCP_HTTP_TOKEN`, or `~/.feather/mcp-gateway.json`, created on first HTTP start) instead of Inspector's bridge token. **Existing HTTP client configs need the new token**; stdio setups are unaffected.
+- `feather_send_command`, which forwards arbitrary command objects, is now off unless `feather mcp` is started with `--allow-raw-commands`.
+- Every `feather mcp` call to Inspector or Studio has a deadline and fails with "… did not answer within N ms" instead of hanging on a stalled application; HTTP request bodies are limited to 1 MiB; the server reports its real version instead of `3.3.1`.
+- Rebuilt Particle Playground and Texture Lab as resizable three-region Studio workbenches with preview-first layouts, persisted per-tool pane sizes, switchable calibration grounds, and every existing editor/export workflow retained.
+- Release tags are now per-train instead of repo-wide. `cli-v*` publishes the CLI alone, `runtime-v*` the Lua runtime alone, `desktop-v*` the desktop app alone, and `ext-v*` the VS Code extension alone. The first independent runtime release is [runtime-v4.0.1]. `v*` still performs a full platform release of runtime, CLI, and desktop together. Previously every tag fired all four publish paths.
+- Studio prereleases now use bundle formats that accept SemVer prerelease labels (AppImage/deb on Linux and NSIS on Windows) and unsigned macOS proof builds; stable Studio releases retain signing and notarization.
+- Repository releases now have dry-run-first `release:*` commands for every train, with version consistency, clean-worktree, tag-vocabulary, and local/remote collision checks before an explicit `--push` creates the tag.
+- `scripts/set-version.sh` now takes a release train (`cli`, `runtime`, `desktop`, `ext`, or `platform`) and only writes the files that train owns, so bumping one artifact no longer rewrites the others. It is also portable now, where it previously assumed macOS `sed`.
+- The LuaRocks publish is skipped when the Lua runtime is unchanged since the previous runtime release, so a platform tag no longer burns a rock version for an unmodified runtime.
+- Session health no longer reports a mismatch when the connected Lua runtime and the desktop app report different versions. The trains ship on separate cadences, so a difference is expected; both versions are still shown, and plugin API compatibility is still checked.
+- Package installs and updates are transactional, validate and atomically write `feather.lock.json`, protect untracked and locally modified files unless `--force` is explicit, and report whether registry data came from the network, cache or bundled snapshot.
+- Package removal preserves modified/shared files and requires `--cascade` before removing installed dependents.
+- Plugin activation now enforces declared capabilities and runtime policy, schedules work within budgets, validates action contracts, and reports plugin health.
+- Plugin output is now bounded by serialized size, nesting, node, string and binary-attachment limits before transport and again before Inspector renders it; rejected output becomes an actionable plugin error instead of risking the whole Plugins page.
+- Inspector can export the current filtered log view as a reloadable `.featherlog` file, and reports save failures instead of silently dropping them.
+- The VS Code extension now runs cancellable managed jobs with explicit project selection and build configuration instead of relying on ambient workspace state.
+
+### Fixed
+
+- Runtime-only `runtime-v*` releases now generate a LuaRocks source directory from the full prefixed tag, so the package can be installed and validated before upload.
+- Inspector release builds now install Bun, compile the CLI before embedding it, select the sidecar binary from Tauri's requested target triple, and create the named GitHub release required for artifact upload.
+- The CLI release entrypoint retains the workflow filename registered with npm trusted publishing, so isolated `cli-v*` releases can exchange GitHub OIDC identity and publish successfully.
+- Studio now mounts its creative MCP bridge at the application root, so live Shader Graph, Particle Playground, and Texture Lab snapshot/action requests reach the running desktop app instead of returning 404.
+- `pnpm run up` now verifies Inspector's WebSocket identity and Studio's application identity before reusing their ports, and stops with actionable guidance when another service owns one instead of launching against the wrong process.
+- VSIX packaging now resolves the post-v4 icon source, includes the canonical license, excludes obsolete pre-v4 CLI/Lua bundle directories, and restores the development launcher after producing the package.
+- Root development commands accept both pnpm argument-forwarding forms, so the documented `pnpm run feather -- ...` and `pnpm run up -- ...` commands work under pnpm 11 as well as older pnpm releases.
+- Studio now derives its Inspector bridge identity from its package version, preventing compatibility checks from reporting the original `0.1.0` after an independent Studio release. Pairing copy now accurately describes the currently supported scoped Shader Graph preview.
+- Added `test:ready` and `test:ready:gui` as explicit whole-product handoff gates, expanded the Rust gate to both desktop applications, and made the VS Code Extension Host test execute a real managed Doctor job.
+
+### Added
+
 
 - Added `feather mcp` with stdio and localhost Streamable HTTP transports for token-protected MCP access to live Feather desktop sessions.
 - Added `feather mcp setup --client codex|claude` to install or refresh the Feather MCP server entry in Codex or Claude Code config without copying MCP tokens into client config.
@@ -19,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `feather skills` for installing bundled Feather agent skills into project-local `.agents/skills` directories.
 - Added a desktop CLI action bridge with bundled sidecar resolution, Settings → CLI & Project Actions workflows, typed job events, dry-run previews, and confirmation-gated project mutations.
 - Added stable JSON output for CLI package/plugin/config/init commands used by the desktop project-action bridge.
+- Added a Storm Rain particle template with layered rain streaks, background sheet, ground splashes, mist, and Ambient timeline playback.
 - Added `feather skills --client` and `--global` targeting so bundled skills can be installed into Codex, Claude, neutral `.agents`, or user-level skill directories.
 - Added bundled Shader Graph skill references for graph schema, node selection, effect recipes, and visual QA guidance.
 - Added workflow references for the remaining bundled Feather skills so installed skills include focused subsystem guidance beyond `SKILL.md`.
@@ -30,6 +105,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Added Studio browser coverage that authors work in all three tools, abruptly closes the renderer, and verifies the active workspace survives intact in a fresh renderer.
+- Added Inspector browser coverage for filtered log exports and plugin payload rejection/health states.
+- Added Lua, unit and Inspector browser coverage for oversized, deep, cyclic and malformed plugin payloads, attachment limits, structured health, and the bounded error state.
+- Added unit coverage that session end and hello events only affect their own session.
+- Added unit coverage that a batched log update is equivalent to the per-entry updates it replaces and that performance history stays bounded.
+- Added Inspector coverage that an incompatible-protocol session receives no user command (verified to fail without the guard), plus unit tests for the per-session protocol gate.
+- Added MCP gateway coverage for Studio-only startup with a published Studio token, honest backend status, the raw command tool being opt-in, backend deadlines, a private self-minted HTTP client token that rejects the Inspector token, and the HTTP body limit.
+- Added Lua transport coverage that decodes frames from a throttled fake socket: payloads survive incremental masking, each frame has its own key, a 256 KiB message spans updates within budget, the queue limit and reply reserve hold, and receive overflow closes with a named error. Added coverage that replies echo a valid `requestId` and ignore malformed ones.
+- Added Rust coverage for MCP request correlation (concurrent identical commands, legacy oldest-first matching, waiter cleanup after timeout, send failure and cancellation), the disabled-bridge fast path, oversized snapshot messages, nested secret stripping, and the bounded outbound game queue.
+- Added extension tests that execute the prepared dev launcher and assert it runs the workspace CLI at the declared platform version.
+- CI now runs the showcase end-to-end suite and the full `pnpm run verify` gate (every typecheck, lint, Lua lint, protocol, registry, plugin-catalog and repository-path checks), with suites running through Turbo so unchanged work is reused.
+- Added Studio and showcase coverage for the Particle Context Lens and Texture Preview Priority workbenches, including preserved toolsets, atlas/parameter switching, preview grounds, timeline editing, and independently persisted pane sizes.
+- Added Studio coverage for named workspace persistence across every creative tool, successful Inspector pairing/live preview/disconnect, strict Shader Graph import coercion, and scoped session selection.
+- Added package coverage for transactional rollback, lockfile validation, file ownership, forced replacement, dependent removal and registry provenance.
+- Added plugin coverage for activation policy, capabilities, action schemas, scheduling budgets and health reporting, plus extension coverage for cancellable orchestration and project-scoped builds.
+- Added dev-session lifecycle coverage for multiple tracked process groups, malformed records, and stale PID command guards.
 - Added MCP CLI, Tauri bridge, and Settings coverage for token auth, sanitized session snapshots, command routing, and visible MCP controls.
 - Added CLI coverage for Codex and Claude MCP setup, dry-runs, idempotent config updates, and stale Feather MCP block replacement.
 - Added MCP creative-tool coverage for plugin resources, creative tool discovery, bridge request handling, and Texture Lab generation routing.
@@ -41,11 +132,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added CLI coverage for MCP-free agent session status, logs export, replay list refresh, and command help.
 - Added CLI/Rust coverage for desktop-backed JSON project actions, dry-run behavior, sidecar resolution precedence, typed action argv mapping, and secret redaction.
 - Added MCP CLI coverage for resource discovery when the desktop bridge is unavailable.
+- Added Lua e2e coverage proving inherited no-op plugin callbacks do not register runtime draw/input handlers.
+- Added Lua e2e coverage for In-Game Overlay controller polling throttling and cheaper draw-state handling.
 
 ### Fixed
 
+- With several games connected, one game quitting no longer disconnects the game you are viewing, a newly connected game no longer pulls the view and the session config away from the one you are debugging, and a chatty background game no longer hides that the viewed game has gone silent.
+- Inspector applies each batch of logs from the game as one update instead of re-splitting it into a full list copy and a store update per line, and keeps an hour of performance samples (3,600 at the default rate) instead of growing for the whole session.
+- The Lua runtime no longer stalls the game to send a large message. WebSocket frames were masked one byte at a time, in full, before being queued — tens of milliseconds for a few hundred KiB, outside Feather's per-frame budget. Masking and sending now happen incrementally within a per-update time budget (a 256 KiB message goes out over a handful of frames at about half a millisecond each), and every frame gets its own random masking key as RFC 6455 requires, instead of one fixed key.
+- The runtime's outbound queue is bounded (8 MiB by default). Past it, ordinary telemetry is refused and counted rather than growing memory, while replies to desktop commands keep a reserve. Queue depth, refusals and the slowest flush are reported in `featherOverhead.transport`.
+- A desktop message larger than the runtime's 1 MiB receive limit now closes the connection with a named error (the runtime reconnects) instead of silently emptying the buffer mid-frame, which corrupted every later command. The runtime also reads more than one 4 KiB chunk per frame, so bursts of commands no longer queue for seconds.
+- Fixed MCP waits answering the wrong caller: two identical concurrent commands (two plugin actions, two refreshes) both received the first response. Waiting commands now carry a `requestId` that the response resolves exactly; runtimes that predate it are matched oldest-first. A wait that times out, fails to send, or is cancelled no longer leaves a dead entry behind.
+- Inspector no longer queues commands without limit for a game that has stopped reading them (for example, paused in a debugger); the command fails with an error saying the game is not reading commands, instead of memory growing until it is the limit. Sending to a session that is no longer connected now reports that instead of silently succeeding.
+- A disabled Inspector MCP bridge no longer parses, redacts and snapshots every message from every connected game.
+- Running Inspector's Rust tests no longer rewrites your `~/.feather/mcp.json`; a test that disables the bridge used to leave your real MCP bridge disabled.
+- Fixed local VS Code extension development: the generated dev launcher pointed at the CLI's pre-v4 location and could not start, and a stale CLI binary left in `apps/cli/bin` silently shadowed the CLI being developed. Extension packaging now bundles CLI binaries only when explicitly built for the package, and refuses binaries older than the CLI they claim to be.
+- Fixed local Particle Playground playback so delayed editor playhead updates no longer pull the Lua simulation clock backwards and make animated emission points stutter.
+- Fixed docked love.js previews so their game canvas keeps its native 16:9 aspect ratio, and removed the decorative grid from Particle Playground and Shader Graph preview backgrounds.
 - Fixed MCP `resources/list` so static plugin catalog and creative resource URIs remain discoverable when the desktop bridge is unavailable.
 - Fixed the Shader Graph GLSL code input by replacing the mirrored textarea/highlighter stack with a CodeMirror editor that keeps selection, wrapping, caret positioning, and richer keyword/function/variable/number/parameter highlighting in one editing surface.
+- Fixed CLI-managed `feather run` shims and the direct `love src-lua --test-cli` example route so game-local Lua modules and bundled particle assets resolve.
+- Fixed Particle Playground Storm Rain exports so ambient weather reuses its active instance, lowers the default particle budget, and renders mist with game-safe alpha blending.
+- Fixed Particle Playground connected-game previews so previewed scratch effects use a lighter runtime particle budget and clear their plugin-owned systems as soon as the in-game preview is hidden.
+- Fixed Particle Playground exports so timeline lanes compile into per-effect playback plans with static/linear/generic lane paths, dirty setter checks, and low-frequency Ambient property updates.
+- Fixed connected-game callback overhead by skipping inherited no-op plugin hooks and avoiding callback dispatch allocations when no snapshot is needed.
+- Fixed In-Game Overlay overhead by throttling hidden controller polling correctly and avoiding per-frame full graphics state snapshots while drawing.
+- Updated the `test_cli` example to load the generated `Effect_125` rain export by default, with hotkeys for comparing it against the older explosion effect.
+- Updated the `test_cli` example HUD and observers to show FPS while testing connected runtime performance.
+- Fixed Studio's browser security policy so its explicit loopback connection to Inspector is allowed while other network origins remain blocked.
+- Shader Graph imports now validate and coerce third-party graph data at the file boundary, reject invalid or dangling structure, and discard cached generated output.
 
 ## [v3.3.1] - 2026-06-14 - The one with fixed versions
 
@@ -829,7 +944,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v4.1.0]: https://github.com/Kyonru/feather/compare/v4.0.0...v4.1.0
+[runtime-v4.1.0]: https://github.com/Kyonru/feather/releases/tag/runtime-v4.1.0
 [v4.0.0]: https://github.com/Kyonru/feather/compare/v3.3.1...v4.0.0
+[runtime-v4.0.1]: https://github.com/Kyonru/feather/releases/tag/runtime-v4.0.1
 [v3.3.1]: https://github.com/Kyonru/feather/compare/v3.3.0...v3.3.1
 [v3.3.0]: https://github.com/Kyonru/feather/compare/v3.2.0...v3.3.0
 [v3.2.0]: https://github.com/Kyonru/feather/compare/v3.1.0...v3.2.0

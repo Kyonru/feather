@@ -1,0 +1,87 @@
+import SyntaxHighlighter from 'react-syntax-highlighter';
+import { ScrollArea } from '@feather/ui/scroll-area';
+
+import { cn } from '@/utils/styles';
+import { useSyntaxTheme } from '@/hooks/use-theme';
+import { useLanguage } from '@/hooks/use-config';
+
+export function LuaBlock({
+  code,
+  className,
+  showLineNumbers = true,
+}: {
+  code: string;
+  className?: string;
+  showLineNumbers?: boolean;
+}) {
+  const style = useSyntaxTheme();
+
+  const language = useLanguage();
+
+  return (
+    <ScrollArea className="mt-2 w-full rounded border bg-muted p-2 font-mono text-xs">
+      <div className={cn('max-h-64', className)}>
+        <SyntaxHighlighter
+          wrapLines
+          language={language}
+          style={style}
+          showLineNumbers={showLineNumbers}
+        >
+          {code}
+        </SyntaxHighlighter>
+      </div>
+    </ScrollArea>
+  );
+}
+
+export function TraceViewer({
+  onFileClick,
+  trace,
+}: {
+  onFileClick?: (file: string, line?: number) => void;
+  trace: string;
+}) {
+  const highlightLine = (line: string, index: number) => {
+    // Clickable file:line pattern
+    const filePattern = /([\w./\\-]+\.lua):(\d+)/g;
+    // "in function"
+    const inFunctionPattern = /\bin function\b/g;
+    // 'functionName'
+    const quotedPattern = /'([^']+)'/g;
+
+    const html = line
+      .replace(
+        filePattern,
+        (_, file, lineNum) =>
+          `<a href="${file}:${lineNum}" data-file="${file}" data-line="${lineNum}" style="cursor: pointer;" class="text-primary underline hover:cursor-pointer">${file}:${lineNum}</a>`,
+      )
+      // These two are syntax highlighting inside a stack trace, not state, so they
+      // deliberately keep literals rather than borrowing --ok/--info, which would
+      // make green mean "fine" here and something else everywhere else. They belong
+      // in the theme's syntax palette — see skills/feather-desktop-app/references/design-rules.md §6.2 (C0).
+      /* semantic-exempt:start — syntax highlighting, not state. These live in
+         template literals, which the no-restricted-syntax rule cannot see into,
+         so the marker is what verify:enhanced checks instead. */
+      .replace(inFunctionPattern, `<span class="text-purple-500 font-medium">in function</span>`)
+      .replace(quotedPattern, `<span class="text-green-500">'$1'</span>`);
+    /* semantic-exempt:end */
+
+    return (
+      <div
+        key={index}
+        className="whitespace-pre-wrap break-words"
+        dangerouslySetInnerHTML={{ __html: html }}
+        onClick={(e) => {
+          e.preventDefault();
+          const target = e.target as HTMLElement;
+
+          if (target.tagName === 'A' && target.dataset.file) {
+            onFileClick?.(target.dataset.file, target.dataset.line ? parseInt(target.dataset.line) : 1);
+          }
+        }}
+      />
+    );
+  };
+
+  return <div className="font-mono text-xs space-y-1">{trace.split('\n').map(highlightLine)}</div>;
+}

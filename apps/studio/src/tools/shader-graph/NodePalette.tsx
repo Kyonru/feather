@@ -1,0 +1,308 @@
+import { Button } from '@feather/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@feather/ui/collapsible';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
+import { Separator } from '@feather/ui/separator';
+import { useParticleSystemPlayground } from '@studio/hooks/use-particle-system-playground';
+import { useStudioPreferencesStore } from '@studio/store/studio-preferences';
+import { useShaderGraphStore } from '@studio/store/shader-graph';
+import type { NodeCategory, NodeType } from '@studio/types/shader-graph';
+import { cn } from '@feather/ui';
+import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { CATEGORY_COLORS, CATEGORY_ORDER, CATEGORY_TOP_COLORS, NODE_DEFS } from './nodeDefs';
+
+function categorySlug(category: NodeCategory): string {
+  return category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+const BOUNDARY_NODE_TYPES = new Set<NodeType>(['SubgraphInput', 'SubgraphOutput']);
+const POINTER_DRAG_THRESHOLD = 4;
+
+type PaletteDragState = {
+  nodeType: NodeType;
+  label: string;
+  pointerId: number;
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  dragging: boolean;
+};
+
+export function NodePalette() {
+  const [search, setSearch] = useState('');
+  const [dragPreview, setDragPreview] = useState<{ label: string; x: number; y: number } | null>(null);
+  const pointerDragRef = useRef<PaletteDragState | null>(null);
+  const { playgroundTarget, setPlaygroundTarget, activeSubgraphId } = useShaderGraphStore();
+  const collapsedCategories = useStudioPreferencesStore((state) => state.collapsedShaderGraphNodeCategories);
+  const toggleCategory = useStudioPreferencesStore((state) => state.toggleShaderGraphNodeCategory);
+  const setCollapsedCategories = useStudioPreferencesStore((state) => state.setCollapsedShaderGraphNodeCategories);
+  const { data } = useParticleSystemPlayground();
+
+  const composites = data?.composites ?? [];
+
+  const filtered = search.trim().toLowerCase();
+  const isSearching = filtered.length > 0;
+  const allCategories = CATEGORY_ORDER.map(({ category }) => category);
+  const categoryRows = CATEGORY_ORDER
+    .map(({ category, nodes }) => {
+      const availableNodes = nodes.filter((nodeType) => !BOUNDARY_NODE_TYPES.has(nodeType) || Boolean(activeSubgraphId));
+      const visible = availableNodes.filter((nodeType) => {
+        const def = NODE_DEFS[nodeType];
+        if (!filtered) return true;
+        return (
+          def.label.toLowerCase().includes(filtered) ||
+          nodeType.toLowerCase().includes(filtered) ||
+          category.toLowerCase().includes(filtered)
+        );
+      });
+
+      return { category, nodes: visible, total: availableNodes.length };
+    })
+    .filter((row) => row.nodes.length > 0);
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLButtonElement>, nodeType: NodeType) {
+    if (event.button !== 0) return;
+    const label = NODE_DEFS[nodeType].label;
+    pointerDragRef.current = {
+      nodeType,
+      label,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      x: event.clientX,
+      y: event.clientY,
+      dragging: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = pointerDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    const dragging = drag.dragging || Math.hypot(dx, dy) >= POINTER_DRAG_THRESHOLD;
+    pointerDragRef.current = {
+      ...drag,
+      x: event.clientX,
+      y: event.clientY,
+      dragging,
+    };
+    if (dragging) {
+      event.preventDefault();
+      setDragPreview({ label: drag.label, x: event.clientX, y: event.clientY });
+    }
+  }
+
+  function handlePointerUp(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = pointerDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    pointerDragRef.current = null;
+    setDragPreview(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (!drag.dragging) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    const canvas = target?.closest('[data-testid="shader-canvas"]');
+    if (!canvas) return;
+    window.dispatchEvent(
+      new CustomEvent('shader-graph:palette-node-drop', {
+        detail: { nodeType: drag.nodeType, clientX: event.clientX, clientY: event.clientY },
+      }),
+    );
+  }
+
+  function handlePointerCancel(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = pointerDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    pointerDragRef.current = null;
+    setDragPreview(null);
+  }
+
+  return (
+    <div data-testid="shader-node-palette" className="flex h-full flex-col gap-0 overflow-hidden">
+      <div className="grid gap-2 p-3">
+        <Input
+          className="h-7 text-xs"
+          placeholder="Search nodes…"
+          aria-label="Search shader nodes"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="grid grid-cols-2 gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-6 gap-1 px-2 text-[10px]"
+            onClick={() => setCollapsedCategories([])}
+          >
+            <ChevronDownIcon className="size-3" />
+            Expand all
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-6 gap-1 px-2 text-[10px]"
+            onClick={() => setCollapsedCategories(allCategories)}
+          >
+            <ChevronRightIcon className="size-3" />
+            Collapse all
+          </Button>
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+        {categoryRows.length === 0 ? (
+          <div className="surface border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
+            No shader nodes match this search.
+          </div>
+        ) : (
+          categoryRows.map(({ category, nodes, total }) => {
+            const savedCollapsed = collapsedCategories.includes(category);
+            const open = isSearching || !savedCollapsed;
+            const colorClass = CATEGORY_COLORS[category];
+            const topColorClass = CATEGORY_TOP_COLORS[category];
+            const slug = categorySlug(category);
+            const countLabel = nodes.length === total ? String(total) : `${nodes.length}/${total}`;
+
+            return (
+              <Collapsible
+                key={category}
+                open={open}
+                onOpenChange={(nextOpen) => {
+                  if (isSearching) return;
+                  if (nextOpen === open) return;
+                  toggleCategory(category);
+                }}
+                className={cn(
+                  'mb-2 rounded-md border bg-background/70',
+                  open ? 'border-t-2' : 'border-l-2',
+                  open ? topColorClass : colorClass,
+                )}
+              >
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    data-testid={`shader-node-category-toggle-${slug}`}
+                    className="flex h-8 w-full items-center gap-2 px-2 text-left section-label transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    title={
+                      isSearching
+                        ? 'Search keeps matching categories open'
+                        : open
+                          ? 'Collapse node category'
+                          : 'Expand node category'
+                    }
+                  >
+                    {open ? (
+                      <ChevronDownIcon className="size-3.5 shrink-0" />
+                    ) : (
+                      <ChevronRightIcon className="size-3.5 shrink-0" />
+                    )}
+                    <span className="min-w-0 flex-1 truncate">{category}</span>
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                      {countLabel}
+                    </span>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent data-testid={`shader-node-category-content-${slug}`}>
+                  <div className="grid gap-0.5 px-1 pb-1">
+                    {nodes.map((nodeType) => {
+                      const def = NODE_DEFS[nodeType];
+                      return (
+                        <button
+                          type="button"
+                          key={nodeType}
+                          draggable={false}
+                          onDragStart={(e) => e.preventDefault()}
+                          onPointerDown={(e) => handlePointerDown(e, nodeType)}
+                          onPointerMove={handlePointerMove}
+                          onPointerUp={handlePointerUp}
+                          onPointerCancel={handlePointerCancel}
+                          className={cn(
+                            'touch-none cursor-grab rounded border border-l-2 bg-card px-2 py-1 text-xs select-none hover:bg-muted/50 active:cursor-grabbing',
+                            colorClass,
+                          )}
+                        >
+                          {def.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })
+        )}
+      </div>
+
+      {composites.length > 0 && (
+        <>
+          <Separator />
+          <div className="p-3 grid gap-2">
+            <span className="section-label">
+              Apply Target
+            </span>
+            <div className="grid gap-1">
+              <Label className="text-[10px] text-muted-foreground">Composite</Label>
+              <Select
+                value={playgroundTarget?.composite ?? 'none'}
+                onValueChange={(value) =>
+                  setPlaygroundTarget(
+                    value !== 'none'
+                      ? { composite: value, systemIndex: playgroundTarget?.systemIndex ?? 1 }
+                      : null,
+                  )
+                }
+              >
+                <SelectTrigger className="h-7 w-full text-xs">
+                  <SelectValue placeholder="Select composite" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {composites.map((composite) => (
+                    <SelectItem key={composite} value={composite}>
+                      {composite}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {playgroundTarget?.composite && (
+              <div className="grid gap-1">
+                <Label className="text-[10px] text-muted-foreground">Emitter Index</Label>
+                <Input
+                  className="h-7 text-xs"
+                  type="number"
+                  min={1}
+                  value={playgroundTarget.systemIndex}
+                  onChange={(e) =>
+                    setPlaygroundTarget({
+                      ...playgroundTarget,
+                      systemIndex: Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            )}
+          </div>
+        </>
+      )}
+      {dragPreview && (
+        <div
+          className="surface pointer-events-none fixed z-100 bg-popover px-2 py-1 text-xs text-popover-foreground shadow-lg"
+          style={{ left: dragPreview.x + 12, top: dragPreview.y + 12 }}
+        >
+          {dragPreview.label}
+        </div>
+      )}
+    </div>
+  );
+}

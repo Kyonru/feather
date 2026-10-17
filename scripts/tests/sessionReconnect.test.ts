@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { shouldRequestSessionConfig } from '../../src/utils/session-reconnect.ts';
+import { shouldRequestSessionConfig } from '../../apps/inspector/src/utils/session-reconnect.ts';
 
 function createMemoryStorage(): Storage {
   const values = new Map<string, string>();
@@ -23,13 +23,11 @@ Object.defineProperty(globalThis, 'localStorage', {
 });
 
 const {
-  CREATIVE_SESSION_PREFIX,
   PENDING_SESSION_NAME,
-  isCreativeSession,
   prepareSessionsForPersistence,
   sessionCanOpenRuntimePages,
   sessionSupportsRuntime,
-} = await import('../../src/store/session.ts');
+} = await import('../../apps/inspector/src/store/session.ts');
 
 test('reconnect probe requests config for remembered or half-connected sessions', () => {
   assert.equal(shouldRequestSessionConfig(undefined, false), true);
@@ -74,48 +72,46 @@ test('persisted sessions are remembered as disconnected history entries only', (
   assert.equal(persisted.live.pendingConfig, false);
 });
 
-test('creative sessions persist as local workspace entries', () => {
+test('a creative workspace persisted by an older version is dropped, not restored', () => {
+  // The creative tools moved to Feather Studio, so a workspace saved by v3 would
+  // come back as a tab that opens nothing. Both the marker kinds are recognized:
+  // the `creative:` id prefix and the old `kind`.
   const persisted = prepareSessionsForPersistence({
-    [`${CREATIVE_SESSION_PREFIX}one`]: {
-      id: `${CREATIVE_SESSION_PREFIX}one`,
+    'creative:one': {
+      id: 'creative:one',
       name: 'Creative One',
       kind: 'creative',
       connected: true,
       connectedAt: 20,
       runtimeSuspended: true,
     },
-    'file:logs': {
-      id: 'file:logs',
-      name: 'Logs',
-      kind: 'log-file',
-      connected: true,
+    'legacy-by-kind': {
+      id: 'legacy-by-kind',
+      name: 'Creative Two',
+      kind: 'creative',
+      connected: false,
       connectedAt: 21,
+    },
+    live: {
+      id: 'live',
+      name: 'Game',
+      connected: true,
+      connectedAt: 22,
     },
   });
 
-  assert.deepEqual(Object.keys(persisted), [`${CREATIVE_SESSION_PREFIX}one`]);
-  assert.equal(persisted[`${CREATIVE_SESSION_PREFIX}one`].kind, 'creative');
-  assert.equal(persisted[`${CREATIVE_SESSION_PREFIX}one`].connected, false);
-  assert.equal(persisted[`${CREATIVE_SESSION_PREFIX}one`].runtimeSuspended, false);
+  assert.deepEqual(Object.keys(persisted), ['live'], 'only the real session survives');
+  assert.equal(persisted.live.connected, false);
 });
 
-test('creative sessions unlock creative tools but not runtime work', () => {
-  const creative = {
-    id: `${CREATIVE_SESSION_PREFIX}two`,
-    name: 'Creative Two',
-    kind: 'creative' as const,
-    connected: false,
-    connectedAt: 30,
-  };
-  const live = {
-    id: 'live',
-    name: 'Game',
-    connected: true,
-    connectedAt: 31,
-  };
+test('runtime gating no longer depends on a creative session kind', () => {
+  const live = { id: 'live', name: 'Game', connected: true, connectedAt: 31 };
+  const logFile = { id: 'file:logs', name: 'Logs', kind: 'log-file' as const, connected: true, connectedAt: 32 };
 
-  assert.equal(isCreativeSession(creative), true);
-  assert.equal(sessionCanOpenRuntimePages(creative), false);
-  assert.equal(sessionSupportsRuntime(creative), false);
   assert.equal(sessionSupportsRuntime(live), true);
+  // A file-backed session is not a live runtime, which is the distinction that
+  // outlived the creative kind.
+  assert.equal(sessionSupportsRuntime(logFile), false);
+  assert.equal(sessionCanOpenRuntimePages(live), true);
+  assert.equal(sessionCanOpenRuntimePages(null), false);
 });

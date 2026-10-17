@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { advanceParticleTimelineState } from '../../src/pages/particle-system-playground/timeline.ts';
+import { advanceParticleTimelineState } from '../../apps/studio/src/tools/particle-system-playground/timeline.ts';
 
 const baseState = { time: 2.8, playing: true, scrubVersion: 7 };
 
