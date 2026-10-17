@@ -80,40 +80,53 @@ Your game code runs exactly as normal — it just has Feather already active.
 
 ### `feather create <project-name>`
 
-Create a new Love2D project from a supported template and configure it for Feather CLI-managed development.
+Create a polished LÖVE project configured for Feather CLI-managed development. By default, Feather starts from the latest release of [`Oval-Tutu/bootstrap-love2d-project`](https://github.com/Oval-Tutu/bootstrap-love2d-project), preserving its multi-platform build, packaging, and release tooling while replacing its sample game and inherited project identity.
 
 ```bash
 feather create awesome
 feather create awesome --yes
-feather create awesome --main --yes
-feather create awesome --ref 0.1.2 --plugins screenshots,console
+feather create awesome --language tua --app-id feather-app-...
+feather create awesome --plugins screenshots,console
 feather create awesome --packages anim8,bump --vendor-targets web,android
+feather create pinned --ref 0.1.2 --yes
+feather create minimal --template feather --yes
 ```
 
-V1 supports only `Oval-Tutu/bootstrap-love2d-project`. By default, Feather resolves the template's latest GitHub release tag, clones that release, removes the sample game content, initializes a fresh git repo, configures Feather in CLI mode, and prints next steps.
+Interactive creation asks whether to use Lua or [TUA](https://github.com/Kyonru/tua-lang). `--yes` defaults to Lua; use `--language tua --yes` for non-interactive TUA scaffolding.
+
+- Lua projects keep directly runnable source in `game/`.
+- TUA projects keep editable typed source and `feather.config.lua` in `src/`, the canonical compiler configuration in `tua.toml`, and generated LÖVE output in `game/`, where the Oval-Tutu build system expects it. `make run` runs `tua build` before `feather run game`, so generated Lua is never the file you edit.
+
+The cleanup removes the sample `eyes` game, template entrypoint, inherited funding file, Oval-Tutu workspace words, placeholder product metadata, template README, and stale usage-guide examples. It deliberately retains the upstream license and real `oval-tutu/lua-https` build dependency, along with the workflows, tools, resources, and platform build configuration they support. The result receives a project-specific README and workspace, CLI-managed `feather.config.lua`, Feather/TUA editor recommendations, and a fresh git history.
+
+For a smaller offline scaffold without the Oval-Tutu build system, select the bundled `feather` template explicitly.
+
+Interactive setup asks for the Desktop App ID shown in **Feather → Settings → Security**. It is safe to leave this blank and add `appId` to `feather.config.lua` later; the generated README and next steps keep that requirement visible. Automation can pass `--app-id`. The separate `--allow-insecure-connection` flag is an explicit unsafe opt-in for trusted development environments.
 
 Generated projects use a root `Makefile` as the main command surface:
 
 ```bash
 make run
 make doctor
+make check # TUA projects
 make plugins
 make packages
 make vendor-list
 ```
 
-The generated project keeps the template's build automation, workflows, tools, resources, and docs, while replacing the sample `game/main.lua`, removing `game/eyes`, rewriting `game/product.env`, adding Feather VS Code extension recommendations, and creating `game/feather.config.lua`.
-
 **Options:**
 
 | Option                       | Description                                                                                      |
 | ---------------------------- | ------------------------------------------------------------------------------------------------ |
-| `--template <owner/repo>`    | Template repository. V1 supports only `Oval-Tutu/bootstrap-love2d-project`.                      |
-| `--ref <tag-or-branch>`      | Clone a specific template ref.                                                                   |
-| `--main`                     | Clone the template `main` branch instead of resolving the latest release.                        |
+| `--template <template>`      | Use `Oval-Tutu/bootstrap-love2d-project` (default) or the bundled `feather` starter.               |
+| `--language <language>`      | Generate a `lua` or `tua` project. Defaults to Lua with `--yes`; prompted otherwise.              |
+| `--app-id <id>`              | Bind development connections to a specific Feather desktop App ID.                               |
+| `--allow-insecure-connection` | Explicitly allow any Feather desktop to connect in a trusted development environment.            |
+| `--ref <tag-or-branch>`      | Clone a specific Oval-Tutu repository-template ref.                                                |
+| `--main`                     | Clone the Oval-Tutu repository template's `main` branch instead of its latest release.             |
 | `-y, --yes`                  | Skip prompts and use defaults.                                                                   |
 | `--plugins <ids>`            | Comma-separated extra Feather plugin IDs to include after initialization.                        |
-| `--packages <ids>`           | Comma-separated Feather catalog packages to install into `game`.                                 |
+| `--packages <ids>`           | Comma-separated packages to install into editable source (`game` for Lua, `src` for TUA).         |
 | `--vendor-targets <targets>` | Comma-separated build vendor targets for `feather build vendor add`.                             |
 | `--skip-plugins`             | Skip extra plugin selection/setup. Default Feather init plugins still apply.                     |
 | `--skip-packages`            | Skip package selection/setup.                                                                    |

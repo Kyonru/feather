@@ -3,7 +3,9 @@ import { Box, Text, render, useApp } from 'ink';
 import { pluginCatalog } from '../generated/plugin-catalog.js';
 import { buildVendorTargets } from '../lib/build/vendor.js';
 import type { Registry } from '../lib/package/registry.js';
-import { BooleanStep, MultiSelectStep } from './components.js';
+import { BooleanStep, MultiSelectStep, SelectStep, TextInputStep } from './components.js';
+
+export type CreateLanguage = 'lua' | 'tua';
 
 type Phase = 'plugins-confirm' | 'plugins' | 'packages-confirm' | 'packages' | 'vendors-confirm' | 'vendors';
 
@@ -19,6 +21,54 @@ export type CreateWorkflowResult = {
   packages: string[];
   vendorTargets: string[];
 };
+
+function LanguageWorkflow({ onComplete }: { onComplete: (language: CreateLanguage) => void }) {
+  const { exit } = useApp();
+  return (
+    <SelectStep
+      title="feather create"
+      label="Choose a language"
+      hint="TUA adds static types and compiles to ordinary Lua for LÖVE."
+      options={['lua', 'tua']}
+      labels={['Lua', 'TUA (typed Lua)']}
+      descriptions={[
+        'A polished, zero-build LÖVE starter.',
+        'Typed source in src/ compiled to a runnable LÖVE directory.',
+      ]}
+      onSelect={(value) => {
+        onComplete(value as CreateLanguage);
+        exit();
+      }}
+    />
+  );
+}
+
+export async function chooseCreateLanguage(): Promise<CreateLanguage> {
+  return new Promise((resolve) => {
+    render(<LanguageWorkflow onComplete={resolve} />);
+  });
+}
+
+function AppIdWorkflow({ onComplete }: { onComplete: (appId: string) => void }) {
+  const { exit } = useApp();
+  return (
+    <TextInputStep
+      title="feather create"
+      label="Desktop App ID (optional for now)"
+      hint="Copy it from Feather → Settings → Security. Leave blank to configure it later."
+      onSubmit={(appId) => {
+        onComplete(appId);
+        exit();
+      }}
+    />
+  );
+}
+
+export async function chooseCreateAppId(): Promise<string> {
+  return new Promise((resolve) => {
+    render(<AppIdWorkflow onComplete={resolve} />);
+  });
+}
 
 function CreateWorkflow({
   registry,

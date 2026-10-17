@@ -4,7 +4,7 @@ import { realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import packageJson from '../package.json' with { type: 'json' };
 import { runCliAction } from './lib/command.js';
-import { createCommand, DEFAULT_CREATE_TEMPLATE } from './commands/create.js';
+import { createCommand } from './commands/create.js';
 import { runCommand } from './commands/run.js';
 import { initCommand } from './commands/init.js';
 import { removeCommand } from './commands/remove.js';
@@ -78,7 +78,10 @@ export function createProgram(): Command {
   program
     .command('create <project-name>')
     .description('Create a new Love2D project configured for Feather')
-    .option('--template <owner/repo>', 'Template repository to use', DEFAULT_CREATE_TEMPLATE)
+    .option('--template <template>', 'Template to use: Oval-Tutu/bootstrap-love2d-project (default) or feather')
+    .option('--language <language>', 'Project language: lua or tua')
+    .option('--app-id <id>', 'Bind the game to a Feather desktop App ID')
+    .option('--allow-insecure-connection', 'Allow any Feather desktop to connect (unsafe outside trusted development)')
     .option('--ref <tag-or-branch>', 'Template ref to clone')
     .option('--main', 'Use the template main branch instead of the latest release')
     .option('-y, --yes', 'Skip prompts and use defaults')
@@ -92,6 +95,9 @@ export function createProgram(): Command {
       runCliAction(() =>
         createCommand(projectName, {
           template: opts.template as string | undefined,
+          language: opts.language as string | undefined,
+          appId: opts.appId as string | undefined,
+          allowInsecureConnection: opts.allowInsecureConnection as boolean | undefined,
           ref: opts.ref as string | undefined,
           main: opts.main as boolean | undefined,
           yes: opts.yes as boolean | undefined,

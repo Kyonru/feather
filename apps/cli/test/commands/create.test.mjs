@@ -19,8 +19,10 @@ function templateFiles() {
   return {
     'game/main.lua': 'local eyes = require("eyes.eyes")\nfunction love.load() eyes.load() end\n',
     'game/main.template.lua': 'function love.load()\n  -- Your game load here\nend\n',
+    'game/conf.lua': 'function love.conf(t) t.window.title = "Template" end\n',
     'game/eyes/sample.txt': 'sample only\n',
-    'game/product.env': `LOVE_VERSION="11.5"
+    'game/product.env': `ITCH_USER="ovaltutu"
+LOVE_VERSION="11.5"
 PRODUCT_NAME="Template"
 PRODUCT_ID="com.ovaltutu.template"
 PRODUCT_DESC="A template game made with Love2D"
@@ -30,6 +32,26 @@ PRODUCT_WEBSITE="https://oval-tutu.com"
 PRODUCT_UUID="3e64d17c-8797-4382-921f-cf488b22073f"
 TARGET_ANDROID="true"
 TARGET_HTML="true"
+`,
+    'README.md': '# LÖVE Game Template\n\nCreate a new repository from this template by Oval Tutu.\n',
+    'USAGE.md': `# Development & Build Guide for LÖVE Game Template
+
+This template includes directories in the template. For example this template project uses:
+
+\`\`\`text
+game/main.template.lua
+game/eyes/            # Example "game" - you can delete this
+\`\`\`
+
+ITCH_USER="ovaltutu"
+PRODUCT_NAME="Template"
+PRODUCT_ID="com.ovaltutu.template"
+PRODUCT_DESC="A template game made with LÖVE"
+PRODUCT_COPYRIGHT="Copyright (c) 2025 Oval Tutu"
+PRODUCT_COMPANY="Oval Tutu"
+PRODUCT_WEBSITE="https://oval-tutu.com"
+PRODUCT_UUID="3e64d17c-8797-4382-921f-cf488b22073f"
+Upload to \`ovaltutu/template\`.
 `,
     '.vscode/extensions.json': JSON.stringify(
       {
@@ -47,6 +69,9 @@ TARGET_HTML="true"
       2,
     ),
     '.github/workflows/build.yml': 'name: build\n',
+    '.github/FUNDING.yml': 'github: flexiondotorg\n',
+    '.github/actions/build-android/action.yml': 'uses: oval-tutu/lua-https@v1\n',
+    LICENSE: 'Copyright (c) 2025 Oval Tutu\n',
     'tools/tool.txt': 'tool\n',
     'resources/icon.png': 'fake icon\n',
     '.git/HEAD': 'ref: refs/heads/main\n',
@@ -112,31 +137,37 @@ function records(recordPath) {
   return JSON.parse(readFileSync(recordPath, 'utf8'));
 }
 
-test('create helpers resolve latest, main, and explicit refs', async () => {
-  const { DEFAULT_CREATE_TEMPLATE, resolveCreateRef, normalizeCreateTemplate } =
+test('create helpers resolve built-in, latest, main, and explicit refs', async () => {
+  const { BUILT_IN_CREATE_TEMPLATE, DEFAULT_CREATE_TEMPLATE, OVAL_TUTU_CREATE_TEMPLATE, resolveCreateRef, normalizeCreateTemplate } =
     await import('../../dist/commands/create.js');
 
-  const latest = await resolveCreateRef(DEFAULT_CREATE_TEMPLATE, {}, async (repo) => {
-    assert.equal(repo, DEFAULT_CREATE_TEMPLATE);
+  assert.equal(DEFAULT_CREATE_TEMPLATE, OVAL_TUTU_CREATE_TEMPLATE);
+  const builtIn = await resolveCreateRef(BUILT_IN_CREATE_TEMPLATE, {}, async () => {
+    throw new Error('built-in template should not fetch releases');
+  });
+  assert.deepEqual(builtIn, { ref: 'bundled', source: 'built-in' });
+
+  const latest = await resolveCreateRef(OVAL_TUTU_CREATE_TEMPLATE, {}, async (repo) => {
+    assert.equal(repo, OVAL_TUTU_CREATE_TEMPLATE);
     return '0.1.2';
   });
   assert.deepEqual(latest, { ref: '0.1.2', source: 'latest-release' });
 
-  const main = await resolveCreateRef(DEFAULT_CREATE_TEMPLATE, { main: true }, async () => {
+  const main = await resolveCreateRef(OVAL_TUTU_CREATE_TEMPLATE, { main: true }, async () => {
     throw new Error('latest should not be fetched');
   });
   assert.deepEqual(main, { ref: 'main', source: 'main' });
 
-  const explicit = await resolveCreateRef(DEFAULT_CREATE_TEMPLATE, { ref: 'v-test' }, async () => {
+  const explicit = await resolveCreateRef(OVAL_TUTU_CREATE_TEMPLATE, { ref: 'v-test' }, async () => {
     throw new Error('latest should not be fetched');
   });
   assert.deepEqual(explicit, { ref: 'v-test', source: 'explicit' });
 
-  assert.equal(normalizeCreateTemplate('oval-tutu/bootstrap-love2d-project'), DEFAULT_CREATE_TEMPLATE);
+  assert.equal(normalizeCreateTemplate('oval-tutu/bootstrap-love2d-project'), OVAL_TUTU_CREATE_TEMPLATE);
 });
 
 test('create rejects ref conflicts, unsupported templates, path traversal, and non-empty targets', async () => {
-  const { DEFAULT_CREATE_TEMPLATE, normalizeCreateTemplate, resolveCreateRef, resolveCreateTarget } =
+  const { OVAL_TUTU_CREATE_TEMPLATE, normalizeCreateLanguage, normalizeCreateTemplate, resolveCreateRef, resolveCreateTarget } =
     await import('../../dist/commands/create.js');
   const dir = makeTmp();
   const existing = join(dir, 'existing');
@@ -144,21 +175,22 @@ test('create rejects ref conflicts, unsupported templates, path traversal, and n
   writeFileSync(join(existing, 'file.txt'), 'x');
 
   assert.throws(() => normalizeCreateTemplate('someone/else'));
+  assert.throws(() => normalizeCreateLanguage('python'));
   await assert.rejects(() =>
-    resolveCreateRef(DEFAULT_CREATE_TEMPLATE, { main: true, ref: '0.1.2' }, async () => '0.1.2'),
+    resolveCreateRef(OVAL_TUTU_CREATE_TEMPLATE, { main: true, ref: '0.1.2' }, async () => '0.1.2'),
   );
   assert.throws(() => resolveCreateTarget('../escape', dir));
   assert.throws(() => resolveCreateTarget('/tmp/escape', dir));
   assert.throws(() => resolveCreateTarget('existing', dir));
 });
 
-test('create --yes clones latest release, cleans Oval-Tutu template, initializes Feather, and commits', () => {
+test('create --yes retains the Oval-Tutu build system while removing inherited project references', () => {
   const workspace = makeTmp();
   const { binDir, recordPath } = writeFakeCreateGit(workspace);
 
-  const result = run(['create', 'awesome', '--yes'], {
+  const result = run(['create', 'awesome', '--ref', 'v-test', '--yes'], {
     cwd: workspace,
-    env: envWithPath(binDir, { FEATHER_TEST_GITHUB_LATEST_RELEASE_TAG: '0.1.2' }),
+    env: envWithPath(binDir),
   });
   assert.equal(result.exitCode, 0, outputOf(result));
 
@@ -166,26 +198,31 @@ test('create --yes clones latest release, cleans Oval-Tutu template, initializes
   assert.equal(existsSync(join(project, 'game', 'main.lua')), true);
   assert.equal(existsSync(join(project, 'game', 'main.template.lua')), false);
   assert.equal(existsSync(join(project, 'game', 'eyes')), false);
-  assert.equal(existsSync(join(project, '.github', 'workflows', 'build.yml')), true);
-  assert.equal(existsSync(join(project, 'tools', 'tool.txt')), true);
-  assert.equal(existsSync(join(project, 'resources', 'icon.png')), true);
   assert.match(readFileSync(join(project, 'game', 'main.lua'), 'utf8'), /Your game load here/);
-
+  const readme = readFileSync(join(project, 'README.md'), 'utf8');
+  assert.match(readme, /make run/);
+  assert.match(readme, /Included build system/);
+  assert.equal(/Oval Tutu|new repository from this template/i.test(readme), false);
+  const usage = readFileSync(join(project, 'USAGE.md'), 'utf8');
+  assert.match(usage, /Development & Build Guide for Awesome/);
+  assert.equal(/Oval Tutu|ovaltutu|main\.template\.lua|Example "game"/i.test(usage), false);
+  assert.equal(usage.includes('PRODUCT_UUID="3e64d17c-8797-4382-921f-cf488b22073f"'), false);
   const product = readFileSync(join(project, 'game', 'product.env'), 'utf8');
+  assert.match(product, /ITCH_USER=""/);
   assert.match(product, /PRODUCT_NAME="Awesome"/);
   assert.match(product, /PRODUCT_ID="com\.feather\.awesome"/);
-  assert.match(product, /PRODUCT_UUID="[0-9a-f-]{36}"/i);
-  assert.match(product, /TARGET_ANDROID="true"/);
-
-  const workspaceFile = readFileSync(join(project, 'Workspace.code-workspace'), 'utf8');
-  assert.ok(workspaceFile.includes('awesome'));
-  assert.equal(workspaceFile.includes('ovaltutu'), false);
+  assert.equal(/Oval Tutu|ovaltutu|oval-tutu\.com/i.test(product), false);
+  assert.equal(existsSync(join(project, '.github', 'FUNDING.yml')), false);
+  assert.match(readFileSync(join(project, 'LICENSE'), 'utf8'), /Oval Tutu/);
+  assert.match(readFileSync(join(project, '.github', 'actions', 'build-android', 'action.yml'), 'utf8'), /oval-tutu\/lua-https/);
+  assert.equal(readFileSync(join(project, 'Workspace.code-workspace'), 'utf8').includes('ovaltutu'), false);
 
   const extensions = JSON.parse(readFileSync(join(project, '.vscode', 'extensions.json'), 'utf8'));
   assert.ok(extensions.recommendations.includes('editorconfig.editorconfig'));
   assert.ok(extensions.recommendations.includes('SolenodonteLabs.feather-cli-vscode'));
 
   const makefile = readFileSync(join(project, 'Makefile'), 'utf8');
+  assert.match(makefile, /.DEFAULT_GOAL := help/);
   assert.match(makefile, /run:\n\tfeather run game/);
   assert.match(makefile, /doctor:\n\tfeather doctor game/);
   assert.match(makefile, /packages:\n\tfeather package list --installed --dir game/);
@@ -193,24 +230,41 @@ test('create --yes clones latest release, cleans Oval-Tutu template, initializes
   assert.equal(existsSync(join(project, 'game', 'feather.config.lua')), true);
 
   const gitRecords = records(recordPath);
-  const clone = gitRecords.find((record) => record.args[0] === 'clone');
-  assert.deepEqual(clone.args.slice(0, 5), [
-    'clone',
-    '--depth=1',
-    '--branch',
-    '0.1.2',
-    'https://github.com/Oval-Tutu/bootstrap-love2d-project.git',
-  ]);
-  assert.equal(clone.args.at(-1).endsWith('/awesome'), true);
-  assert.ok(gitRecords.some((record) => record.args.join(' ') === 'commit -m feather: init template'));
-  assert.ok(gitRecords.some((record) => record.args.join(' ') === 'commit -m feather: configure feather'));
+  assert.ok(gitRecords.some((record) => record.args[0] === 'clone'));
+  assert.ok(gitRecords.some((record) => record.args.join(' ') === 'commit -m chore: bootstrap project with Feather'));
+});
+
+test('create --language tua generates canonical TUA config and Feather targets compiled output', () => {
+  const workspace = makeTmp();
+  const { binDir } = writeFakeCreateGit(workspace);
+  const result = run(['create', 'typed-game', '--language', 'tua', '--app-id', 'feather-app-test', '--ref', 'v-test', '--yes'], {
+    cwd: workspace,
+    env: envWithPath(binDir),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+
+  const project = join(workspace, 'typed-game');
+  assert.equal(existsSync(join(project, 'src', 'main.tua')), true);
+  assert.equal(existsSync(join(project, 'src', 'conf.lua')), true);
+  assert.equal(existsSync(join(project, 'game', 'main.lua')), true);
+  assert.equal(existsSync(join(project, 'src', 'feather.config.lua')), true);
+  assert.match(readFileSync(join(project, 'src', 'feather.config.lua'), 'utf8'), /appId = "feather-app-test"/);
+  assert.equal(existsSync(join(project, 'game', 'feather.config.lua')), true);
+  assert.match(readFileSync(join(project, 'tua.toml'), 'utf8'), /source = "src"\nout = "game"\nmain = "main\.tua"/);
+  assert.equal(existsSync(join(project, 'feather.build.json')), false);
+  assert.match(readFileSync(join(project, 'Makefile'), 'utf8'), /compile:\n\ttua build/);
+  assert.match(readFileSync(join(project, 'Makefile'), 'utf8'), /run: compile\n\tfeather run game/);
+
+  const extensions = JSON.parse(readFileSync(join(project, '.vscode', 'extensions.json'), 'utf8'));
+  assert.ok(extensions.recommendations.includes('SolenodonteLabs.feather-cli-vscode'));
+  assert.ok(extensions.recommendations.includes('SolenodonteLabs.tua'));
 });
 
 test('create --main and --ref choose the requested clone branch', () => {
   const workspace = makeTmp();
   const mainGit = writeFakeCreateGit(join(workspace, 'main-git'));
   mkdirSync(join(workspace, 'main-run'), { recursive: true });
-  const mainResult = run(['create', 'main-game', '--main', '--yes'], {
+  const mainResult = run(['create', 'main-game', '--template', 'Oval-Tutu/bootstrap-love2d-project', '--main', '--yes'], {
     cwd: join(workspace, 'main-run'),
     env: envWithPath(mainGit.binDir),
   });
@@ -221,7 +275,7 @@ test('create --main and --ref choose the requested clone branch', () => {
 
   const refGit = writeFakeCreateGit(join(workspace, 'ref-git'));
   mkdirSync(join(workspace, 'ref-run'), { recursive: true });
-  const refResult = run(['create', 'ref-game', '--ref', 'v-test', '--yes'], {
+  const refResult = run(['create', 'ref-game', '--template', 'Oval-Tutu/bootstrap-love2d-project', '--ref', 'v-test', '--yes'], {
     cwd: join(workspace, 'ref-run'),
     env: envWithPath(refGit.binDir),
   });
@@ -242,16 +296,13 @@ test('create optional flags call plugin, package, and vendor setup paths', async
     await runCreatePipeline(
       'with-flags',
       {
-        ref: '0.1.2',
         yes: true,
         plugins: ['console'],
         packages: ['anim8'],
         vendorTargets: ['web'],
       },
       {
-        fetchLatestReleaseTag: async () => {
-          throw new Error('latest should not be fetched');
-        },
+        fetchLatestReleaseTag: async () => 'v-test',
         runExternalCommand: async (command, args, options) => {
           calls.push({ command, args, cwd: options?.cwd });
           if (args[0] === 'clone') writeTemplateProject(args[args.length - 1]);
@@ -296,7 +347,7 @@ test('create keeps project and prints recovery guidance when git identity is mis
   const workspace = makeTmp();
   const { binDir } = writeFakeCreateGit(workspace, { failCommit: true });
 
-  const result = run(['create', 'identityless', '--ref', '0.1.2', '--yes'], {
+  const result = run(['create', 'identityless', '--ref', 'v-test', '--yes'], {
     cwd: workspace,
     env: envWithPath(binDir),
   });
