@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v4.0.0] - 2026-06-14 - The one with MCPs
+## [v4.1.0] - 2026-10-16 - The one with better beginnings
 
 ### Added
 
@@ -14,6 +14,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `feather create` now offers first-class TUA projects with canonical `tua.toml`, typed `src/` source, generated `game/` output compatible with the Oval-Tutu build system, TUA editor recommendations, and build-aware Feather commands.
 - Project creation now produces a focused README, project-specific workspace and product identity, Feather editor configuration, convenient Make targets, and a fresh one-commit history; a smaller bundled starter is also available with `--template feather`.
 - Project creation now accepts `--app-id`, prompts for the Desktop App ID interactively, and keeps missing connection setup visible without enabling insecure access by default.
+
+### Changed
+
+- Updated catalog pins for `feel` to v1.4.1 and `glyph` to v0.4.0, including their newly shipped modules, and added the checksum-pinned `gpuparticles` v0.2.0 runtime and GLSL sources.
+- `feather create` still uses the Oval-Tutu bootstrap by default, but now deeply cleans its sample game, placeholder product identity, funding metadata, workspace words, README, and stale usage examples while preserving its build workflows, legal attribution, and required build dependencies.
+
+### Tests
+
+- Expanded CLI create coverage for Oval-Tutu cleanup boundaries, preserved build assets and attribution, TUA layout/configuration, generated-output targeting, editor recommendations, the optional bundled scaffold, and git recovery guidance.
+
+## [v4.0.0] - 2026-06-14 - The one with MCPs
+
+### Added
+
 - Replies from the Lua runtime echo the `requestId` of the command they answer, so Inspector and MCP can pair concurrent identical commands with their own responses.
 - Inspector's MCP backend health now reports its app, version, connected sessions, features and limits, so the `feather mcp` gateway can describe what is available.
 - Added `pnpm run down` to stop all process trees owned by active `pnpm run up` sessions while leaving reused apps running.
@@ -28,8 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Updated catalog pins for `feel` to v1.4.1 and `glyph` to v0.4.0, including their newly shipped modules, and added the checksum-pinned `gpuparticles` v0.2.0 runtime and GLSL sources.
-- `feather create` still uses the Oval-Tutu bootstrap by default, but now deeply cleans its sample game, placeholder product identity, funding metadata, workspace words, README, and stale usage examples while preserving its build workflows, legal attribution, and required build dependencies.
 - Binary data from the game (asset previews, screenshots, captures) now reaches Inspector's window as raw bytes over a Tauri channel instead of as a JSON array of numbers, which was about 3.6 times the size and was parsed and copied again on arrival.
 - Inspector starts faster: Performance, Debugger, Console, Plugins, Assets, Observability, Time Travel, Session Replay and Compare load when first opened, cutting the startup bundle from 2.6 MB to 2.0 MB (794 kB to 597 kB compressed). Logs and Session still open instantly.
 - A game whose wire protocol this Inspector cannot speak is now read-only rather than only flagged: Inspector stops sending it refreshes, debugger setup and commands, and an action you trigger says why and what to update. What the game already sent stays readable, and runtimes from before protocol negotiation are unaffected.
@@ -89,7 +101,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
-- Expanded CLI create coverage for Oval-Tutu cleanup boundaries, preserved build assets and attribution, TUA layout/configuration, generated-output targeting, editor recommendations, the optional bundled scaffold, and git recovery guidance.
 - Added Studio browser coverage that authors work in all three tools, abruptly closes the renderer, and verifies the active workspace survives intact in a fresh renderer.
 - Added Inspector browser coverage for filtered log exports and plugin payload rejection/health states.
 - Added Lua, unit and Inspector browser coverage for oversized, deep, cyclic and malformed plugin payloads, attachment limits, structured health, and the bounded error state.
@@ -929,6 +940,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LuaRocks package.
 - GitHub Actions CI.
 
+[v4.1.0]: https://github.com/Kyonru/feather/compare/v4.0.0...v4.1.0
 [v4.0.0]: https://github.com/Kyonru/feather/compare/v3.3.1...v4.0.0
 [runtime-v4.0.1]: https://github.com/Kyonru/feather/releases/tag/runtime-v4.0.1
 [v3.3.1]: https://github.com/Kyonru/feather/compare/v3.3.0...v3.3.1

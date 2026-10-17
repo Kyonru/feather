@@ -1017,7 +1017,7 @@ dependencies = [
 
 [[package]]
 name = "feather"
-version = "4.0.0"
+version = "4.1.0"
 dependencies = [
  "axum",
  "futures-util",
