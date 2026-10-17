@@ -12,8 +12,8 @@ import {
   FileFetchStep,
   FileMoreStep,
 } from '../components.js';
-import { fetchCommitSha, fetchLuaFiles } from '../../lib/github.js';
-import { listGitLuaFiles, listGitRefs, resolveGitRef } from '../../lib/package/git-source.js';
+import { fetchCommitSha, fetchRepoFiles } from '../../lib/github.js';
+import { listGitFiles, listGitRefs, resolveGitRef } from '../../lib/package/git-source.js';
 import { fileNameFromUrl } from '../../lib/url.js';
 import { fetchRepoMeta, REPO_TOTAL, URL_TOTAL } from './add-helpers.js';
 import { RepoConfirmStep, UrlConfirmStep } from './add-steps.js';
@@ -52,7 +52,7 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
   const [baseUrl, setBaseUrl] = useState('');
   const [tagOptions, setTagOptions] = useState<string[]>([]);
   const [tagLabels, setTagLabels] = useState<string[]>([]);
-  const [luaFiles, setLuaFiles] = useState<string[]>([]);
+  const [repoFiles, setRepoFiles] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [targetMap, setTargetMap] = useState<Record<string, string>>({});
 
@@ -209,13 +209,13 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
         run={async () => {
           const files = mode === 'git-repo'
             ? (() => {
-                const result = listGitLuaFiles({ repo: repoName, tag, commitSha });
+                const result = listGitFiles({ repo: repoName, tag, commitSha });
                 if (!result.ok) throw new Error(result.error);
                 return result.files;
               })()
-            : await fetchLuaFiles(repoName, commitSha);
-          if (files.length === 0) throw new Error('No .lua files found at this ref.');
-          setLuaFiles(files);
+            : await fetchRepoFiles(repoName, commitSha);
+          if (files.length === 0) throw new Error('No files found at this ref.');
+          setRepoFiles(files);
           setStep('files');
         }}
         onError={handleError}
@@ -229,8 +229,9 @@ function Wizard({ lockfile, onPlan }: { lockfile: Lockfile; onPlan: (plan: Packa
         stepNum={4}
         total={REPO_TOTAL}
         label="Select files to install"
-        hint={`${luaFiles.length} .lua file(s) found · all selected by default`}
-        options={luaFiles}
+        hint={`${repoFiles.length} file(s) found · Lua files selected by default`}
+        options={repoFiles}
+        initialSelected={new Set(repoFiles.flatMap((file, index) => file.endsWith('.lua') ? [index] : []))}
         onSubmit={(chosen) => {
           setSelectedFiles(chosen);
           setStep('targets');

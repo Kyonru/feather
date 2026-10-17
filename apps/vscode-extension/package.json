@@ -62,6 +62,18 @@
         "icon": "$(package)"
       },
       {
+        "command": "feather.packageAdd",
+        "title": "Add Custom Package",
+        "category": "Feather",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "feather.packageInstallDependencies",
+        "title": "Install Project Dependencies",
+        "category": "Feather",
+        "icon": "$(cloud-download)"
+      },
+      {
         "command": "feather.upload",
         "title": "Upload Build",
         "category": "Feather",

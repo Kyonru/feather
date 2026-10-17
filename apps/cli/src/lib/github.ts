@@ -11,16 +11,21 @@ export async function fetchCommitSha(repo: string, ref: string): Promise<string>
   return ((await res.json()) as { sha: string }).sha;
 }
 
-export async function fetchLuaFiles(repo: string, ref: string): Promise<string[]> {
+export async function fetchRepoFiles(repo: string, ref: string): Promise<string[]> {
   const res = await fetch(`https://api.github.com/repos/${repo}/git/trees/${ref}?recursive=1`, {
     headers: GH_HEADERS,
   });
   if (!res.ok) throw new Error(`GitHub API ${res.status} fetching file tree for ${repo}@${ref}`);
   const data = (await res.json()) as { tree: Array<{ path: string; type: string }> };
   return data.tree
-    .filter((n) => n.type === 'blob' && n.path.endsWith('.lua'))
+    .filter((n) => n.type === 'blob')
     .map((n) => n.path)
     .sort();
+}
+
+/** Kept for callers that specifically need Lua sources. */
+export async function fetchLuaFiles(repo: string, ref: string): Promise<string[]> {
+  return (await fetchRepoFiles(repo, ref)).filter((file) => file.endsWith('.lua'));
 }
 
 export async function fetchLatestReleaseTag(repo: string): Promise<string> {

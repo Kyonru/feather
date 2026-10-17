@@ -86,11 +86,28 @@ export type PackageAction = 'install' | 'update' | 'remove';
 export function packagesPlan(root: string, action: PackageAction, ids: string[]): Plan {
   const steps: JobStep[] =
     action === 'install'
-      ? [json(['package', 'install', ...ids, '--dir', root, '--yes'])]
+      // Selecting entries in the package picker is the extension's explicit
+      // consent step for experimental sources and packages containing assets.
+      ? [json(['package', 'install', ...ids, '--dir', root, '--yes', '--allow-untrusted', '--allow-non-lua-files'])]
       : action === 'update'
         ? ids.map((id) => json(['package', 'update', id, '--dir', root]))
         : ids.map((id) => json(['package', 'remove', id, '--dir', root, '--yes']));
   return { title: `${capitalize(action)} package${ids.length === 1 ? '' : 's'} ${ids.join(', ')}`, steps };
+}
+
+/** Restore every dependency recorded in feather.lock.json, including custom sources. */
+export function packageDependenciesPlan(root: string): Plan {
+  return {
+    title: 'Install project dependencies',
+    // Custom GitHub/Git/URL entries are intentionally experimental. The user
+    // chooses this explicit restore action before the non-interactive job runs.
+    steps: [human(['package', 'install', '--dir', root, '--allow-untrusted', '--yes'])],
+  };
+}
+
+/** The custom-package wizard owns its prompts and therefore runs in a terminal. */
+export function packageAddPlan(root: string): TerminalPlan {
+  return { name: 'Feather: Add Custom Package', args: ['package', 'add', '--dir', root] };
 }
 
 export type VendorTarget = 'all' | 'web' | 'android' | 'ios' | 'desktop' | 'mobile';
@@ -169,7 +186,7 @@ export function projectStateQueries(root: string): { doctor: string[]; plugins: 
   };
 }
 
-export type TerminalPlan = { name: string; target: RunTarget; args: string[] };
+export type TerminalPlan = { name: string; target?: RunTarget; args: string[] };
 
 /**
  * `run` and `watch` are long-lived and interactive, so they stay in terminals.

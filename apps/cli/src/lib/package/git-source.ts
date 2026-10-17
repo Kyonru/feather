@@ -163,7 +163,7 @@ function listFiles(dir: string, prefix = ""): string[] {
   });
 }
 
-export function listGitLuaFiles(
+export function listGitFiles(
   source: Pick<LockfileRepoSource, "repo" | "tag" | "commitSha" | "resolvedRef">,
   opts: { runner?: GitRunner } = {},
 ): { ok: true; files: string[]; commitSha: string } | { ok: false; error: string } {
@@ -173,11 +173,19 @@ export function listGitLuaFiles(
     return {
       ok: true,
       commitSha: checkout.commitSha,
-      files: listFiles(checkout.dir).filter((file) => file.endsWith(".lua")).sort(),
+      files: listFiles(checkout.dir).sort(),
     };
   } finally {
     checkout.cleanup();
   }
+}
+
+export function listGitLuaFiles(
+  source: Pick<LockfileRepoSource, "repo" | "tag" | "commitSha" | "resolvedRef">,
+  opts: { runner?: GitRunner } = {},
+): { ok: true; files: string[]; commitSha: string } | { ok: false; error: string } {
+  const result = listGitFiles(source, opts);
+  return result.ok ? { ...result, files: result.files.filter((file) => file.endsWith(".lua")) } : result;
 }
 
 export function listGitRefs(repo: string, opts: { runner?: GitRunner } = {}): { ok: true; refs: GitRef[] } | { ok: false; error: string } {

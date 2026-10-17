@@ -26,7 +26,7 @@ export function cliInvocation(extensionPath: string): CliInvocation {
 }
 
 /**
- * Run a long-lived, interactive command (`run`, `watch`) in a terminal whose
+ * Run an interactive or long-lived command (`package add`, `run`, `watch`) in a terminal whose
  * process *is* the CLI — no shell, so no quoting, and `exitStatus` tells us
  * whether it is still running. A terminal that is still running is never
  * disposed without asking: it may be a game session or a watch loop.

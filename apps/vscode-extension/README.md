@@ -62,6 +62,8 @@ The view refreshes when `feather.config.lua`, `feather.lock.json`, `feather.buil
 | Feather: Run Doctor | `feather.doctor` | Check project setup, safety posture, dependencies, and connectivity. |
 | Feather: Manage Plugins | `feather.plugins` | Install, update, or remove plugins. |
 | Feather: Manage Packages | `feather.packages` | Install, update, or remove curated packages. |
+| Feather: Add Custom Package | `feather.packageAdd` | Open the interactive file picker for GitHub, authenticated Git, or direct-URL packages. |
+| Feather: Install Project Dependencies | `feather.packageInstallDependencies` | Restore all curated and custom dependencies from `feather.lock.json`. |
 | Feather: Upload Build | `feather.upload` | Upload an existing or newly built artifact through the CLI upload flow. |
 | Feather: Remove Feather | `feather.remove` | Remove Feather integration from the project. |
 | Feather: Update Runtime | `feather.update` | Update the embedded Feather runtime when the project uses one. |
@@ -102,7 +104,9 @@ CLI-managed projects use bundled Feather runtime and plugin code. In that mode, 
 
 Embedded projects copy plugin files into the configured Feather install directory and include or exclude them in config.
 
-Package management reads installed packages from the CLI. If `feather.lock.json` cannot be read, **Manage Packages** stops and offers to open the file instead of installing over it.
+**Manage Packages** can browse the curated catalog, add a custom package, or install all project dependencies. Custom packages open the CLI's interactive wizard in a dedicated VS Code terminal, where you select the GitHub/Git ref, source files, project targets, and require path. **Install Project Dependencies** runs `feather package install` as a managed job and restores both catalog packages and checksum-locked custom GitHub, Git, and URL files.
+
+Package management reads installed packages from the CLI. If `feather.lock.json` cannot be read, package actions stop and offer to open the file instead of installing over it. Commit `feather.lock.json` so another checkout can restore the same custom sources and exact checksums.
 
 ## Troubleshooting
 

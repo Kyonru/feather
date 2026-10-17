@@ -57,6 +57,8 @@ function allArgvs() {
     }
   }
   for (const action of ['install', 'update', 'remove']) add(`packages ${action}`, argvsOf(plans.packagesPlan(ROOT, action, ['anim8', 'baton'])));
+  add('package dependencies', argvsOf(plans.packageDependenciesPlan(ROOT)));
+  out.push({ label: 'package add', args: plans.packageAddPlan(ROOT).args });
 
   for (const target of ['all', 'web', 'android', 'ios', 'desktop', 'mobile']) {
     add(`vendor add ${target}`, argvsOf(plans.vendorAddPlan(ROOT, [target])));
@@ -168,7 +170,7 @@ test('the plan matrix covers every command the extension runs', () => {
   const commands = new Set(cases.map(({ args }) => findCommand(createProgram(), args).path.join(' ')));
   for (const expected of [
     'init', 'plugin install', 'plugin remove', 'plugin update', 'plugin list', 'config plugins', 'config hot-reload',
-    'package install', 'package update', 'package remove', 'package list', 'build vendor add', 'build vendor list',
+    'package add', 'package install', 'package update', 'package remove', 'package list', 'build vendor add', 'build vendor list',
     'build android', 'build ios', 'upload', 'doctor', 'remove', 'update', 'run', 'watch',
   ]) {
     assert.ok(commands.has(expected), `no plan exercises feather ${expected}`);

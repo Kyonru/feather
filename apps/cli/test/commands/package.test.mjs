@@ -2369,6 +2369,24 @@ test('install package: dependency-only installs mark dependency lock feature', a
   );
 });
 
+test('custom git package picker lists companion files while preserving the Lua-only helper', async () => {
+  const repo = makeGitPackageRepo({
+    'init.lua': 'return "git package"\n',
+    'shaders/particles.glsl': 'vec4 effect() {}\n',
+    'assets/palette.png': 'fake-png',
+  });
+  const { listGitFiles, listGitLuaFiles } = await import('../../dist/lib/package/git-source.js');
+  const source = { repo: repo.dir, tag: 'v1.0.0', commitSha: repo.commitSha };
+
+  const all = listGitFiles(source);
+  assert.equal(all.ok, true);
+  assert.deepEqual(all.files, ['assets/palette.png', 'init.lua', 'shaders/particles.glsl']);
+
+  const lua = listGitLuaFiles(source);
+  assert.equal(lua.ok, true);
+  assert.deepEqual(lua.files, ['init.lua']);
+});
+
 test('install package: git transport installs through local git and marks lock feature', async () => {
   const dir = makeTmp();
   const repo = makeGitPackageRepo({ 'init.lua': 'return "git package"\n', 'nested/util.lua': 'return "util"\n' });

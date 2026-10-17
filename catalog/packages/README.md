@@ -212,11 +212,16 @@ If the requested version does not exist on GitHub, the install aborts with a cle
 
 Install a Lua library that is not in the Feather catalog. Launches an interactive wizard and first asks how you want to add the package:
 
-- **From GitHub repository** — commit-SHA pinned, reproducible. The wizard fetches the repo's tags and branches, lets you pick one, resolves it to an exact commit SHA, shows all `.lua` files in the tree, and lets you select which ones to install and where.
+- **From GitHub repository** — commit-SHA pinned, reproducible. The wizard fetches the repo's tags and branches, lets you pick one, resolves it to an exact commit SHA, shows every file in the tree, and lets you select which ones to install and where. Lua sources are selected by default; companion shaders, data, images, or other files are opt-in.
 - **From Git repository using local git credentials** — same package shape, but repo access goes through your configured `git` credentials for private repositories.
 - **From direct URL(s)** — for libraries not on GitHub or without versioned releases. Each URL is downloaded immediately and its SHA-256 is computed before you confirm.
 
 Both flows share the same steps for naming the package, setting install paths, entering a require path, and reviewing before anything is written.
+
+In VS Code, run **Feather: Add Custom Package** (or choose **Add Custom Package** under
+**Manage Packages**) to open this same file-selection wizard in an integrated terminal. Run
+**Feather: Install Project Dependencies** to restore every catalog and custom dependency from the
+project lockfile without leaving the editor.
 
 ```sh
 feather package add
@@ -229,7 +234,7 @@ feather package add --dir path/to/my-game
 2. Package name — how it appears in `feather.lock.json`
 3. GitHub repo (`owner/repo`)
 4. Select a tag or branch — tags listed first, then branches
-5. Select which `.lua` files to install
+5. Select which files to install (Lua sources start selected; opt into any companion assets)
 6. Set install target path for each file
 7. Enter the require path for your game code
 8. Review summary and confirm — files are written only after this step

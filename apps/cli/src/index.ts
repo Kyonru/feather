@@ -893,7 +893,7 @@ export function createProgram(): Command {
 
   pkg
     .command('add')
-    .description('Interactively install a custom dependency from URL(s)')
+    .description('Interactively install selected files from GitHub, Git, or direct URLs')
     .option('--dir <path>', 'Project directory')
     .action((opts) => runCliAction(() => packageAddCommand({ dir: opts.dir as string | undefined })));
 
