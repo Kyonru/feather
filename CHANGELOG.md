@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated catalog pins for `feel` to v1.4.1 and `glyph` to v0.4.0, including their newly shipped modules, and added the checksum-pinned `gpuparticles` v0.2.0 runtime and GLSL sources.
 - `feather create` still uses the Oval-Tutu bootstrap by default, but now deeply cleans its sample game, placeholder product identity, funding metadata, workspace words, README, and stale usage examples while preserving its build workflows, legal attribution, and required build dependencies.
 - Binary data from the game (asset previews, screenshots, captures) now reaches Inspector's window as raw bytes over a Tauri channel instead of as a JSON array of numbers, which was about 3.6 times the size and was parsed and copied again on arrival.
 - Inspector starts faster: Performance, Debugger, Console, Plugins, Assets, Observability, Time Travel, Session Replay and Compare load when first opened, cutting the startup bundle from 2.6 MB to 2.0 MB (794 kB to 597 kB compressed). Logs and Session still open instantly.

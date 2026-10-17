@@ -15,30 +15,35 @@
   "license": "MIT",
   "source": {
     "repo": "kyonru/feel.lua",
-    "tag": "v1.3.0",
-    "commitSha": "321004ece914d2975c82711fe7b64a0bb91ffa32",
-    "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/321004ece914d2975c82711fe7b64a0bb91ffa32/"
+    "tag": "v1.4.1",
+    "commitSha": "9339022413f8fd97f0099891e2f95ccae5cb5c43",
+    "baseUrl": "https://raw.githubusercontent.com/kyonru/feel.lua/9339022413f8fd97f0099891e2f95ccae5cb5c43/"
   },
   "install": {
     "files": [
       {
         "name": "feel/feedbacks.lua",
-        "sha256": "0e5fcb0644bfaca767b55e04492cc18f0d3b6ec65a16e9c7be8b3b914aa85d7f",
+        "sha256": "8cee41e42909cd70a5a3abd7e0a9f35a06f1e85ce7efa4dbd5dc64692701a2e2",
         "target": "lib/feel/feedbacks.lua"
       },
       {
         "name": "feel/g3d.lua",
-        "sha256": "01bd77cd598ea1721009b1d0df492f4247e07d0e36d90430e9ac06208a1da72f",
+        "sha256": "b15dd2cfa98de02b737be828325514d8986857e06c3325f320c2ef6632247b9d",
         "target": "lib/feel/g3d.lua"
       },
       {
+        "name": "feel/haptics.lua",
+        "sha256": "e042b7c336e33a8fe623082b181968daa0102b5be523691af003984cc5ca0052",
+        "target": "lib/feel/haptics.lua"
+      },
+      {
         "name": "feel/init.lua",
-        "sha256": "a44ae523ed8e6b06e6b295b4d4df462c24d837530a8f065f2fd6c31f7db16bb6",
+        "sha256": "83f1f498b28149048d6d6bd2664492a06f0afa33b1888f020891d29fee01c3c1",
         "target": "lib/feel/init.lua"
       },
       {
         "name": "feel/love.lua",
-        "sha256": "a8ef00afd1c0d8ff9b3aae781c8d40595dba81d956b85e601d32ffe0846cab34",
+        "sha256": "0a6f835766ed30a064265b4c0be015f1166aea4c68b6b5d180365917ee1d6547",
         "target": "lib/feel/love.lua"
       },
       {
@@ -52,8 +57,18 @@
         "target": "lib/feel/presets.lua"
       },
       {
+        "name": "feel/sprite.lua",
+        "sha256": "d4a7f45cb511b3c52c57d454ae38f8f3ab337f8b7f698acc7a2d981477c7b2aa",
+        "target": "lib/feel/sprite.lua"
+      },
+      {
+        "name": "feel/sprite/anim8.lua",
+        "sha256": "637f60a00ffe08420cb7ea31fac7b2c05a3573d1ad440b08fd208a82c46acfe5",
+        "target": "lib/feel/sprite/anim8.lua"
+      },
+      {
         "name": "feel/validate.lua",
-        "sha256": "0d5c57fc075a0976dddaf28226b2d5def0a987d7bd47416c1be9b124217ef215",
+        "sha256": "b7f396b6e337c9adc410f7f464c2f68cef08d3e1bd88a5b024691ce19d2ac0ad",
         "target": "lib/feel/validate.lua"
       },
       {
@@ -72,19 +87,45 @@
         "target": "lib/feel/types/feel-g3d.lua"
       },
       {
+        "name": "types/feel-haptics.lua",
+        "sha256": "514f444138f7a9980d68a2108eb24052eb55de96786b2132df798c16f5c12639",
+        "target": "lib/feel/types/feel-haptics.lua"
+      },
+      {
         "name": "types/feel-love.lua",
-        "sha256": "6071ec680bc98cffc8ff2b918d4458193dc8fcc6ec88180cca8e3ba8e7b6301b",
+        "sha256": "e1e5ec77061db8488dc033497756b10147b689b1f246e2083c1cf24d057cd6bd",
         "target": "lib/feel/types/feel-love.lua"
       },
       {
         "name": "types/feel-menori.lua",
-        "sha256": "38b17ffdd7c4f7c42d3be6ce1c118fb68009026da206f943890dfae6b0dbb147",
+        "sha256": "e917b03d80c34d8bc2f9d3d9a9f2dd12932a8db1d23452b23a90c51ce9eedbd3",
         "target": "lib/feel/types/feel-menori.lua"
       },
       {
+        "name": "types/feel-presets.lua",
+        "sha256": "d779663abba855a9c2e886a500e4d6b52fc22e61be4c94c7748eb8306df63590",
+        "target": "lib/feel/types/feel-presets.lua"
+      },
+      {
+        "name": "types/feel-sprite-anim8.lua",
+        "sha256": "b8027c4244c1e8b0edc3cfaa1e1a08a6b42b4891ec99a1a380f4ca9f04aecf4d",
+        "target": "lib/feel/types/feel-sprite-anim8.lua"
+      },
+      {
+        "name": "types/feel-sprite.lua",
+        "sha256": "bab1fc20294d04d88f511546c7ec6e437d6455ce3888f04bd4dc9126e427883e",
+        "target": "lib/feel/types/feel-sprite.lua"
+      },
+      {
         "name": "types/feel.lua",
-        "sha256": "397b018877efe83217368454341b6d9fc9a6f5fc436e7b0b9a1683eadf03b380",
+        "sha256": "15d9781d1450739ca0fbd0240987890835734c8ee92213af923ccf33c342f5aa",
         "target": "lib/feel/types/feel.lua"
+      }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "59097e7d15d2ac4fe00dc8e82845bdb7b0a15f2d4502aadf3820120c0f092169"
       }
     ]
   },

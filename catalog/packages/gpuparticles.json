@@ -1,0 +1,313 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "GPU particle simulation and volumetric effects for LÖVE.",
+  "tags": [
+    "particles",
+    "gpu",
+    "simulation",
+    "effects",
+    "shaders",
+    "volume"
+  ],
+  "homepage": "https://github.com/Kyonru/gpuparticles",
+  "license": "MIT",
+  "source": {
+    "repo": "Kyonru/gpuparticles",
+    "tag": "v0.2.0",
+    "commitSha": "78ee50ac1ccd5d9dfcae3c25317fd8cf7a9147a5",
+    "baseUrl": "https://raw.githubusercontent.com/Kyonru/gpuparticles/78ee50ac1ccd5d9dfcae3c25317fd8cf7a9147a5/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "gpuparticles/analytic.lua",
+        "sha256": "40f662f8a9ae5f6c44446df2e5856bb38650dfb1a849746d937006fe06192628",
+        "target": "lib/gpuparticles/analytic.lua"
+      },
+      {
+        "name": "gpuparticles/capabilities.lua",
+        "sha256": "a387c538250fa3e9600ac65df5b9421422ffe44cb9625ee792f253533209f67f",
+        "target": "lib/gpuparticles/capabilities.lua"
+      },
+      {
+        "name": "gpuparticles/config.lua",
+        "sha256": "8bf03894341c34cb2992d58e757706a08210c551a3d9164b3549b4590adf35fb",
+        "target": "lib/gpuparticles/config.lua"
+      },
+      {
+        "name": "gpuparticles/curves.lua",
+        "sha256": "8568f09c04460a20c2890d1ade2cdd7fa83f0672498f75861cd83292d2946870",
+        "target": "lib/gpuparticles/curves.lua"
+      },
+      {
+        "name": "gpuparticles/emitter.lua",
+        "sha256": "a3321644c5b69ecffa4a620968714fbf41a6257c34c621c670e4162bdf48735c",
+        "target": "lib/gpuparticles/emitter.lua"
+      },
+      {
+        "name": "gpuparticles/fields.lua",
+        "sha256": "99451b81bf90427fd058bfc4303a6e4450ca2d976b7a5a4672c990c47fa39c4f",
+        "target": "lib/gpuparticles/fields.lua"
+      },
+      {
+        "name": "gpuparticles/forces.lua",
+        "sha256": "d606adefc4d8c144fd68e67e48d5473c80dc00aebbfbf322c7c9a4db55bc63c8",
+        "target": "lib/gpuparticles/forces.lua"
+      },
+      {
+        "name": "gpuparticles/init.lua",
+        "sha256": "b6e61b9bc4abfead07c6035d90fdf86867a63dd28e810fb8dc56f0c60e4ef0f2",
+        "target": "lib/gpuparticles/init.lua"
+      },
+      {
+        "name": "gpuparticles/native.lua",
+        "sha256": "d661e1e6553e4580507942a135cab7802b61b14844654ec7bcb62f0065d45774",
+        "target": "lib/gpuparticles/native.lua"
+      },
+      {
+        "name": "gpuparticles/random.lua",
+        "sha256": "8d94f5df5ed9fd090c826bb7b851fa745bbf6a4c353bd689bf900af9a4281586",
+        "target": "lib/gpuparticles/random.lua"
+      },
+      {
+        "name": "gpuparticles/records.lua",
+        "sha256": "da4e8239b1cc76d316b5bd74bca74475c98cdd35e693c0b8c0504522b59bb7af",
+        "target": "lib/gpuparticles/records.lua"
+      },
+      {
+        "name": "gpuparticles/resources.lua",
+        "sha256": "550294e4e3ca0e03360e64b90f9e7d51e0ede6b3999115a5c57deff9e1bf532e",
+        "target": "lib/gpuparticles/resources.lua"
+      },
+      {
+        "name": "gpuparticles/selfcollision.lua",
+        "sha256": "7867c8d8f51851b88da4eac2629000c75a251dad028e98614f6bb5aa9ef376bb",
+        "target": "lib/gpuparticles/selfcollision.lua"
+      },
+      {
+        "name": "gpuparticles/setters.lua",
+        "sha256": "34dcbcc22b2cf49ab69ec5bafa98f0ad6bc10a6ea84215702a8cb7f5e64bb0a4",
+        "target": "lib/gpuparticles/setters.lua"
+      },
+      {
+        "name": "gpuparticles/shaders.lua",
+        "sha256": "a966ccb38bf54d594cc76daa69c111e87a2f5ef628a62a3187c7367a524f5f8c",
+        "target": "lib/gpuparticles/shaders.lua"
+      },
+      {
+        "name": "gpuparticles/shaders/analytic.glsl",
+        "sha256": "0ea3e2f9a61996e61d881bf7b641ee29dfc4e78356f92224b0809c057d13b973",
+        "target": "lib/gpuparticles/shaders/analytic.glsl"
+      },
+      {
+        "name": "gpuparticles/shaders/collision.glsl",
+        "sha256": "b870eadbb27c54419f0658babe385ed28d60fd55bf7d364adc4be397e6612fb1",
+        "target": "lib/gpuparticles/shaders/collision.glsl"
+      },
+      {
+        "name": "gpuparticles/shaders/common.glsl",
+        "sha256": "a15540e8bf11ca3c024ff726bb05ee5b2882e27839347d99dd97a4446096e5a6",
+        "target": "lib/gpuparticles/shaders/common.glsl"
+      },
+      {
+        "name": "gpuparticles/shaders/render.glsl",
+        "sha256": "58c3548f32207cb349968174b4c97c056fa97179cd9ccfebffb5476153fdb684",
+        "target": "lib/gpuparticles/shaders/render.glsl"
+      },
+      {
+        "name": "gpuparticles/shaders/selfpack.glsl",
+        "sha256": "ba7b426d743144c9b81d58b9664d71330f51844dc404d5a8ad4d3a7945053a8a",
+        "target": "lib/gpuparticles/shaders/selfpack.glsl"
+      },
+      {
+        "name": "gpuparticles/shaders/selfresolve.glsl",
+        "sha256": "0a717ab4720d5c3e568aafcb7f639ceab5f8b2e60f27d8752754122481a1d7ee",
+        "target": "lib/gpuparticles/shaders/selfresolve.glsl"
+      },
+      {
+        "name": "gpuparticles/shaders/simulate.glsl",
+        "sha256": "ad4ec2ac182ca9fa1f04b3e8f4d30c4d0d6539698c29faa0e359e67550654dd0",
+        "target": "lib/gpuparticles/shaders/simulate.glsl"
+      },
+      {
+        "name": "gpuparticles/shaders/stamp.glsl",
+        "sha256": "099c43db68ad8228d7f2e9f10109edb26738d31bb98a4ca9a5efc08745f8321b",
+        "target": "lib/gpuparticles/shaders/stamp.glsl"
+      },
+      {
+        "name": "gpuparticles/shaders/style.glsl",
+        "sha256": "a35e8c31d5498677ed48b8e0fae667a9e7f6e6c5245322996b0c106bdb9239ba",
+        "target": "lib/gpuparticles/shaders/style.glsl"
+      },
+      {
+        "name": "gpuparticles/stateful.lua",
+        "sha256": "fc9509b3fbffcdd005f581564392491650d3aa31301f16cdbb55e4e5c37222ea",
+        "target": "lib/gpuparticles/stateful.lua"
+      },
+      {
+        "name": "gpuparticles/timeline.lua",
+        "sha256": "6e80142fb9a6377a685e9725917738a21c54139c7eb22b0c52115fcf65043a89",
+        "target": "lib/gpuparticles/timeline.lua"
+      },
+      {
+        "name": "gpuparticles/volume/init.lua",
+        "sha256": "f72c36482d9698bcd8fb7d5159d55196c7ce356fc6e443d7a1fadaa1f8993cef",
+        "target": "lib/gpuparticles/volume/init.lua"
+      },
+      {
+        "name": "gpuparticles/volume/material.lua",
+        "sha256": "04fe0244ff4d8b42bcf12a2e6fb3a5bda4a376bd2b6c371330c71754550d8742",
+        "target": "lib/gpuparticles/volume/material.lua"
+      },
+      {
+        "name": "gpuparticles/volume/reaction.lua",
+        "sha256": "54f42688f4b723b26c6585f8eb1b10e3f07ba0f0f238fb3fdd34acce4932a0bb",
+        "target": "lib/gpuparticles/volume/reaction.lua"
+      },
+      {
+        "name": "gpuparticles/volume/shaders.lua",
+        "sha256": "699601bdfc08b892d3a4352d90177d9b3a675ca821c9e4ad117c09689324bde0",
+        "target": "lib/gpuparticles/volume/shaders.lua"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/common.glsl",
+        "sha256": "b19dff8c0a509a9ca667ca1027521e3b32423f611aa79d7343253f509a63308d",
+        "target": "lib/gpuparticles/volume/shaders/common.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/divergence.glsl",
+        "sha256": "429bd320dff855ddd711b888b2a29acffe523c38fb687d29f4eb8921f96e3963",
+        "target": "lib/gpuparticles/volume/shaders/divergence.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/draw.glsl",
+        "sha256": "d113d56d95e252daa55e92578c980e8c8ac641efdcccb4a534ae08532884275d",
+        "target": "lib/gpuparticles/volume/shaders/draw.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/gas-force.glsl",
+        "sha256": "8b879a3527c5297ae842f24703d4b42eb4ba9f4d01c013581bcb7a8a34bbc723",
+        "target": "lib/gpuparticles/volume/shaders/gas-force.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/gas-transport.glsl",
+        "sha256": "42c18abbdebdf5c11d07a7cc501449177e4ff679bd1fb9cebaeaced2a377ced3",
+        "target": "lib/gpuparticles/volume/shaders/gas-transport.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/heat.glsl",
+        "sha256": "1ca393735687b17553a827c45e384aa0a2d1c3de19c68d952cb9ce6f3cc4c7ce",
+        "target": "lib/gpuparticles/volume/shaders/heat.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/impulse.glsl",
+        "sha256": "f2b6a6bf5cb289cd3c92e3c9e5e17689bce47110bea330ff0ac2ceceb6ef8104",
+        "target": "lib/gpuparticles/volume/shaders/impulse.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/inject-apply.glsl",
+        "sha256": "2a0f9d1624894786c4d84fb88fe93a35c41e8c1675616d87ca1ff91981385f05",
+        "target": "lib/gpuparticles/volume/shaders/inject-apply.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/inject.glsl",
+        "sha256": "f2c7587b6b61e13f87427bce454f3b77fe38b7eb0140aebbd72686a5a08f8132",
+        "target": "lib/gpuparticles/volume/shaders/inject.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/liquid-divergence.glsl",
+        "sha256": "3b40961a0c62ff4de91b9c253195a21514fd0d0fc65426682b5794c4d4553051",
+        "target": "lib/gpuparticles/volume/shaders/liquid-divergence.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/liquid-flux.glsl",
+        "sha256": "4d6c84f3bf69a5b4f26fdc873a1835e589f3dbab978f9f6d0fe6becca814c618",
+        "target": "lib/gpuparticles/volume/shaders/liquid-flux.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/liquid-force.glsl",
+        "sha256": "2948d1bfcea000fa21b620a2032a25fbb35e6b270db76ae4a4ff1503590bca52",
+        "target": "lib/gpuparticles/volume/shaders/liquid-force.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/liquid-momentum.glsl",
+        "sha256": "763a6b017d87894eb210b5564c4430791b638302b1e9c102e087f02cf84737cc",
+        "target": "lib/gpuparticles/volume/shaders/liquid-momentum.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/liquid-pressure.glsl",
+        "sha256": "93cf45bd5ff6e23526596c01edee98b79a6a477df66c6799a8b5b0bba711bf64",
+        "target": "lib/gpuparticles/volume/shaders/liquid-pressure.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/liquid-project.glsl",
+        "sha256": "45d8a32dec1e73140eacd2d5c4ac772dfd10f97d0ac56f58f3c471c839e1f7a3",
+        "target": "lib/gpuparticles/volume/shaders/liquid-project.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/liquid-relax.glsl",
+        "sha256": "d1f7f97f7ffa4473c6b7f4a7a9f64d71744b0036e8aa9617daabae3cf073bb4f",
+        "target": "lib/gpuparticles/volume/shaders/liquid-relax.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/pressure.glsl",
+        "sha256": "4f8497f11990e82fa4afd5ae7b51214f6d0124841602edf5fcf3c79faa5b8961",
+        "target": "lib/gpuparticles/volume/shaders/pressure.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/project.glsl",
+        "sha256": "3808b0cbd0a8bdda150f24891141c077cb1c8494bc8ee7d28e3bf3cfce234fcd",
+        "target": "lib/gpuparticles/volume/shaders/project.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/reaction-apply.glsl",
+        "sha256": "808da36c87facb873298bc88024dc507adf433e28de57ac818b174c6424d03ec",
+        "target": "lib/gpuparticles/volume/shaders/reaction-apply.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/reaction.glsl",
+        "sha256": "aafb2b2e38cae9e75cdb07d5f91530592d961099cb88ada06b46b1a1a73fe36a",
+        "target": "lib/gpuparticles/volume/shaders/reaction.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/terrain.glsl",
+        "sha256": "d6642c2888a8d64b462ce0a790f54189173277bac9b6b4962f8a46a4377aa07d",
+        "target": "lib/gpuparticles/volume/shaders/terrain.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/velocity.glsl",
+        "sha256": "148589f60b15d3c24a69dc1a9cf30c709faa0264b7cb055b761d6e51a23a2351",
+        "target": "lib/gpuparticles/volume/shaders/velocity.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/water-flux.glsl",
+        "sha256": "d38a5d520dfe98ada474cf1a3a13d75d5de69c066ae1e66db16f0f8177b45ac9",
+        "target": "lib/gpuparticles/volume/shaders/water-flux.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/shaders/water-transport.glsl",
+        "sha256": "fa01a72d99ca9431d1e8abf3be650516c218156bfbeb02d59c42e82aa163207c",
+        "target": "lib/gpuparticles/volume/shaders/water-transport.glsl"
+      },
+      {
+        "name": "gpuparticles/volume/source.lua",
+        "sha256": "9b7916478c3e4c1026c297402517b7e4dfb42cb69c5f8e250c6de948c3d72cf2",
+        "target": "lib/gpuparticles/volume/source.lua"
+      },
+      {
+        "name": "gpuparticles/volume/util.lua",
+        "sha256": "cebfcb872a6f91538cc2ab1c384cb5324bfe94fc50599fe441f0969b69cc8bf6",
+        "target": "lib/gpuparticles/volume/util.lua"
+      }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "1ab1b589ad7fb65900274f9e98b004e42e7488974c321b6d9266d5f5eda23108"
+      }
+    ]
+  },
+  "require": "lib.gpuparticles",
+  "example": "local gpuparticles = require('lib.gpuparticles')"
+}

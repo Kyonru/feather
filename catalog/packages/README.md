@@ -330,6 +330,9 @@ Auditing 4 installed packages…
 | `bump`           | verified | AABB collision detection                        |
 | `classic`        | verified | Minimal OOP class library                       |
 | `flux`           | verified | Tweening / easing                               |
+| `feel`           | verified | Feedback recipes, haptics, and sprite effects   |
+| `glyph`          | verified | UI framework, layout, navigation, and themes    |
+| `gpuparticles`   | verified | GPU particles and volumetric effects            |
 | `hump`           | verified | Camera, timer, signal, class, vector, gamestate |
 | `hump.camera`    | verified | Camera module only                              |
 | `hump.class`     | verified | Class module only                               |
@@ -345,6 +348,10 @@ Auditing 4 installed packages…
 | `windfield`      | known    | Box2D physics wrapper                           |
 
 Run `feather package list` for the most up-to-date listing including any newly added packages.
+
+`gpuparticles` includes its required GLSL shader sources. Install it with
+`feather package install gpuparticles --allow-non-lua-files`; Feather still verifies every shader
+against the catalog checksum before writing it.
 
 ---
 
