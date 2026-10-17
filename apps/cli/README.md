@@ -88,6 +88,7 @@ feather create awesome --yes
 feather create awesome --language tua --app-id feather-app-...
 feather create awesome --plugins screenshots,console
 feather create awesome --packages anim8,bump --vendor-targets web,android
+feather create networked --keep-lua-https --yes
 feather create pinned --ref 0.1.2 --yes
 feather create minimal --template feather --yes
 ```
@@ -97,7 +98,9 @@ Interactive creation asks whether to use Lua or [TUA](https://github.com/Kyonru/
 - Lua projects keep directly runnable source in `game/`.
 - TUA projects keep editable typed source and `feather.config.lua` in `src/`, the canonical compiler configuration in `tua.toml`, and generated LÖVE output in `game/`, where the Oval-Tutu build system expects it. `make run` runs `tua build` before `feather run game`, so generated Lua is never the file you edit.
 
-The cleanup removes the sample `eyes` game, template entrypoint, inherited funding file, Oval-Tutu workspace words, placeholder product metadata, template README, and stale usage-guide examples. It deliberately retains the upstream license and real `oval-tutu/lua-https` build dependency, along with the workflows, tools, resources, and platform build configuration they support. The result receives a project-specific README and workspace, CLI-managed `feather.config.lua`, Feather/TUA editor recommendations, and a fresh git history.
+The cleanup removes the sample `eyes` game, template entrypoint, inherited funding file, Oval-Tutu workspace words, placeholder product metadata, template README, stale usage-guide examples, and native HTTPS payload by default. It deliberately retains the upstream license, workflows, tools, resources, and platform build configuration. The result receives a project-specific README and workspace, CLI-managed `feather.config.lua`, Feather/TUA editor recommendations, and a fresh git history.
+
+Pass `--keep-lua-https` when creating an Oval-Tutu project to retain its complete HTTPS integration for LÖVE 11.5: the cross-platform native libraries, runtime loader, Android build checkout, Nix development-shell configuration, starter initialization, and HTTPS guide. Omitting the flag removes the integration as one unit. LÖVE 12’s built-in HTTPS module is unaffected.
 
 For a smaller offline scaffold without the Oval-Tutu build system, select the bundled `feather` template explicitly.
 
@@ -122,6 +125,7 @@ make vendor-list
 | `--language <language>`      | Generate a `lua` or `tua` project. Defaults to Lua with `--yes`; prompted otherwise.              |
 | `--app-id <id>`              | Bind development connections to a specific Feather desktop App ID.                               |
 | `--allow-insecure-connection` | Explicitly allow any Feather desktop to connect in a trusted development environment.            |
+| `--keep-lua-https`          | Keep Oval-Tutu's native HTTPS runtime and build integration; removed by default.                   |
 | `--ref <tag-or-branch>`      | Clone a specific Oval-Tutu repository-template ref.                                                |
 | `--main`                     | Clone the Oval-Tutu repository template's `main` branch instead of its latest release.             |
 | `-y, --yes`                  | Skip prompts and use defaults.                                                                   |

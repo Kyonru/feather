@@ -18,8 +18,18 @@ import {
 function templateFiles() {
   return {
     'game/main.lua': 'local eyes = require("eyes.eyes")\nfunction love.load() eyes.load() end\n',
-    'game/main.template.lua': 'function love.load()\n  -- Your game load here\nend\n',
+    'game/main.template.lua': `https = nil
+local overlayStats = require("lib.overlayStats")
+local runtimeLoader = require("runtime.loader")
+
+function love.load()
+  https = runtimeLoader.loadHTTPS()
+  -- Your game load here
+end
+`,
     'game/conf.lua': 'function love.conf(t) t.window.title = "Template" end\n',
+    'game/runtime/loader.lua': 'return { loadHTTPS = function() return require("https") end }\n',
+    'game/runtime/https/linux/x86_64/https.so': 'native library\n',
     'game/eyes/sample.txt': 'sample only\n',
     'game/product.env': `ITCH_USER="ovaltutu"
 LOVE_VERSION="11.5"
@@ -52,6 +62,10 @@ PRODUCT_COMPANY="Oval Tutu"
 PRODUCT_WEBSITE="https://oval-tutu.com"
 PRODUCT_UUID="3e64d17c-8797-4382-921f-cf488b22073f"
 Upload to \`ovaltutu/template\`.
+
+## HTTPS Support
+
+Use \`require("runtime.loader").loadHTTPS()\` with lua-https.
 `,
     '.vscode/extensions.json': JSON.stringify(
       {
@@ -70,7 +84,25 @@ Upload to \`ovaltutu/template\`.
     ),
     '.github/workflows/build.yml': 'name: build\n',
     '.github/FUNDING.yml': 'github: flexiondotorg\n',
-    '.github/actions/build-android/action.yml': 'uses: oval-tutu/lua-https@v1\n',
+    '.github/actions/build-android/action.yml': `runs:
+  using: composite
+  steps:
+    - name: Checkout lua-https
+      uses: actions/checkout@v4
+      with:
+        repository: oval-tutu/lua-https
+        path: ./tools/love-android/love/src/jni/lua-modules/lua-https
+    - name: Copy love assets
+      shell: bash
+      run: echo copy
+`,
+    'flake.nix': `{
+          shellHook = ''
+            #Coerce LD_LIBRARY_PATH for lua-https
+            export LD_LIBRARY_PATH=example
+          '';
+}
+`,
     LICENSE: 'Copyright (c) 2025 Oval Tutu\n',
     'tools/tool.txt': 'tool\n',
     'resources/icon.png': 'fake icon\n',
@@ -214,7 +246,9 @@ test('create --yes retains the Oval-Tutu build system while removing inherited p
   assert.equal(/Oval Tutu|ovaltutu|oval-tutu\.com/i.test(product), false);
   assert.equal(existsSync(join(project, '.github', 'FUNDING.yml')), false);
   assert.match(readFileSync(join(project, 'LICENSE'), 'utf8'), /Oval Tutu/);
-  assert.match(readFileSync(join(project, '.github', 'actions', 'build-android', 'action.yml'), 'utf8'), /oval-tutu\/lua-https/);
+  assert.equal(existsSync(join(project, 'game', 'runtime')), false);
+  assert.equal(readFileSync(join(project, '.github', 'actions', 'build-android', 'action.yml'), 'utf8').includes('lua-https'), false);
+  assert.equal(readFileSync(join(project, 'flake.nix'), 'utf8').includes('lua-https'), false);
   assert.equal(readFileSync(join(project, 'Workspace.code-workspace'), 'utf8').includes('ovaltutu'), false);
 
   const extensions = JSON.parse(readFileSync(join(project, '.vscode', 'extensions.json'), 'utf8'));
@@ -232,6 +266,25 @@ test('create --yes retains the Oval-Tutu build system while removing inherited p
   const gitRecords = records(recordPath);
   assert.ok(gitRecords.some((record) => record.args[0] === 'clone'));
   assert.ok(gitRecords.some((record) => record.args.join(' ') === 'commit -m chore: bootstrap project with Feather'));
+});
+
+test('create --keep-lua-https preserves the complete native HTTPS integration', () => {
+  const workspace = makeTmp();
+  const { binDir } = writeFakeCreateGit(workspace);
+  const result = run(['create', 'networked', '--ref', 'v-test', '--keep-lua-https', '--yes'], {
+    cwd: workspace,
+    env: envWithPath(binDir),
+  });
+  assert.equal(result.exitCode, 0, outputOf(result));
+
+  const project = join(workspace, 'networked');
+  assert.equal(existsSync(join(project, 'game', 'runtime', 'loader.lua')), true);
+  assert.equal(existsSync(join(project, 'game', 'runtime', 'https', 'linux', 'x86_64', 'https.so')), true);
+  assert.match(readFileSync(join(project, 'game', 'main.lua'), 'utf8'), /runtimeLoader\.loadHTTPS/);
+  assert.match(readFileSync(join(project, '.github', 'actions', 'build-android', 'action.yml'), 'utf8'), /oval-tutu\/lua-https/);
+  assert.match(readFileSync(join(project, 'flake.nix'), 'utf8'), /LD_LIBRARY_PATH/);
+  assert.match(readFileSync(join(project, 'USAGE.md'), 'utf8'), /HTTPS Support/);
+  assert.match(readFileSync(join(project, 'README.md'), 'utf8'), /Native HTTPS support/);
 });
 
 test('create --language tua generates canonical TUA config and Feather targets compiled output', () => {

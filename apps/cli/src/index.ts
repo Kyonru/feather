@@ -82,6 +82,7 @@ export function createProgram(): Command {
     .option('--language <language>', 'Project language: lua or tua')
     .option('--app-id <id>', 'Bind the game to a Feather desktop App ID')
     .option('--allow-insecure-connection', 'Allow any Feather desktop to connect (unsafe outside trusted development)')
+    .option('--keep-lua-https', 'Keep Oval-Tutu native lua-https support and build integration')
     .option('--ref <tag-or-branch>', 'Template ref to clone')
     .option('--main', 'Use the template main branch instead of the latest release')
     .option('-y, --yes', 'Skip prompts and use defaults')
@@ -98,6 +99,7 @@ export function createProgram(): Command {
           language: opts.language as string | undefined,
           appId: opts.appId as string | undefined,
           allowInsecureConnection: opts.allowInsecureConnection as boolean | undefined,
+          keepLuaHttps: opts.keepLuaHttps as boolean | undefined,
           ref: opts.ref as string | undefined,
           main: opts.main as boolean | undefined,
           yes: opts.yes as boolean | undefined,

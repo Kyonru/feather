@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `feather create --keep-lua-https` can retain Oval-Tutu's complete native HTTPS runtime, starter initialization, Android build integration, Nix configuration, and guide; new projects omit that payload by default.
 - `feather create` now offers first-class TUA projects with canonical `tua.toml`, typed `src/` source, generated `game/` output compatible with the Oval-Tutu build system, TUA editor recommendations, and build-aware Feather commands.
 - Project creation now produces a focused README, project-specific workspace and product identity, Feather editor configuration, convenient Make targets, and a fresh one-commit history; a smaller bundled starter is also available with `--template feather`.
 - Project creation now accepts `--app-id`, prompts for the Desktop App ID interactively, and keeps missing connection setup visible without enabling insecure access by default.

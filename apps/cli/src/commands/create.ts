@@ -34,6 +34,7 @@ export type CreateCommandOptions = {
   language?: string;
   appId?: string;
   allowInsecureConnection?: boolean;
+  keepLuaHttps?: boolean;
   ref?: string;
   main?: boolean;
   yes?: boolean;
@@ -94,6 +95,7 @@ export type CreatePipelineContext = {
   language: CreateLanguage;
   appId?: string;
   allowInsecureConnection: boolean;
+  keepLuaHttps: boolean;
   options: Required<Pick<CreateCommandOptions, 'plugins' | 'packages' | 'vendorTargets'>>;
   deps: Required<CreateCommandDeps>;
 };
@@ -397,12 +399,19 @@ function writeProjectFile(projectDir: string, relativePath: string, contents: st
   writeFileSync(path, contents);
 }
 
-function starterMain(title: string, typed: boolean): string {
+function starterMain(title: string, typed: boolean, keepLuaHttps = false): string {
   const number = typed ? ': number' : '';
-  return `local elapsed${number} = 0
+  const httpsSetup = keepLuaHttps
+    ? `${typed ? 'local https: any | nil = nil' : 'local https = nil'}
+local runtimeLoader = require("runtime.loader")
+
+`
+    : '';
+  const httpsLoad = keepLuaHttps ? '  https = runtimeLoader.loadHTTPS()\n' : '';
+  return `${httpsSetup}local elapsed${number} = 0
 
 function love.load()
-  love.graphics.setBackgroundColor(0.035, 0.045, 0.07)
+${httpsLoad}  love.graphics.setBackgroundColor(0.035, 0.045, 0.07)
 end
 
 function love.update(dt${number})
@@ -637,11 +646,49 @@ function cleanOvalUsageGuide(context: CreatePipelineContext): void {
     [/https:\/\/oval-tutu\.com/g, 'https://example.com'],
   ];
   for (const [pattern, replacement] of replacements) text = text.replace(pattern, replacement);
+  if (!context.keepLuaHttps) {
+    text = text.replace(/\n## HTTPS Support[\s\S]*?(?=\n## |$)/, '');
+  }
   text = text
     .split(/\r?\n/)
     .filter((line) => !/main\.template\.lua|Example "game" - you can delete this|main\.lau with example/.test(line))
     .join('\n');
   writeFileSync(path, `${text.replace(/\n+$/, '')}\n`);
+}
+
+function removeLuaHttpsIntegration(context: CreatePipelineContext): void {
+  rmSync(safeTarget(context.projectDir, 'game/runtime', 'lua-https runtime'), { recursive: true, force: true });
+
+  const mainPath = safeTarget(context.projectDir, 'game/main.lua', 'Game main.lua');
+  if (existsSync(mainPath)) {
+    const main = readFileSync(mainPath, 'utf8')
+      .replace(/^https = nil\r?\n/, '')
+      .replace(/^local runtimeLoader = require\(["']runtime\.loader["']\)\r?\n/m, '')
+      .replace(/^\s*https = runtimeLoader\.loadHTTPS\(\)\r?\n/m, '');
+    writeFileSync(mainPath, main.replace(/^\s*\n/, ''));
+  }
+
+  const androidAction = safeTarget(
+    context.projectDir,
+    '.github/actions/build-android/action.yml',
+    'Android build action',
+  );
+  if (existsSync(androidAction)) {
+    const action = readFileSync(androidAction, 'utf8').replace(
+      / {4}- name: Checkout lua-https\r?\n(?: {6}.*\r?\n| {8}.*\r?\n)+?(?= {4}- name:)/,
+      '',
+    );
+    writeFileSync(androidAction, action);
+  }
+
+  const flakePath = safeTarget(context.projectDir, 'flake.nix', 'Nix development shell');
+  if (existsSync(flakePath)) {
+    const flake = readFileSync(flakePath, 'utf8').replace(
+      / {10}shellHook = ''\r?\n {12}#Coerce LD_LIBRARY_PATH for lua-https\r?\n {12}export LD_LIBRARY_PATH=[\s\S]*? {10}'';\r?\n/,
+      '',
+    );
+    writeFileSync(flakePath, flake);
+  }
 }
 
 async function cleanOvalTutuTemplate(context: CreatePipelineContext): Promise<void> {
@@ -665,6 +712,7 @@ async function cleanOvalTutuTemplate(context: CreatePipelineContext): Promise<vo
   });
 
   rmSync(safeTarget(context.projectDir, '.github/FUNDING.yml', 'Inherited funding config'), { force: true });
+  if (!context.keepLuaHttps) removeLuaHttpsIntegration(context);
   writeOvalWorkspace(context);
   cleanOvalUsageGuide(context);
 
@@ -675,8 +723,18 @@ async function cleanOvalTutuTemplate(context: CreatePipelineContext): Promise<vo
       'source = "src"\nout = "game"\nmain = "main.tua"\ntarget = "love11-luajit"\nextension = "tua"\nemit_maps = true\n',
       'TUA project config',
     );
-    writeProjectFile(context.projectDir, 'src/main.tua', starterMain(context.identity.title, true), 'TUA main source');
-    writeProjectFile(context.projectDir, 'game/main.lua', starterMain(context.identity.title, false), 'Generated LOVE entrypoint');
+    writeProjectFile(
+      context.projectDir,
+      'src/main.tua',
+      starterMain(context.identity.title, true, context.keepLuaHttps),
+      'TUA main source',
+    );
+    writeProjectFile(
+      context.projectDir,
+      'game/main.lua',
+      starterMain(context.identity.title, false, context.keepLuaHttps),
+      'Generated LOVE entrypoint',
+    );
     writeProjectFile(
       context.projectDir,
       'src/conf.lua',
@@ -688,7 +746,7 @@ async function cleanOvalTutuTemplate(context: CreatePipelineContext): Promise<vo
   const readme = `${starterReadme(context)}
 ## Included build system
 
-The included multi-platform build workflows, native HTTPS runtime, packaging tools, and release configuration remain ready to use. Configure targets and product metadata in \`game/product.env\`, replace \`resources/icon.png\`, and see [USAGE.md](USAGE.md) for platform details.
+The included multi-platform build workflows, packaging tools, and release configuration remain ready to use.${context.keepLuaHttps ? ' Native HTTPS support for LÖVE 11.5 is enabled through `lua-https` and `game/runtime/loader.lua`.' : ''} Configure targets and product metadata in \`game/product.env\`, replace \`resources/icon.png\`, and see [USAGE.md](USAGE.md) for platform details.
 `;
   writeProjectFile(context.projectDir, 'README.md', readme, 'Project README');
   mergeVsCodeRecommendations(
@@ -791,6 +849,8 @@ function validateSkipConflicts(opts: CreateCommandOptions): void {
     fail('Use either --packages or --skip-packages, not both.');
   if (opts.skipVendors && opts.vendorTargets && opts.vendorTargets.length > 0)
     fail('Use either --vendor-targets or --skip-vendors, not both.');
+  if (opts.keepLuaHttps && normalizeCreateTemplate(opts.template) !== OVAL_TUTU_CREATE_TEMPLATE)
+    fail('--keep-lua-https is only available with the Oval-Tutu template.');
 }
 
 async function runOptionalStep(label: string, recoveryCommand: string, action: () => Promise<void>): Promise<void> {
@@ -897,6 +957,7 @@ export async function runCreatePipeline(
     language,
     appId,
     allowInsecureConnection: opts.allowInsecureConnection === true,
+    keepLuaHttps: opts.keepLuaHttps === true,
     options,
     deps,
   };
