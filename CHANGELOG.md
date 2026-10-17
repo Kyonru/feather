@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Expanded CLI create coverage for Oval-Tutu cleanup boundaries, preserved build assets and attribution, TUA layout/configuration, generated-output targeting, editor recommendations, the optional bundled scaffold, and git recovery guidance.
 
+### Fixed
+
+- LuaRocks source archives now resolve correctly from both full-platform `v*` tags and independent `runtime-v*` tags. The runtime portion of this release is published as [runtime-v4.1.0].
+
 ## [v4.0.0] - 2026-06-14 - The one with MCPs
 
 ### Added
@@ -941,6 +945,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI.
 
 [v4.1.0]: https://github.com/Kyonru/feather/compare/v4.0.0...v4.1.0
+[runtime-v4.1.0]: https://github.com/Kyonru/feather/releases/tag/runtime-v4.1.0
 [v4.0.0]: https://github.com/Kyonru/feather/compare/v3.3.1...v4.0.0
 [runtime-v4.0.1]: https://github.com/Kyonru/feather/releases/tag/runtime-v4.0.1
 [v3.3.1]: https://github.com/Kyonru/feather/compare/v3.3.0...v3.3.1
