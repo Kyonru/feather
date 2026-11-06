@@ -29,6 +29,7 @@ async function chooseTool(page: import('@playwright/test').Page, id: string) {
   await page.getByTestId('studio-menu-trigger').click();
   await page.getByTestId(`studio-tool-${id}`).click();
   await expect(page.getByTestId('studio-menu')).toBeHidden();
+  await expect(page.getByTestId('studio-tool-surface').getByText('Loading tool…')).toBeHidden();
 }
 
 test('Studio boots as a standalone application', async ({ page }) => {
@@ -414,7 +415,7 @@ test('Particles keeps its full toolset in the resizable Context Lens workbench',
 
   await page.getByRole('button', { name: 'Project' }).click();
   for (const action of ['Import Project', 'Save Project', 'Copy Lua Code', 'Save Project ZIP']) {
-    await expect(page.getByRole('menuitem', { name: action })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: action, exact: true })).toBeVisible();
   }
   await page.keyboard.press('Escape');
 
