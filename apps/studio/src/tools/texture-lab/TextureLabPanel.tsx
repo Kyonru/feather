@@ -1390,6 +1390,8 @@ export function TextureLabPanel({
   const [asyncPreviewPixels, setAsyncPreviewPixels] = useState<TextureLabGeneratedPixels | TextureLabAtlasPixels | null>(
     null,
   );
+  const [renderedPixels, setRenderedPixels] = useState<TextureLabGeneratedPixels | null>(null);
+  const [renderPending, setRenderPending] = useState(false);
   const [asyncPreviewError, setAsyncPreviewError] = useState<string | null>(null);
   const [asyncPreviewPending, setAsyncPreviewPending] = useState(false);
   const customFrameInputRef = useRef<HTMLInputElement | null>(null);
@@ -1422,8 +1424,8 @@ export function TextureLabPanel({
   const customAtlasEnabled = isTextureLabCustomAtlas(recipe);
   const imageMaskGenerator = isTextureLabImageMaskGenerator(recipe.generator);
   const imageMaskReady = imageMaskGenerator && !!recipe.imageMask?.dataBase64;
-  const pixels = useMemo(() => renderTextureLabPixels(recipe), [recipe]);
-  const visiblePixels = asyncPreviewPixels ?? pixels;
+  const emptyPreviewPixels = useMemo(() => renderTextureLabPixels({ size: 64 }), []);
+  const visiblePixels = asyncPreviewPixels ?? renderedPixels ?? emptyPreviewPixels;
   const fallbackDataUrl = useMemo(() => textureLabPixelsToDataUrl(visiblePixels), [visiblePixels]);
   const dataUrl = useMemo(
     () => (customAtlasEnabled && customAtlasPixels ? textureLabPixelsToDataUrl(customAtlasPixels) : fallbackDataUrl),
@@ -1503,6 +1505,29 @@ export function TextureLabPanel({
     atlasWasEnabledRef.current = atlasEnabled;
     setInspectorMode(atlasEnabled ? 'atlas' : 'parameters');
   }, [atlasEnabled]);
+
+  useEffect(() => {
+    if (isTextureLabImageMaskGenerator(recipe.generator) && recipe.imageMask?.dataBase64) return;
+    const worker = new Worker(new URL('./texture-lab-render.worker.ts', import.meta.url), { type: 'module' });
+    setRenderPending(true);
+    setAsyncPreviewError(null);
+    worker.onmessage = (event: MessageEvent<TextureLabGeneratedPixels | { error: string }>) => {
+      if ('error' in event.data) {
+        setAsyncPreviewError(event.data.error);
+      } else {
+        setRenderedPixels(event.data);
+      }
+      setRenderPending(false);
+      worker.terminate();
+    };
+    worker.onerror = () => {
+      setAsyncPreviewError('Texture preview worker failed. Try changing the generator or reopening the tool.');
+      setRenderPending(false);
+      worker.terminate();
+    };
+    worker.postMessage(recipe);
+    return () => worker.terminate();
+  }, [recipe]);
 
   const commitEditorRecipe = (nextEditorRecipe: TextureLabRecipe) => {
     if (selectedCustomFrameIsUploaded) return;
@@ -2665,7 +2690,7 @@ export function TextureLabPanel({
                   )}
                 />
               </div>
-              {asyncPreviewPending && (
+              {(asyncPreviewPending || renderPending) && (
                 <div role="status" className="absolute right-4 top-4 rounded-sm border bg-background/95 px-2 py-1 text-xs text-muted-foreground shadow-sm">
                   Updating preview…
                 </div>
