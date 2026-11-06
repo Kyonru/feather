@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Texture Lab limits imported images to 1 MiB and reports when browser storage cannot save Studio preferences.
 - Texture Lab renders standard generator previews in a worker to keep large pixel loops off the UI thread.
 - Shader Graph standalone preview errors now appear in accessible React text and can be copied.
+- Texture Lab spline and shape points can now be selected and nudged with arrow keys, with live coordinate announcements.
 - Texture Lab atlas ZIP compression now yields to the UI instead of blocking on synchronous compression.
 - The standalone particle preview now loads uploaded textures and emitter shaders, honors blend modes, movement, and texture atlas playback, and skips disabled emitters.
 - Studio's **Show in Game** particle preview now uses authored emission rates and the game's frame step; the bounded runtime preview mode also keeps its reduced rate stable across frames.

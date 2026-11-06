@@ -719,7 +719,7 @@ function TextureSplineEditor({ spline, pixelated, dataUrl, aspectRatio, previewG
             Spline editor
           </div>
           <div className="text-xs text-muted-foreground">
-            Drag points, double-click to add, Delete removes the selected point.
+          Drag or focus a point and use arrow keys to move it; Shift moves farther. Double-click to add, Delete removes.
           </div>
         </div>
         <Button
@@ -797,6 +797,9 @@ function TextureSplineEditor({ spline, pixelated, dataUrl, aspectRatio, previewG
               stroke={(index === selectedPoint ? SELECTED_SPLINE_POINT_STYLE : SPLINE_POINT_STYLE).stroke}
               strokeWidth={(index === selectedPoint ? SELECTED_SPLINE_POINT_STYLE : SPLINE_POINT_STYLE).strokeWidth}
               className="pointer-events-auto"
+              role="button"
+              tabIndex={0}
+              aria-label={`Spline point ${index + 1}, x ${Math.round(point.x * 100)} percent, y ${Math.round(point.y * 100)} percent`}
               vectorEffect="non-scaling-stroke"
               data-testid={`texture-lab-spline-point-${index}`}
               onPointerDown={(event) => {
@@ -805,12 +808,25 @@ function TextureSplineEditor({ spline, pixelated, dataUrl, aspectRatio, previewG
                 setDraggingPoint(index);
                 containerRef.current?.setPointerCapture(event.pointerId);
               }}
+              onFocus={() => setSelectedPoint(index)}
+              onKeyDown={(event) => {
+                const steps: Record<string, TextureLabSplinePoint> = {
+                  ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
+                  ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 },
+                };
+                const direction = steps[event.key];
+                if (!direction) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const step = event.shiftKey ? 0.05 : 0.01;
+                updatePoint(index, { x: clamp01(point.x + direction.x * step), y: clamp01(point.y + direction.y * step) });
+              }}
             />
           ))}
         </svg>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground">
-        <span>{selectedPointLabel}</span>
+        <span aria-live="polite">{selectedPointLabel}{spline.points[selectedPoint] ? ` · x ${Math.round(spline.points[selectedPoint].x * 100)}%, y ${Math.round(spline.points[selectedPoint].y * 100)}%` : ''}</span>
         <span>{spline.points.length} points</span>
       </div>
     </div>
@@ -1309,6 +1325,7 @@ function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, previewGro
                 data-testid={`texture-lab-shape-point-${index}`}
                 data-point={`${world.x}:${world.y}`}
                 className="absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-sm cursor-grab active:cursor-grabbing"
+                aria-label={`Shape point ${index + 1}, x ${Math.round(world.x * 100)} percent, y ${Math.round(world.y * 100)} percent`}
                 style={{
                   left: `${world.x * 100}%`,
                   top: `${world.y * 100}%`,
@@ -1321,6 +1338,20 @@ function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, previewGro
                 }}
                 onDoubleClick={(event) => {
                   event.stopPropagation();
+                }}
+                onFocus={() => setSelectedPoint(index)}
+                onClick={() => setSelectedPoint(index)}
+                onKeyDown={(event) => {
+                  const directions: Record<string, TextureLabSplinePoint> = {
+                    ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
+                    ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 },
+                  };
+                  const direction = directions[event.key];
+                  if (!direction) return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  const step = event.shiftKey ? 0.05 : 0.01;
+                  updatePoint(index, { x: clamp01(world.x + direction.x * step), y: clamp01(world.y + direction.y * step) });
                 }}
                 onPointerDown={(event) => {
                   event.stopPropagation();
@@ -1358,9 +1389,9 @@ function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, previewGro
           })}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground">
-        <span>
+        <span aria-live="polite">
           {editableLayer && editablePoints
-            ? `${editableLayer.label}: ${editablePoints.length} points`
+            ? `${editableLayer.label}: ${editablePoints.length} points. Selected point ${selectedPoint + 1}, x ${Math.round((editablePoints[selectedPoint]?.x ?? 0) * 100)}%, y ${Math.round((editablePoints[selectedPoint]?.y ?? 0) * 100)}%. Use arrow keys to move, Shift plus arrow for a larger step.`
             : 'Select a polygon, star, or spline layer'}
         </span>
         <span>{selectedLayer ? `${selectedLayer.label}: move/resize handles` : `${shape.layers.length} layers`}</span>
