@@ -21,8 +21,6 @@ Pages live under `apps/inspector/src/pages/` and map to desktop app workflows:
 - plugins
 - time travel
 - session replay
-- particle system playground
-- shader graph
 - settings
 - about
 
@@ -31,7 +29,7 @@ Prefer page-specific code inside the page folder, shared UI in `apps/inspector/s
 ## State and data flow
 
 - Hooks in `apps/inspector/src/hooks/` read app/session/protocol state and expose page-friendly data.
-- Stores in `apps/inspector/src/store/` hold cross-page state such as sessions, settings, debugger state, shader graph state, and config.
+- Stores in `apps/inspector/src/store/` hold cross-page state such as sessions, settings, debugger state, and config. Creative authoring state belongs to Studio.
 - `apps/inspector/src/lib/send-command.ts` is the normal command path back to a connected game.
 - Constants in `apps/inspector/src/constants/` define protocol/server values.
 - `apps/inspector/src/hooks/use-ws-connection.ts` is the central event router from Tauri events into React Query caches and stores.

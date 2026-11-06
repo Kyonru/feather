@@ -42,7 +42,7 @@ Resume the session when you need fresh data, live preview sync, debugger updates
 
 ## Session Switching
 
-When multiple games are connected, each one gets a session tab. Switching sessions changes the active data source for Logs, Performance, Debugger, Assets, Observability, Console, plugins, and creative tools.
+When multiple games are connected, each one gets a session tab. Switching sessions changes the active data source for Logs, Performance, Debugger, Assets, Observability, Console, plugins, and other Inspector surfaces. Studio keeps its own active workspace and uses its explicit Inspector pairing to choose which game receives a live preview; switching an Inspector tab does not change Studio's authoring state.
 
 If a page looks stale after switching, open the relevant page again or use its refresh action. Feather sends runtime interest for the active panel so expensive payloads wake up only when the page needs fresh data.
 
