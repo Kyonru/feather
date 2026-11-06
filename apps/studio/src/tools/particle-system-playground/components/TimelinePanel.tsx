@@ -698,6 +698,21 @@ export function TimelinePanel({
     );
   };
 
+  const nudgeClip = (systemIndex: number, clip: ParticleTimelineClip, direction: -1 | 1, largeStep: boolean) => {
+    const delta = (snap ? 0.1 : 0.01) * (largeStep ? 10 : 1) * direction;
+    const duration = clip.end - clip.start;
+    const start = roundTimelineTime(clamp(snapTime(clip.start + delta), 0, timeline.duration - duration));
+    const end = roundTimelineTime(start + duration);
+    commitTimeline(
+      updateTrack(timeline, systemIndex, (track) => ({
+        ...track,
+        clips: track.clips.map((item) => (item.id === clip.id ? { ...item, start, end } : item)),
+      })),
+    );
+    setExpandedTrack(systemIndex);
+    setSingleSelection({ type: 'clip', systemIndex, clipId: clip.id });
+  };
+
   const addClipAt = (systemIndex: number, time = displayTime) => {
     const id = uniqueId('clip');
     const defaultLength = Math.min(0.75, timeline.duration);
@@ -1353,6 +1368,8 @@ export function TimelinePanel({
                             key={clip.id}
                             role="button"
                             tabIndex={0}
+                            aria-pressed={selectedClipMatch}
+                            aria-label={`${system.title} emission clip, ${formatTime(clip.start)} to ${formatTime(clip.end)}. Press Enter to select. Use left and right arrows to move; hold Shift for a larger step.`}
                             data-testid={`particle-timeline-clip-${system.index}`}
                             data-clip-start={clip.start.toFixed(2)}
                             data-clip-end={clip.end.toFixed(2)}
@@ -1372,6 +1389,16 @@ export function TimelinePanel({
                             onClick={(event) => {
                               event.stopPropagation();
                               selectItemFromClick({ type: 'clip', systemIndex: system.index, clipId: clip.id }, event);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                setExpandedTrack(system.index);
+                                setSingleSelection({ type: 'clip', systemIndex: system.index, clipId: clip.id });
+                              } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                                event.preventDefault();
+                                nudgeClip(system.index, clip, event.key === 'ArrowLeft' ? -1 : 1, event.shiftKey);
+                              }
                             }}
                             onPointerDown={(event) => beginClipDrag(event, 'move', system.index, clip)}
                           >
