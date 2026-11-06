@@ -1,6 +1,7 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { zip } from 'fflate';
 import { DownloadIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
 import { Badge } from '@feather/ui/badge';
 import { useActiveSession, sessionSupportsRuntime } from '@studio/session';
@@ -15,10 +16,11 @@ import { ShaderCanvas } from './ShaderCanvas';
 import { ShaderRightPanel } from './ShaderRightPanel';
 import { instantiateShaderGraphPreset, SHADER_GRAPH_PRESETS } from './presets';
 import { diagnoseShaderGraph } from './diagnostics';
-import { parseShaderGraphFile, type FeatherShaderGraphFile } from './file-format';
+import { parseShaderGraphFile, SHADER_GRAPH_FILE_VERSION, type FeatherShaderGraphFile } from './file-format';
 import { codegen } from './codegen';
+import { shaderBundleEntries } from './export-bundle';
 
-const FILE_VERSION = 3;
+const FILE_VERSION = SHADER_GRAPH_FILE_VERSION;
 const FILE_EXTENSION = 'feathershgh';
 const FIRST_OPEN_PRESET_ID = 'water-shimmer';
 
@@ -163,6 +165,21 @@ export default function ShaderGraph() {
     }
   };
 
+  const exportBundle = async () => {
+    const generated = codegen(nodes, edges, subgraphs);
+    const base = defaultFilename(shaderName).replace(new RegExp(`\\.${FILE_EXTENSION}$`), '');
+    try {
+      const entries = shaderBundleEntries({ shaderName, playgroundTarget, generated, textureUploads });
+      const archive = await new Promise<Uint8Array>((resolve, reject) => {
+        zip(entries, { level: 6 }, (error, bytes) => (error ? reject(error) : resolve(bytes)));
+      });
+      await host.saveBinaryFile(`${base}-shader.zip`, archive);
+      toast.success('Shader bundle exported');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to export shader bundle');
+    }
+  };
+
   const importGraph = async () => {
     const file = await host.openTextFile({
       filterName: 'Feather Shader Graph',
@@ -270,6 +287,10 @@ export default function ShaderGraph() {
               <Button size="sm" variant="outline" className="h-8 gap-2 text-xs" onClick={exportGlsl}>
                 <DownloadIcon className="size-4" />
                 Export GLSL
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-2 text-xs" onClick={exportBundle}>
+                <DownloadIcon className="size-4" />
+                Export Bundle
               </Button>
               <Button size="sm" className="h-8 gap-2 text-xs" onClick={exportGraph}>
                 <DownloadIcon className="size-4" />

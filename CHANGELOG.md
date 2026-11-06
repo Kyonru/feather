@@ -22,10 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Shader Graph export coverage now checks bundle manifests and generated stage files.
 - Expanded CLI create coverage for Oval-Tutu cleanup boundaries, preserved build assets and attribution, TUA layout/configuration, generated-output targeting, editor recommendations, the optional bundled scaffold, and git recovery guidance.
 
 ### Fixed
 
+- Shader Graph adds a portable bundle export with pixel/vertex source, referenced textures, uniform bindings and parameter metadata.
 - Desktop Particle Playground can now show a local project in the connected LÖVE runtime, including its uploaded assets and atlas data; timeline controls target the imported runtime composite.
 - Shader Graph Validate now waits for the correlated LÖVE compiler response and displays pixel/vertex errors instead of silently returning to idle.
 - Particle timeline playback no longer serializes and rewrites the full workspace, including image data, on every animation tick.
