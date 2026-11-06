@@ -37,11 +37,11 @@ export function AccelerationEditor({ system, onChange }: Props) {
 
         <TabsContent value="raw" className="mt-0">
           <div className="grid grid-cols-2 gap-2">
-            <RangePairField label="Linear X" minKey="linearAccelXMin" maxKey="linearAccelXMax" system={system} onChange={onChange} step={1} />
-            <RangePairField label="Linear Y" minKey="linearAccelYMin" maxKey="linearAccelYMax" system={system} onChange={onChange} step={1} />
-            <RangePairField label="Radial" minKey="radialAccelMin" maxKey="radialAccelMax" system={system} onChange={onChange} step={1} />
-            <RangePairField label="Tangential" minKey="tangentialAccelMin" maxKey="tangentialAccelMax" system={system} onChange={onChange} step={1} />
-            <RangePairField label="Damping" minKey="linearDampingMin" maxKey="linearDampingMax" system={system} onChange={onChange} step={0.01} />
+            <RangePairField label="Linear X" minKey="linearAccelXMin" maxKey="linearAccelXMax" system={system} systemId={system.index} onChange={onChange} step={1} />
+            <RangePairField label="Linear Y" minKey="linearAccelYMin" maxKey="linearAccelYMax" system={system} systemId={system.index} onChange={onChange} step={1} />
+            <RangePairField label="Radial" minKey="radialAccelMin" maxKey="radialAccelMax" system={system} systemId={system.index} onChange={onChange} step={1} />
+            <RangePairField label="Tangential" minKey="tangentialAccelMin" maxKey="tangentialAccelMax" system={system} systemId={system.index} onChange={onChange} step={1} />
+            <RangePairField label="Damping" minKey="linearDampingMin" maxKey="linearDampingMax" system={system} systemId={system.index} onChange={onChange} step={0.01} />
           </div>
         </TabsContent>
       </Tabs>

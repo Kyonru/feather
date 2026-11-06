@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph inspector fields now expose their visible labels to screen readers, and icon-only delete/copy actions have explicit accessible names.
 - Particle preview switching now reports runtime failures and keeps retry possible until the new composite is confirmed.
 - Particle Show in Game now syncs authoring edits after a short debounce, shows when the runtime snapshot is stale, and provides a manual Refresh action.
+- Particle emitter numeric controls now have associated labels, including both sides of range fields and their option selectors.
 - Texture Lab atlas ZIP compression now yields to the UI instead of blocking on synchronous compression.
 - The standalone particle preview now loads uploaded textures and emitter shaders, honors blend modes, movement, and texture atlas playback, and skips disabled emitters.
 - Studio's **Show in Game** particle preview now uses authored emission rates and the game's frame step; the bounded runtime preview mode also keeps its reduced rate stable across frames.

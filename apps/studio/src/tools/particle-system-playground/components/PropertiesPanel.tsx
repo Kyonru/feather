@@ -111,10 +111,12 @@ function NumberField({
   system: ParticleSystemPlaygroundSystem;
   onChange: Props['onChange'];
 }) {
+  const inputId = `particle-${system.index}-${field.key}`;
   return (
     <div className="grid gap-1">
-      <Label className="text-[10px] text-muted-foreground font-semibold">{field.label}</Label>
+      <Label htmlFor={inputId} className="text-[10px] text-muted-foreground font-semibold">{field.label}</Label>
       <ParticleNumberInput
+        id={inputId}
         className="h-8 text-xs"
         min={field.min}
         max={field.max}
@@ -132,17 +134,18 @@ export function PropertiesPanel({ system, onChange }: Props) {
       <div className="grid gap-3">
         <div className="grid grid-cols-2 gap-2">
           <div className="col-span-2 grid gap-1">
-            <Label className="text-[10px] text-muted-foreground font-semibold">Title</Label>
+            <Label htmlFor={`particle-${system.index}-title`} className="text-[10px] text-muted-foreground font-semibold">Title</Label>
             <Input
+              id={`particle-${system.index}-title`}
               className="h-8 text-xs"
               value={system.title}
               onChange={(event) => onChange('title', event.target.value)}
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground font-semibold">Blend</Label>
+            <Label id={`particle-${system.index}-blend-label`} className="text-[10px] text-muted-foreground font-semibold">Blend</Label>
             <Select value={system.blendMode} onValueChange={(value) => onChange('blendMode', value)}>
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger aria-labelledby={`particle-${system.index}-blend-label`} className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -208,6 +211,7 @@ export function PropertiesPanel({ system, onChange }: Props) {
               field.type === 'range' ? (
                 <RangePairField
                   key={field.label}
+                  systemId={system.index}
                   label={field.label}
                   minKey={field.minKey}
                   maxKey={field.maxKey}
@@ -232,12 +236,12 @@ export function PropertiesPanel({ system, onChange }: Props) {
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground font-semibold">Distribution</Label>
+            <Label id={`particle-${system.index}-distribution-label`} className="text-[10px] text-muted-foreground font-semibold">Distribution</Label>
             <Select
               value={system.properties.emissionAreaDist ?? 'none'}
               onValueChange={(value) => onChange('emissionAreaDist', value)}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger aria-labelledby={`particle-${system.index}-distribution-label`} className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
