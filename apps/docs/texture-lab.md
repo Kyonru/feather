@@ -91,7 +91,7 @@ Shader Graph texture controls also include **Generate texture**:
 - Texture Input, Texture Uniform Color, Texture Parameter, Template Controls, and Shader Controls can use generated PNGs as texture uniform uploads.
 - Shader map generators create opaque RGB data for water, heat haze, shimmer, and mask-driven offsets. Normal maps encode tangent-space normals in RGB; flow and distortion maps encode signed offsets in red/green.
 
-Generated shader textures are session uploads in v1. Export the PNG separately if you need to re-use it after importing a `.feathershgh` graph, because Shader Graph files do not embed texture bytes yet. Atlas sheets apply to Shader Graph as normal texture uploads; use the exported `atlas.json` metadata manually if a graph needs to know the sheet layout.
+Generated shader textures are saved into `.feathershgh` graph files with a 32 MiB total texture limit. Importing a graph restores its texture bindings. Atlas sheets apply to Shader Graph as normal texture uploads; use the exported `atlas.json` metadata manually if a graph needs to know the sheet layout.
 
 ## Export
 

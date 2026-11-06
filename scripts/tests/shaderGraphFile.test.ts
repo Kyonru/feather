@@ -54,3 +54,15 @@ test('shader graph imports reject unknown nodes and dangling edges', () => {
     /missing node/,
   );
 });
+
+test('shader graph files preserve bounded texture uploads for portable imports', () => {
+  const texture = parseShaderGraphFile({
+    ...base,
+    textureUploads: { color: { filename: 'albedo.png', dataBase64: 'AQID' }, unused: { filename: 'ignored.png', dataBase64: 'BAUG' } },
+  });
+  assert.deepEqual(texture.textureUploads, { color: { filename: 'albedo.png', dataBase64: 'AQID' } });
+  assert.throws(
+    () => parseShaderGraphFile({ ...base, textureUploads: { color: { filename: 'bad.png', dataBase64: 'not base64' } } }),
+    /invalid image data/,
+  );
+});

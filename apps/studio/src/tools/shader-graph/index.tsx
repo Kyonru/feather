@@ -45,6 +45,7 @@ export default function ShaderGraph() {
   const shaderName = useShaderGraphStore((state) => state.shaderName);
   const playgroundTarget = useShaderGraphStore((state) => state.playgroundTarget);
   const lastGeneratedGlsl = useShaderGraphStore((state) => state.lastGeneratedGlsl);
+  const textureUploads = useShaderGraphStore((state) => state.textureUploads);
   const hasInitializedExample = useShaderGraphStore((state) => state.hasInitializedExample);
   const activeWorkspaceId = useShaderGraphStore((state) => state.activeWorkspaceId);
   const loadGraph = useShaderGraphStore((state) => state.loadGraph);
@@ -101,6 +102,7 @@ export default function ShaderGraph() {
       shaderName: parsed.shaderName,
       playgroundTarget: parsed.playgroundTarget,
       activeTemplateInstanceId: parsed.activeTemplateInstanceId ?? null,
+      textureUploads: parsed.textureUploads,
     });
     const blockingCount = diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length;
     if (blockingCount > 0) {
@@ -122,6 +124,7 @@ export default function ShaderGraph() {
       nodes,
       edges,
       subgraphs,
+      textureUploads,
       activeTemplateInstanceId: useShaderGraphStore.getState().activeTemplateInstanceId,
       lastGeneratedGlsl,
     };

@@ -8,6 +8,7 @@ import type {
   ShaderNodeData,
   ShaderNodeInstance,
   ShaderSubgraph,
+  ShaderTextureUpload,
 } from '@studio/types/shader-graph';
 
 export const SHADER_GRAPH_FILE_VERSION = 3;
@@ -21,6 +22,7 @@ export type FeatherShaderGraphFile = {
   nodes: ShaderNodeInstance[];
   edges: ShaderEdge[];
   subgraphs: ShaderSubgraph[];
+  textureUploads?: Record<string, ShaderTextureUpload>;
   activeTemplateInstanceId?: string | null;
   lastGeneratedGlsl?: GeneratedGlsl | null;
 };
@@ -30,6 +32,8 @@ const GLSL_TYPES = new Set<GlslType>(['float', 'vec2', 'vec3', 'vec4', 'mat4', '
 const MAX_NODES = 5_000;
 const MAX_EDGES = 10_000;
 const MAX_SUBGRAPHS = 100;
+const MAX_TEXTURE_UPLOAD_BYTES = 16 * 1024 * 1024;
+const MAX_TOTAL_TEXTURE_UPLOAD_BYTES = 32 * 1024 * 1024;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -175,6 +179,32 @@ function normalizeSubgraph(raw: unknown, index: number): ShaderSubgraph {
   };
 }
 
+function normalizeTextureUploads(raw: unknown, nodeIds: Set<string>): Record<string, ShaderTextureUpload> {
+  if (raw === undefined) return {};
+  if (!isRecord(raw)) throw new Error('textureUploads must be an object');
+  const entries = Object.entries(raw);
+  if (entries.length > MAX_NODES) throw new Error(`textureUploads has more than ${MAX_NODES} entries`);
+  let totalBytes = 0;
+  const uploads: Record<string, ShaderTextureUpload> = {};
+  for (const [nodeId, value] of entries) {
+    if (!nodeIds.has(nodeId)) continue;
+    if (!isRecord(value) || typeof value.filename !== 'string' || typeof value.dataBase64 !== 'string') {
+      throw new Error(`textureUploads.${nodeId} must contain filename and dataBase64`);
+    }
+    const filename = value.filename.trim().slice(0, 256);
+    const dataBase64 = value.dataBase64;
+    if (!filename || dataBase64.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(dataBase64)) {
+      throw new Error(`textureUploads.${nodeId} contains invalid image data`);
+    }
+    const bytes = Math.floor(dataBase64.length * 3 / 4) - (dataBase64.endsWith('==') ? 2 : dataBase64.endsWith('=') ? 1 : 0);
+    if (bytes > MAX_TEXTURE_UPLOAD_BYTES) throw new Error(`textureUploads.${nodeId} exceeds 16 MiB`);
+    totalBytes += bytes;
+    if (totalBytes > MAX_TOTAL_TEXTURE_UPLOAD_BYTES) throw new Error('Shader graph textures exceed 32 MiB total');
+    uploads[nodeId] = { filename, dataBase64 };
+  }
+  return uploads;
+}
+
 /** Coerce a user-authored shader graph once, before it reaches stores or rendering. */
 export function parseShaderGraphFile(input: unknown): FeatherShaderGraphFile {
   const parsed = typeof input === 'string' ? JSON.parse(input) : input;
@@ -205,6 +235,7 @@ export function parseShaderGraphFile(input: unknown): FeatherShaderGraphFile {
     typeof parsed.activeTemplateInstanceId === 'string' && nodeIds.has(parsed.activeTemplateInstanceId)
       ? parsed.activeTemplateInstanceId
       : null;
+  const textureUploads = normalizeTextureUploads(parsed.textureUploads, nodeIds);
 
   return {
     type: 'feather.shader-graph',
@@ -215,6 +246,7 @@ export function parseShaderGraphFile(input: unknown): FeatherShaderGraphFile {
     nodes,
     edges,
     subgraphs,
+    textureUploads,
     activeTemplateInstanceId,
     // Generated output is a cache, not source. Rebuilding it from the coerced
     // graph avoids rendering or exporting stale third-party values.

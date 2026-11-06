@@ -104,7 +104,7 @@ type ShaderGraphStore = {
   setHasInitializedExample: (hasInitializedExample: boolean) => void;
   markClean: () => void;
   isDirty: () => boolean;
-  loadGraph: (graph: { nodes: Node<ShaderNodeData>[]; edges: Edge[]; subgraphs?: ShaderSubgraph[]; shaderName?: string; playgroundTarget?: PlaygroundTarget | null; activeTemplateInstanceId?: string | null }) => void;
+  loadGraph: (graph: { nodes: Node<ShaderNodeData>[]; edges: Edge[]; subgraphs?: ShaderSubgraph[]; textureUploads?: Record<string, ShaderTextureUpload>; shaderName?: string; playgroundTarget?: PlaygroundTarget | null; activeTemplateInstanceId?: string | null }) => void;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -614,7 +614,7 @@ export const useShaderGraphStore = create<ShaderGraphStore>()(
             selectedEdgeId: null,
             activeSubgraphId: null,
             subgraphBreadcrumb: [],
-            textureUploads: {},
+            textureUploads: graph.textureUploads ?? {},
             pinnedPreviewNodeIds: [],
             undoStack: [],
             redoStack: [],
