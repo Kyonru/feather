@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MonitorOffIcon, MonitorPlayIcon } from 'lucide-react';
+import { MonitorOffIcon, MonitorPlayIcon, RefreshCwIcon } from 'lucide-react';
 import { Badge } from '@feather/ui/badge';
 import { Button } from '@feather/ui/button';
 import { LoveJsPreview } from '@studio/components/love-js-preview';
@@ -31,6 +31,15 @@ type Props = {
   onGamePreviewActiveChange: (active: boolean) => void;
 };
 
+function particlePreviewSnapshot(composite: ParticleSystemPlaygroundCompositeData | null): string {
+  if (!composite) return '';
+  const { timelineState: _timelineState, movement, ...authoringData } = composite;
+  return JSON.stringify({
+    ...authoringData,
+    movement: movement ? { ...movement, t: undefined } : movement,
+  });
+}
+
 function gamePreviewDisabledReason(
   sessionId: string | null,
   activeComposite: string | null,
@@ -60,11 +69,14 @@ export function ParticlePreviewMonitor({
   );
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [syncedSnapshot, setSyncedSnapshot] = useState('');
   const [previewGround, setPreviewGround] = usePreviewGround('particles');
   const setRuntimePreviewActiveRef = useRef(playground.setRuntimePreviewActive);
   const activeGameCompositeRef = useRef<string | null>(null);
   const runtimeSuspendedRef = useRef(runtimeSuspended);
   const previewEnabled = playground.composite?.previewEnabled !== false;
+  const currentPreviewSnapshot = useMemo(() => particlePreviewSnapshot(playground.composite), [playground.composite]);
+  const previewOutOfDate = gamePreviewActive && currentPreviewSnapshot !== syncedSnapshot;
   const disabledReason = gamePreviewDisabledReason(
     runtimeSessionId,
     playground.activeComposite,
@@ -85,6 +97,7 @@ export function ParticlePreviewMonitor({
     const composite = activeGameCompositeRef.current ?? playground.activeComposite;
     if (!composite) {
       activeGameCompositeRef.current = null;
+      setSyncedSnapshot('');
       onGamePreviewActiveChange(false);
       setStatus('idle');
       return;
@@ -93,6 +106,7 @@ export function ParticlePreviewMonitor({
     try {
       await setRuntimePreviewActiveRef.current(false, composite);
       activeGameCompositeRef.current = null;
+      setSyncedSnapshot('');
       onGamePreviewActiveChange(false);
       setError(null);
       setStatus('idle');
@@ -123,13 +137,38 @@ export function ParticlePreviewMonitor({
     void setRuntimePreviewActiveRef.current(true, composite, true)
       .then(() => {
         activeGameCompositeRef.current = composite;
+        setSyncedSnapshot(currentPreviewSnapshot);
         setStatus('live');
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Could not switch the preview in the game. It may have disconnected — check it is still running.');
         setStatus('error');
       });
-  }, [canShowInGame, clearGamePreview, gamePreviewActive, playground.activeComposite, runtimeSuspended, standalone]);
+  }, [canShowInGame, clearGamePreview, currentPreviewSnapshot, gamePreviewActive, playground.activeComposite, runtimeSuspended, standalone]);
+
+  useEffect(() => {
+    const composite = playground.activeComposite;
+    if (
+      standalone || !gamePreviewActive || !canShowInGame || runtimeSuspended || !composite ||
+      activeGameCompositeRef.current !== composite || currentPreviewSnapshot === syncedSnapshot
+    ) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setStatus('sending');
+      setError(null);
+      void setRuntimePreviewActiveRef.current(true, composite, true)
+        .then(() => {
+          activeGameCompositeRef.current = composite;
+          setSyncedSnapshot(currentPreviewSnapshot);
+          setStatus('live');
+        })
+        .catch((err: unknown) => {
+          setError(err instanceof Error ? err.message : 'Could not sync particle edits to the game. Refresh to retry.');
+          setStatus('error');
+        });
+    }, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [canShowInGame, currentPreviewSnapshot, gamePreviewActive, playground.activeComposite, runtimeSuspended, standalone, syncedSnapshot]);
 
   useEffect(() => {
     const wasSuspended = runtimeSuspendedRef.current;
@@ -143,6 +182,7 @@ export function ParticlePreviewMonitor({
     void setRuntimePreviewActiveRef.current(true, composite, true)
       .then(() => {
         activeGameCompositeRef.current = composite;
+        setSyncedSnapshot(currentPreviewSnapshot);
         const timelineState = playground.composite?.timelineState;
         if (timelineState) {
           playground.seekTimeline(timelineState.time ?? 0, true, true);
@@ -155,7 +195,7 @@ export function ParticlePreviewMonitor({
         setError(err instanceof Error ? err.message : 'Could not resume the preview in the game. It may have disconnected — check it is still running.');
         setStatus('error');
       });
-  }, [canShowInGame, gamePreviewActive, playground, runtimeSuspended, standalone]);
+  }, [canShowInGame, currentPreviewSnapshot, gamePreviewActive, playground, runtimeSuspended, standalone]);
 
   const payload = useMemo(
     () => ({
@@ -184,10 +224,27 @@ export function ParticlePreviewMonitor({
         if (timelineState.playing) playground.playTimeline(true);
       }
       activeGameCompositeRef.current = playground.activeComposite;
+      setSyncedSnapshot(currentPreviewSnapshot);
       onGamePreviewActiveChange(true);
       setStatus('live');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not show the preview in the game. It may have disconnected — check it is still running.');
+      setStatus('error');
+    }
+  }
+
+  async function refreshGamePreview() {
+    const composite = playground.activeComposite;
+    if (!composite || !canShowInGame || runtimeSuspended) return;
+    setStatus('sending');
+    setError(null);
+    try {
+      await playground.setRuntimePreviewActive(true, composite, true);
+      activeGameCompositeRef.current = composite;
+      setSyncedSnapshot(currentPreviewSnapshot);
+      setStatus('live');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not sync particle edits to the game. Refresh to retry.');
       setStatus('error');
     }
   }
@@ -229,7 +286,9 @@ export function ParticlePreviewMonitor({
       : gamePreviewActive && runtimeSuspended
         ? 'Running from the last particle payload. Resume Feather to sync edits.'
         : gamePreviewActive
-        ? 'The game is drawing the latest imported project. Hide and show it again after emitter or asset edits to refresh.'
+        ? previewOutOfDate
+          ? 'Particle edits are waiting to sync to the game preview.'
+          : 'The game is drawing the latest synced particle project.'
         : 'Tauri uses the connected LÖVE runtime for particle preview right now. Nothing is drawn in the game until you choose Show in Game.';
     const statusMessage = error ?? effectiveDisabledReason ?? runtimeMessage;
 
@@ -245,7 +304,21 @@ export function ParticlePreviewMonitor({
             </div>
             <p className="text-xs text-muted-foreground">{runtimeMessage}</p>
           </div>
-          <div className="flex flex-wrap justify-end gap-2">{gamePreviewButton}</div>
+          <div className="flex flex-wrap justify-end gap-2">
+            {previewOutOfDate && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 text-xs"
+                disabled={status === 'sending' || runtimeSuspended}
+                onClick={() => void refreshGamePreview()}
+              >
+                <RefreshCwIcon className="size-3.5" />
+                Refresh
+              </Button>
+            )}
+            {gamePreviewButton}
+          </div>
         </div>
         <div className="surface-inset px-3 py-2 text-xs text-muted-foreground">{statusMessage}</div>
       </section>
