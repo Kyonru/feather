@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { strFromU8, unzipSync } from 'fflate';
+import { strFromU8 } from 'fflate';
 
 import { particleProjectZipEntries } from '../../apps/studio/src/tools/particle-system-playground/artifacts.ts';
 import type { ParticleSystemPlaygroundData } from '../../apps/studio/src/types/particle-system-playground.ts';
@@ -36,7 +36,7 @@ test('particle project Lua points at the texture path packaged in its ZIP', () =
     },
   } as unknown as ParticleSystemPlaygroundData;
 
-  const entries = unzipSync(particleProjectZipEntries(data));
+  const entries = particleProjectZipEntries(data);
   assert.deepEqual([...entries['textures/smoke.png']], [1, 2, 3]);
   const luaName = Object.keys(entries).find((name) => name.endsWith('.lua'));
   assert.ok(luaName);
