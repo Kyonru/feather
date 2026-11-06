@@ -16,6 +16,7 @@ import { ShaderRightPanel } from './ShaderRightPanel';
 import { instantiateShaderGraphPreset, SHADER_GRAPH_PRESETS } from './presets';
 import { diagnoseShaderGraph } from './diagnostics';
 import { parseShaderGraphFile, type FeatherShaderGraphFile } from './file-format';
+import { codegen } from './codegen';
 
 const FILE_VERSION = 3;
 const FILE_EXTENSION = 'feathershgh';
@@ -127,15 +128,36 @@ export default function ShaderGraph() {
     const json = JSON.stringify(payload, null, 2);
     const filename = defaultFilename(shaderName);
 
-    const saved = await host.saveTextFile({
-      defaultName: filename,
-      filterName: 'Feather Shader Graph',
-      extensions: [FILE_EXTENSION],
-      text: json,
-    });
-    if (!saved) return;
-    markClean();
-    toast.success('Shader graph exported');
+    try {
+      const saved = await host.saveTextFile({
+        defaultName: filename,
+        filterName: 'Feather Shader Graph',
+        extensions: [FILE_EXTENSION],
+        text: json,
+      });
+      if (!saved) return;
+      markClean();
+      toast.success('Shader graph exported');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to export shader graph');
+    }
+  };
+
+  const exportGlsl = async () => {
+    const generated = codegen(nodes, edges, subgraphs);
+    const source = generated.vertex ? `${generated.pixel}\n\n// -- Vertex\n${generated.vertex}` : generated.pixel;
+    const base = shaderName.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'shader';
+    try {
+      const saved = await host.saveTextFile({
+        defaultName: `${base}.glsl`,
+        filterName: 'GLSL Shader Source',
+        extensions: ['glsl'],
+        text: source,
+      });
+      if (saved) toast.success('GLSL shader exported');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to export GLSL shader');
+    }
   };
 
   const importGraph = async () => {
@@ -242,9 +264,13 @@ export default function ShaderGraph() {
                 <Trash2Icon className="size-4" />
                 Clear
               </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-2 text-xs" onClick={exportGlsl}>
+                <DownloadIcon className="size-4" />
+                Export GLSL
+              </Button>
               <Button size="sm" className="h-8 gap-2 text-xs" onClick={exportGraph}>
                 <DownloadIcon className="size-4" />
-                Export
+                Export Graph
               </Button>
             </div>
           </div>
