@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Particle texture bytes are now removed from the love.js polling payload and cached in bounded chunks, avoiding repeated full-image JSON serialization during preview.
 - Particle Project ZIP compression now yields through the asynchronous ZIP encoder instead of blocking the Studio UI.
 - Shader Graph adds a portable bundle export with pixel/vertex source, referenced textures, uniform bindings and parameter metadata.
 - Desktop Particle Playground can now show a local project in the connected LÖVE runtime, including its uploaded assets and atlas data; timeline controls target the imported runtime composite.

@@ -8,8 +8,11 @@ type UploadPayload = Record<string, unknown> & {
 
 type PreviewWindow = Window & {
   __featherPreviewUploadCache?: Record<string, string>;
+  __featherPreviewUploadCacheBytes?: number;
   __featherPreviewUploadChunk?: (key: string, start: number, length: number) => string;
 };
+
+const MAX_PREVIEW_UPLOAD_CACHE_CHARS = 128 * 1024 * 1024;
 
 function previewWindow(): PreviewWindow | null {
   return typeof window === 'undefined' ? null : (window as PreviewWindow);
@@ -43,7 +46,20 @@ function stripUpload(upload: unknown, fallbackKey: string): unknown {
     item.dataBase64.slice(0, 16),
     item.dataBase64.slice(-16),
   ].join(':');
-  target.__featherPreviewUploadCache[key] = item.dataBase64;
+  const cache = target.__featherPreviewUploadCache;
+  target.__featherPreviewUploadCacheBytes ??= Object.values(cache).reduce((total, value) => total + value.length, 0);
+  if (item.dataBase64.length > MAX_PREVIEW_UPLOAD_CACHE_CHARS) return upload;
+  if (cache[key] === undefined) {
+    while (target.__featherPreviewUploadCacheBytes + item.dataBase64.length > MAX_PREVIEW_UPLOAD_CACHE_CHARS) {
+      const oldestKey = Object.keys(cache)[0];
+      if (!oldestKey) break;
+      target.__featherPreviewUploadCacheBytes -= cache[oldestKey].length;
+      delete cache[oldestKey];
+    }
+    if (target.__featherPreviewUploadCacheBytes + item.dataBase64.length > MAX_PREVIEW_UPLOAD_CACHE_CHARS) return upload;
+    target.__featherPreviewUploadCacheBytes += item.dataBase64.length;
+  }
+  cache[key] = item.dataBase64;
 
   return {
     ...item,
@@ -72,6 +88,30 @@ export function stripLovePreviewUploads<T extends Record<string, unknown>>(
     next.textures = stripTextures
       ? payload.textures.map((upload, index) => stripUpload(upload, `texture-${index}`))
       : payload.textures;
+  }
+  const composite = payload.composite;
+  if (composite && typeof composite === 'object' && !Array.isArray(composite)) {
+    const value = composite as Record<string, unknown>;
+    if (Array.isArray(value.systems)) {
+      next.composite = {
+        ...value,
+        systems: value.systems.map((system, index) => {
+          if (!system || typeof system !== 'object' || Array.isArray(system)) return system;
+          const item = system as Record<string, unknown>;
+          if (typeof item.textureAssetBase64 !== 'string' || item.textureAssetBase64.length === 0) return system;
+          const upload = stripUpload(
+            { filename: item.textureFilename, dataBase64: item.textureAssetBase64 },
+            `particle-texture-${index}`,
+          ) as UploadPayload;
+          return {
+            ...item,
+            textureAssetBase64: upload.dataBase64,
+            textureAssetDataKey: upload.dataKey,
+            textureAssetDataLength: upload.dataLength,
+          };
+        }),
+      };
+    }
   }
   return next as T;
 }

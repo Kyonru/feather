@@ -56,6 +56,19 @@ test('keeps node-preview texture uploads inline when requested', () => {
   });
 });
 
+test('strips particle image bytes from repeated preview payloads and caches them for the preview frame', () => {
+  withWindow((win) => {
+    const payload = stripLovePreviewUploads({
+      composite: {
+        systems: [{ index: 1, textureFilename: 'smoke.png', textureAssetBase64: 'large-image-data' }],
+      },
+    });
+    const system = (payload.composite as { systems: Array<{ textureAssetBase64: string; textureAssetDataKey: string }> }).systems[0];
+    assert.equal(system.textureAssetBase64, '');
+    assert.equal(win.__featherPreviewUploadCache?.[system.textureAssetDataKey], 'large-image-data');
+  });
+});
+
 test('generated love.js bridge caches inline preview uploads for Lua polling', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'feather-love-preview-'));
   try {
