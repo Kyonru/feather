@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHost } from '@feather/host';
-import { zipSync } from 'fflate';
+import { zip } from 'fflate';
 import { toast } from 'sonner';
 import { sessionSupportsRuntime, useSessionStore } from '@studio/session';
 import type {
@@ -1029,7 +1029,10 @@ export function useLocalParticlePlayground(workspaceId?: string) {
     exportZip: async () => {
       try {
         const current = dataRef.current;
-        const archive = zipSync(particleProjectZipEntries(current));
+        const entries = particleProjectZipEntries(current);
+        const archive = await new Promise<Uint8Array>((resolve, reject) => {
+          zip(entries, { level: 6 }, (error, bytes) => (error ? reject(error) : resolve(bytes)));
+        });
         const filename = `${safeParticleFilename(current.activeComposite ?? 'particle-effect')}-project.zip`;
         const saved = await host.saveBinaryFile(filename, archive);
         if (!saved) throw new Error('The project ZIP was not saved. Choose another location and try again.');
