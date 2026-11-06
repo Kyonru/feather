@@ -182,7 +182,7 @@ export default function ParticleSystemPlaygroundPage() {
           <main className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden" data-testid="particle-playground-main">
             {!system || !composite ? (
               <div className="grid h-full place-items-center p-8 text-center text-sm text-muted-foreground">
-                <div className="grid max-w-sm justify-items-center gap-3"><SparklesIcon className="size-7" /><p>Create a scratch composite or register one from game code.</p><div className="flex flex-wrap justify-center gap-2"><Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => void importProject()}>Import Project</Button><Button size="sm" className="h-8 text-xs" onClick={() => playground.createComposite()}>New Composite</Button></div></div>
+                <div className="grid max-w-sm justify-items-center gap-3"><SparklesIcon className="size-7" /><p>Import a particle project or create a new composite to start editing.</p><div className="flex flex-wrap justify-center gap-2"><Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => void importProject()}>Import Project</Button><Button size="sm" className="h-8 text-xs" onClick={() => playground.createComposite()}>New Composite</Button></div></div>
               </div>
             ) : (
               <>
