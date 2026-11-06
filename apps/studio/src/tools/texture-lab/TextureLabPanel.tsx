@@ -1371,6 +1371,7 @@ export function TextureLabPanel({
   const [presetsOpen, setPresetsOpen] = useState(false);
   const [customDimensionsOpen, setCustomDimensionsOpen] = useState(false);
   const [savedRecipeName, setSavedRecipeName] = useState('');
+  const [generatorSearch, setGeneratorSearch] = useState('');
   const [selectedAtlasFrame, setSelectedAtlasFrame] = useState(0);
   const [atlasFillPreset, setAtlasFillPreset] = useState<TextureLabAtlasPreset>('seeded-spark');
   const [atlasConfirmAction, setAtlasConfirmAction] = useState<AtlasConfirmAction | null>(null);
@@ -1469,6 +1470,19 @@ export function TextureLabPanel({
       }, {}),
     [],
   );
+  const filteredGeneratorGroups = useMemo(() => {
+    const query = generatorSearch.trim().toLocaleLowerCase();
+    return Object.entries(groupedGenerators)
+      .map(([category, generators]) => [
+        category,
+        query
+          ? generators.filter((generator) =>
+              `${generator.label} ${generator.description} ${category}`.toLocaleLowerCase().includes(query),
+            )
+          : generators,
+      ] as const)
+      .filter(([, generators]) => generators.length > 0);
+  }, [generatorSearch, groupedGenerators]);
 
   useEffect(() => {
     if (atlasEnabled === atlasWasEnabledRef.current) return;
@@ -2999,10 +3013,21 @@ export function TextureLabPanel({
     <aside className="flex h-full min-h-0 flex-col bg-sidebar" data-testid="texture-lab-navigator">
       <div className="flex h-10 shrink-0 items-center justify-between px-3">
         <span className="section-label">Recipes &amp; Generators</span>
-        <span className="text-[10px] tabular-nums text-muted-foreground">{TEXTURE_LAB_GENERATORS.length}</span>
+        <span className="text-[10px] tabular-nums text-muted-foreground">{filteredGeneratorGroups.reduce((count, [, generators]) => count + generators.length, 0)}/{TEXTURE_LAB_GENERATORS.length}</span>
+      </div>
+      <div className="shrink-0 px-2 pb-2">
+        <Input
+          aria-label="Search texture generators"
+          placeholder="Search generators…"
+          value={generatorSearch}
+          onChange={(event) => setGeneratorSearch(event.target.value)}
+          className="h-8 text-xs"
+        />
       </div>
       <div className="h-0 min-h-0 flex-1 overflow-y-auto px-2 pb-3 [scrollbar-gutter:stable]">
-        {Object.entries(groupedGenerators).map(([category, generators]) => (
+        {filteredGeneratorGroups.length === 0 ? (
+          <p className="px-2 py-4 text-xs text-muted-foreground">No generators match “{generatorSearch}”.</p>
+        ) : filteredGeneratorGroups.map(([category, generators]) => (
           <section key={category} className="mb-3">
             <h3 className="section-label px-1 py-1.5">{category}</h3>
             <div className="grid gap-0.5">
@@ -3020,7 +3045,7 @@ export function TextureLabPanel({
                   onClick={() => selectGenerator(generator.id)}
                 >
                   <span className="truncate text-xs font-medium">{generator.label}</span>
-                  <span className="line-clamp-1 text-[9px] text-muted-foreground">{generator.description}</span>
+                  <span className="line-clamp-1 text-[11px] text-muted-foreground">{generator.description}</span>
                 </button>
               ))}
             </div>
