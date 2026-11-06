@@ -26,11 +26,11 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@feather/
 import { Input } from '@feather/ui/input';
 import { ScrollArea } from '@feather/ui/scroll-area';
 import { MAIN_FEATURES, type MainFeatureId } from '@/constants/main-features';
+import { BUILT_IN_SNIPPETS } from '@/constants/console-snippets';
 import { useDebugger } from '@/hooks/use-debugger';
 import { useHotReload } from '@/hooks/use-hot-reload';
 import { requestAllData } from '@/hooks/use-server-polling';
 import { sessionQueryKey } from '@/hooks/use-ws-connection';
-import { BUILT_IN_SNIPPETS } from '@/pages/console';
 import { useCommandCenterStore } from '@/store/command-center';
 import type { Config, PluginConfig } from '@/store/config';
 import { useConfigStore } from '@/store/config';
