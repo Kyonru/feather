@@ -722,6 +722,7 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     })
     local budgetSystem = plugin:_getSystemEntry("Runtime Preview Budget", 1).system
     plugin:update(0.1)
+    plugin:update(0.1)
     assertEqual(budgetSystem:getEmissionRate(), 90, "particle runtime preview scales continuous emission in game")
     assertTruthy(budgetSystem:getCount() > 0, "particle runtime preview still emits a representative effect")
     plugin:handleActionRequest({
@@ -732,6 +733,42 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
       },
     })
     assertEqual(budgetSystem:getCount(), 0, "particle runtime preview budgeted particles clear when hidden")
+
+    plugin:handleActionRequest({
+      params = {
+        action = "new-composite",
+        name = "Runtime Preview Exact",
+        template = "fire",
+      },
+    })
+    plugin:handleParamsUpdate({
+      params = {
+        composite = "Runtime Preview Exact",
+        systemIndex = 1,
+        emissionRate = 200,
+        particleLifetimeMin = 1,
+        particleLifetimeMax = 1,
+      },
+    })
+    plugin:handleActionRequest({
+      params = {
+        action = "runtime-preview",
+        composite = "Runtime Preview Exact",
+        active = true,
+        exact = true,
+      },
+    })
+    local exactSystem = plugin:_getSystemEntry("Runtime Preview Exact", 1).system
+    plugin:update(0.1)
+    plugin:update(0.1)
+    assertEqual(exactSystem:getEmissionRate(), 200, "particle exact runtime preview preserves authored emission rate")
+    plugin:handleActionRequest({
+      params = {
+        action = "runtime-preview",
+        composite = "Runtime Preview Exact",
+        active = false,
+      },
+    })
 
     plugin:handleParamsUpdate({
       params = {

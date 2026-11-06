@@ -480,17 +480,35 @@ local function stopScratchPreviewSystems(entry)
       pcall(ps.stop, ps)
       pcall(ps.reset, ps)
     end
+    system._runtimePreviewBudgetRates = nil
   end
+end
+
+local function restoreRuntimePreviewBudget(system)
+  local rates = system and system._runtimePreviewBudgetRates
+  if type(rates) ~= "table" then
+    return
+  end
+  for ps, rate in pairs(rates) do
+    pcall(ps.setEmissionRate, ps, rate)
+  end
+  system._runtimePreviewBudgetRates = nil
 end
 
 local function applyRuntimePreviewBudget(system)
   if not system or not system.system then
     return
   end
+  system._runtimePreviewBudgetRates = system._runtimePreviewBudgetRates or {}
+  local rates = system._runtimePreviewBudgetRates
   for _, ps in ipairs(atlasSystems(system)) do
     local ok, rate = pcall(ps.getEmissionRate, ps)
     if ok then
-      pcall(ps.setEmissionRate, ps, math.max(0, rate * RUNTIME_PREVIEW_EMISSION_SCALE))
+      local previous = rates[ps]
+      if not previous or math.abs(rate - previous * RUNTIME_PREVIEW_EMISSION_SCALE) >= 0.001 then
+        rates[ps] = rate
+        pcall(ps.setEmissionRate, ps, math.max(0, rate * RUNTIME_PREVIEW_EMISSION_SCALE))
+      end
     end
   end
 end
@@ -2133,11 +2151,14 @@ local function updateScratchCompositeRuntime(plugin, name, entry, dt, includeEdi
   end
 
   local previewActive = scratchPreviewRuntimeActive(plugin, name, entry)
+  local exactPreview = previewActive and plugin.previewExact == true
   local timelineWasPlaying = entry.timelineState and safeBoolean(entry.timelineState.playing, false)
   if not previewActive and not (includeEditorTimelines and timelineWasPlaying) then
     return false
   end
-  local runtimeDt = previewActive and math.min(math.max(0, dt or 0), RUNTIME_PREVIEW_MAX_DT) or dt
+  local runtimeDt = previewActive and not exactPreview
+      and math.min(math.max(0, dt or 0), RUNTIME_PREVIEW_MAX_DT)
+    or dt
 
   local offsetX = safeNumber(entry.offsetX, 0)
   local offsetY = safeNumber(entry.offsetY, 0)
@@ -2154,7 +2175,7 @@ local function updateScratchCompositeRuntime(plugin, name, entry, dt, includeEdi
   end
 
   if entry.timeline and (timelineWasPlaying or previewActive) then
-    advanceTimeline(plugin, name, runtimeDt, previewActive)
+    advanceTimeline(plugin, name, runtimeDt, previewActive and not exactPreview)
   end
 
   local timelineStillPlaying = entry.timelineState and safeBoolean(entry.timelineState.playing, false)
@@ -2166,7 +2187,7 @@ local function updateScratchCompositeRuntime(plugin, name, entry, dt, includeEdi
     for index, system in ipairs(entry.systems or {}) do
       if system.system and isSystemEnabled(system, plugin:_meta(name, index)) then
         setParticlePosition(system, x + (system.x or 0), y + (system.y or 0))
-        if previewActive then
+        if previewActive and not exactPreview then
           applyRuntimePreviewBudget(system)
         end
         updateParticleSystems(system, runtimeDt)
@@ -2185,6 +2206,7 @@ function ParticleSystemPlaygroundPlugin:init(config)
   self.activeSystem = 1
   self.previewSessionActive = false
   self.previewComposite = nil
+  self.previewExact = false
   self.timelineRuntimeActive = false
 end
 
@@ -2192,10 +2214,11 @@ function ParticleSystemPlaygroundPlugin:isRuntimeActive()
   return self.previewSessionActive == true or self.timelineRuntimeActive == true
 end
 
-function ParticleSystemPlaygroundPlugin:_setRuntimePreviewActive(active, composite)
+function ParticleSystemPlaygroundPlugin:_setRuntimePreviewActive(active, composite, exact)
   if not active then
     self.previewSessionActive = false
     self.previewComposite = nil
+    self.previewExact = false
     self.timelineRuntimeActive = false
     for _, entry in pairs(self.composites) do
       if entry.timelineState then
@@ -2211,8 +2234,15 @@ function ParticleSystemPlaygroundPlugin:_setRuntimePreviewActive(active, composi
   if previousTarget and previousTarget ~= target then
     stopScratchPreviewSystems(self.composites[previousTarget])
   end
+  if target == previousTarget and exact == true and self.previewExact ~= true then
+    local entry = target and self.composites[target]
+    for _, system in ipairs(entry and entry.systems or {}) do
+      restoreRuntimePreviewBudget(system)
+    end
+  end
   self.previewSessionActive = true
   self.previewComposite = target
+  self.previewExact = exact == true
   pauseOtherScratchTimelines(self, target)
   local entry = target and self.composites[target]
   if entry and entry.timeline then
@@ -2855,7 +2885,11 @@ function ParticleSystemPlaygroundPlugin:handleActionRequest(request)
   end
 
   if action == "runtime-preview" then
-    return self:_setRuntimePreviewActive(safeBoolean(params.active, false), params.composite)
+    return self:_setRuntimePreviewActive(
+      safeBoolean(params.active, false),
+      params.composite,
+      safeBoolean(params.exact, false)
+    )
   end
 
   if action == "import-project" then

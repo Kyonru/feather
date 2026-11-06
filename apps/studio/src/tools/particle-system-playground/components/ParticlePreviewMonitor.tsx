@@ -17,7 +17,7 @@ type ParticlePreviewController = {
   activeComposite: string | null;
   activeSystem: ParticleSystemPlaygroundSystem | null;
   composite: ParticleSystemPlaygroundCompositeData | null;
-  setRuntimePreviewActive: (active: boolean, composite?: string | null) => Promise<unknown>;
+  setRuntimePreviewActive: (active: boolean, composite?: string | null, exact?: boolean) => Promise<unknown>;
   playTimeline: (sendRuntime?: boolean) => void;
   seekTimeline: (time: number, immediate?: boolean, sendRuntime?: boolean) => void;
 };
@@ -118,7 +118,7 @@ export function ParticlePreviewMonitor({
     if (runtimeSuspended) return;
     if (activeGameCompositeRef.current === playground.activeComposite) return;
     activeGameCompositeRef.current = playground.activeComposite;
-    void setRuntimePreviewActiveRef.current(true, playground.activeComposite);
+    void setRuntimePreviewActiveRef.current(true, playground.activeComposite, true);
   }, [canShowInGame, clearGamePreview, gamePreviewActive, playground.activeComposite, runtimeSuspended, standalone]);
 
   useEffect(() => {
@@ -131,7 +131,7 @@ export function ParticlePreviewMonitor({
     const composite = playground.activeComposite;
     activeGameCompositeRef.current = composite;
     setStatus('sending');
-    void setRuntimePreviewActiveRef.current(true, composite)
+    void setRuntimePreviewActiveRef.current(true, composite, true)
       .then(() => {
         const timelineState = playground.composite?.timelineState;
         if (timelineState) {
@@ -167,7 +167,7 @@ export function ParticlePreviewMonitor({
     setStatus('sending');
     setError(null);
     try {
-      await playground.setRuntimePreviewActive(true, playground.activeComposite);
+      await playground.setRuntimePreviewActive(true, playground.activeComposite, true);
       const timelineState = playground.composite?.timelineState;
       if (timelineState) {
         playground.seekTimeline(timelineState.time ?? 0, true, true);

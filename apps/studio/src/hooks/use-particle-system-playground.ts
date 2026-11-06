@@ -469,7 +469,7 @@ export function useParticleSystemPlayground() {
   );
 
   const setRuntimePreviewActive = useCallback(
-    (active: boolean, composite?: string | null) => {
+    (active: boolean, composite?: string | null, exact = false) => {
       if (runtimeSuspended && active) return Promise.resolve();
       return send({
         type: 'cmd:plugin:action',
@@ -479,6 +479,7 @@ export function useParticleSystemPlayground() {
           composite: composite ?? data.activeComposite ?? '',
           systemIndex: data.activeSystem,
           active,
+          exact,
         },
       });
     },

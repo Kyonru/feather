@@ -794,7 +794,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
     throw new Error('The LÖVE runtime did not answer the particle preview action within 5 seconds.');
   }
 
-  async function setRuntimePreviewActive(active: boolean) {
+  async function setRuntimePreviewActive(active: boolean, _composite?: string | null, exact = false) {
     const sessionState = useSessionStore.getState();
     const sessionId = sessionState.sessionId;
     const session = sessionId ? sessionState.sessions[sessionId] : null;
@@ -820,7 +820,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
         activeSystem: current.activeSystem,
       });
     }
-    await sendRuntimeAction(sessionId, 'runtime-preview', { action: 'runtime-preview', active: true, composite: target.composite });
+    await sendRuntimeAction(sessionId, 'runtime-preview', { action: 'runtime-preview', active: true, exact, composite: target.composite });
     target.active = true;
   }
 

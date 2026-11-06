@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Studio's **Show in Game** particle preview now uses authored emission rates and the game's frame step; the bounded runtime preview mode also keeps its reduced rate stable across frames.
 - Particle project ZIP Lua definitions now point to the matching archived texture paths instead of a bare filename.
 - Particle texture bytes are now removed from the love.js polling payload and cached in bounded chunks, avoiding repeated full-image JSON serialization during preview.
 - Particle Project ZIP compression now yields through the asynchronous ZIP encoder instead of blocking the Studio UI.
