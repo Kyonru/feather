@@ -47,6 +47,7 @@ import {
 import { Input } from '@feather/ui/input';
 import { Label } from '@feather/ui/label';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@feather/ui/resizable';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -3097,13 +3098,22 @@ export function TextureLabPanel({
       </ResizablePanel>
       <ResizableHandle className="bg-border/40" />
       <ResizablePanel id="texture-inspector" defaultSize="25%" minSize="21%" maxSize="30%" className="min-h-0 min-w-0 bg-card">
-        <div className="flex h-full min-h-0 flex-col">
-          <div className="grid h-10 shrink-0 grid-cols-2 gap-1 bg-card p-1.5" role="tablist" aria-label="Texture inspector mode">
-            <button type="button" role="tab" aria-selected={inspectorMode === 'parameters'} className={cn('rounded-sm text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground', inspectorMode === 'parameters' && 'bg-muted font-medium text-foreground')} onClick={() => setInspectorMode('parameters')}>Parameters</button>
-            <button type="button" role="tab" aria-selected={inspectorMode === 'atlas'} disabled={!atlasEnabled} className={cn('rounded-sm text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40', inspectorMode === 'atlas' && 'bg-muted font-medium text-foreground')} onClick={() => setInspectorMode('atlas')}>Atlas{atlasEnabled ? ` · ${atlasSettings.frameCount}` : ''}</button>
-          </div>
-          <div className="h-0 min-h-0 flex-1 overflow-hidden">{inspectorMode === 'atlas' && atlasPanel ? atlasPanel : controlsPanel}</div>
-        </div>
+        <Tabs
+          value={inspectorMode}
+          onValueChange={(value) => setInspectorMode(value as TextureInspectorMode)}
+          className="h-full min-h-0 gap-0"
+        >
+          <TabsList aria-label="Texture inspector mode" className="grid h-10 w-full shrink-0 grid-cols-2 rounded-none bg-card p-1.5">
+            <TabsTrigger value="parameters" className="text-xs">Parameters</TabsTrigger>
+            <TabsTrigger value="atlas" disabled={!atlasEnabled} className="text-xs">Atlas{atlasEnabled ? ` · ${atlasSettings.frameCount}` : ''}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="parameters" className="h-0 min-h-0 overflow-hidden">
+            {controlsPanel}
+          </TabsContent>
+          <TabsContent value="atlas" className="h-0 min-h-0 overflow-hidden">
+            {atlasPanel}
+          </TabsContent>
+        </Tabs>
       </ResizablePanel>
     </ResizablePanelGroup>
   );
