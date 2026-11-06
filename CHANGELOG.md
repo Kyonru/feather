@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Studio now renders shared notifications, making successful imports and actionable storage errors visible across its tools.
 - Texture Lab now gives its generator filter and selected-generator control distinct accessible names.
 - Studio now describes Particle Playground's authenticated in-game preview alongside Shader Graph pairing.
 - Studio loads each authoring tool on demand instead of downloading all three on launch.

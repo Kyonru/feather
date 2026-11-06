@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { BlendIcon, MenuIcon, PlugZapIcon, SparklesIcon, UnplugIcon, WandSparklesIcon } from 'lucide-react';
 import type { ElementType } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@feather/ui/sheet';
+import { Toaster } from '@feather/ui/sonner';
 import { cn } from '@feather/ui';
 
 import { useMcpCreativeBridge } from './hooks/use-mcp-creative-bridge';
@@ -251,6 +252,7 @@ export function StudioApp() {
           {TOOLS[activeTool].render()}
         </Suspense>
       </main>
+      <Toaster richColors />
     </div>
   );
 }
