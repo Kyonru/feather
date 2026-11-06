@@ -6,23 +6,37 @@ test('Shader Graph exports generated GLSL separately from the editable graph', a
   await page.goto('/');
   await page.getByTestId('studio-menu-trigger').click();
   await page.getByTestId('studio-tool-shader-graph').click();
+  await expect(page.getByTestId('studio-tool-surface').getByText('Loading tool…')).toBeHidden();
+  await page.getByRole('button', { name: 'Export' }).click();
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export GLSL' }).click();
+  await page.getByRole('menuitem', { name: 'Export GLSL' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/\.glsl$/);
   const filePath = await download.path();
   expect(filePath).not.toBeNull();
   const source = await readFile(filePath!, 'utf8');
   expect(source).toContain('vec4');
-  await expect(page.getByRole('button', { name: 'Export Graph' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Export' }).click();
+  const graphDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('menuitem', { name: 'Export Graph' }).click();
+  const graphDownload = await graphDownloadPromise;
+  expect(graphDownload.suggestedFilename()).toMatch(/\.feathershgh$/);
+  const graphPath = await graphDownload.path();
+  expect(graphPath).not.toBeNull();
+  const graph = JSON.parse(await readFile(graphPath!, 'utf8')) as { type: string; version: number };
+  expect(graph.type).toBe('feather.shader-graph');
+  expect(graph.version).toBeGreaterThan(0);
 });
 
 test('Shader Graph exports a bundle manifest and generated shader stages', async ({ page }) => {
   await page.goto('/');
   await page.getByTestId('studio-menu-trigger').click();
   await page.getByTestId('studio-tool-shader-graph').click();
+  await expect(page.getByTestId('studio-tool-surface').getByText('Loading tool…')).toBeHidden();
+  await page.getByRole('button', { name: 'Export' }).click();
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export Bundle' }).click();
+  await page.getByRole('menuitem', { name: 'Export Bundle' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/-shader\.zip$/);
   const filePath = await download.path();
