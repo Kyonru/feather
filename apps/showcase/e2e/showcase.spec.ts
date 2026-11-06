@@ -276,7 +276,7 @@ async function particlePreviewStatus(page: Page) {
 
 test('standalone showcase loads the landing page and tools', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /complete developer toolkit/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /creative tools for LÖVE games/i })).toBeVisible();
 
   await page
     .locator('header')

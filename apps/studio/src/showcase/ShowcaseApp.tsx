@@ -31,12 +31,12 @@ function Home() {
         <section className="grid gap-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Feather Showcase</p>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight">
-            A complete developer toolkit for LÖVE games.
+            Creative tools for LÖVE games.
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Feather brings professional-grade tooling to LÖVE — visual shader authoring, particle editing, real-time
-            debugging, performance profiling, log inspection, session replay, asset management, and more. All from an
-            extensible and free development companion app, connected live to your running game.
+            Explore Feather Studio’s Shader Graph, Particle Playground, and Texture Lab in your browser. Author effects
+            locally and export them for your game. Connected-game previews and debugging are available in the separate
+            Feather Studio and Inspector desktop apps.
           </p>
         </section>
         <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Explore the demos:</h3>
