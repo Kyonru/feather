@@ -35,6 +35,7 @@ export function NodePalette() {
   const [search, setSearch] = useState('');
   const [dragPreview, setDragPreview] = useState<{ label: string; x: number; y: number } | null>(null);
   const pointerDragRef = useRef<PaletteDragState | null>(null);
+  const suppressClickRef = useRef(false);
   const { playgroundTarget, setPlaygroundTarget, activeSubgraphId } = useShaderGraphStore();
   const collapsedCategories = useStudioPreferencesStore((state) => state.collapsedShaderGraphNodeCategories);
   const toggleCategory = useStudioPreferencesStore((state) => state.toggleShaderGraphNodeCategory);
@@ -107,6 +108,7 @@ export function NodePalette() {
     }
 
     if (!drag.dragging) return;
+    suppressClickRef.current = true;
     event.preventDefault();
     event.stopPropagation();
     const target = document.elementFromPoint(event.clientX, event.clientY);
@@ -124,6 +126,17 @@ export function NodePalette() {
     if (!drag || drag.pointerId !== event.pointerId) return;
     pointerDragRef.current = null;
     setDragPreview(null);
+  }
+
+  function addNodeToCanvasCenter(nodeType: NodeType) {
+    const canvas = document.querySelector<HTMLElement>('[data-testid="shader-canvas"]');
+    if (!canvas) return;
+    const bounds = canvas.getBoundingClientRect();
+    window.dispatchEvent(
+      new CustomEvent('shader-graph:palette-node-drop', {
+        detail: { nodeType, clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 },
+      }),
+    );
   }
 
   return (
@@ -220,6 +233,14 @@ export function NodePalette() {
                         <button
                           type="button"
                           key={nodeType}
+                          aria-label={`Add ${def.label} node to graph`}
+                          onClick={() => {
+                            if (suppressClickRef.current) {
+                              suppressClickRef.current = false;
+                              return;
+                            }
+                            addNodeToCanvasCenter(nodeType);
+                          }}
                           draggable={false}
                           onDragStart={(e) => e.preventDefault()}
                           onPointerDown={(e) => handlePointerDown(e, nodeType)}
@@ -227,7 +248,7 @@ export function NodePalette() {
                           onPointerUp={handlePointerUp}
                           onPointerCancel={handlePointerCancel}
                           className={cn(
-                            'touch-none cursor-grab rounded border border-l-2 bg-card px-2 py-1 text-xs select-none hover:bg-muted/50 active:cursor-grabbing',
+                            'touch-none cursor-grab rounded border border-l-2 bg-card px-2 py-1 text-xs select-none hover:bg-muted/50 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                             colorClass,
                           )}
                         >
