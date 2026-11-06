@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Texture Lab marks image-mask previews as updating while new output is being rendered.
 - Texture Lab limits imported images to 1 MiB and reports when browser storage cannot save Studio preferences.
 - Texture Lab renders standard generator previews in a worker to keep large pixel loops off the UI thread.
+- Texture Lab renders generated atlas previews in a worker and rejects atlas sizes above a 64 MiB working-memory budget.
 - Shader Graph standalone preview errors now appear in accessible React text and can be copied.
 - Texture Lab spline and shape points can now be selected and nudged with arrow keys, with live coordinate announcements.
 - Shader Graph exports now share one menu to reduce toolbar crowding at narrower window widths.

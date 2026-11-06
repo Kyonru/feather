@@ -1420,7 +1420,7 @@ export function TextureLabPanel({
   const [asyncPreviewPixels, setAsyncPreviewPixels] = useState<TextureLabGeneratedPixels | TextureLabAtlasPixels | null>(
     null,
   );
-  const [renderedPixels, setRenderedPixels] = useState<TextureLabGeneratedPixels | null>(null);
+  const [renderedPixels, setRenderedPixels] = useState<TextureLabGeneratedPixels | TextureLabAtlasPixels | null>(null);
   const [renderPending, setRenderPending] = useState(false);
   const [asyncPreviewError, setAsyncPreviewError] = useState<string | null>(null);
   const [asyncPreviewPending, setAsyncPreviewPending] = useState(false);
@@ -1462,7 +1462,11 @@ export function TextureLabPanel({
     [customAtlasEnabled, customAtlasPixels, fallbackDataUrl],
   );
   const asyncAtlasPixels =
-    asyncPreviewPixels && 'atlas' in asyncPreviewPixels ? (asyncPreviewPixels as TextureLabAtlasPixels) : null;
+    asyncPreviewPixels && 'atlas' in asyncPreviewPixels
+      ? (asyncPreviewPixels as TextureLabAtlasPixels)
+      : renderedPixels && 'atlas' in renderedPixels
+        ? renderedPixels
+        : null;
   const atlasPixels = customAtlasEnabled
     ? customAtlasPixels
     : atlasEnabled
@@ -1537,11 +1541,11 @@ export function TextureLabPanel({
   }, [atlasEnabled]);
 
   useEffect(() => {
-    if (isTextureLabImageMaskGenerator(recipe.generator) && recipe.imageMask?.dataBase64) return;
+    if (isTextureLabImageMaskGenerator(recipe.generator)) return;
     const worker = new Worker(new URL('./texture-lab-render.worker.ts', import.meta.url), { type: 'module' });
     setRenderPending(true);
     setAsyncPreviewError(null);
-    worker.onmessage = (event: MessageEvent<TextureLabGeneratedPixels | { error: string }>) => {
+    worker.onmessage = (event: MessageEvent<TextureLabGeneratedPixels | TextureLabAtlasPixels | { error: string }>) => {
       if ('error' in event.data) {
         setAsyncPreviewError(event.data.error);
       } else {

@@ -2372,10 +2372,19 @@ function atlasMetadata(
   };
 }
 
+function assertTextureLabAtlasMemoryBudget(frameCount: number, frameWidth: number, frameHeight: number) {
+  const bytes = frameCount * frameWidth * frameHeight * 4 * 2;
+  const limit = 64 * 1024 * 1024;
+  if (bytes > limit) {
+    throw new Error('This atlas is too large to preview safely. Reduce the frame count or texture dimensions and try again.');
+  }
+}
+
 export function renderTextureLabAtlasPixels(input?: Partial<TextureLabRecipe> | null): TextureLabAtlasPixels {
   const recipe = normalizeRecipe(input);
   const atlas = normalizeTextureLabAtlasSettings({ ...recipe.atlas, enabled: true });
   const { width: frameWidth, height: frameHeight } = textureLabRecipeDimensions(recipe);
+  assertTextureLabAtlasMemoryBudget(atlas.frameCount, frameWidth, frameHeight);
   const metadata = atlasMetadata(atlas, frameWidth, frameHeight);
   const pixels = new Uint8ClampedArray(metadata.width * metadata.height * 4);
   const frames: TextureLabAtlasFramePixels[] = [];
@@ -2633,6 +2642,7 @@ export async function renderTextureLabAtlasPixelsAsync(
   const recipe = normalizeRecipe(input);
   const atlas = normalizeTextureLabAtlasSettings({ ...recipe.atlas, enabled: true });
   const { width: frameWidth, height: frameHeight } = textureLabRecipeDimensions(recipe);
+  assertTextureLabAtlasMemoryBudget(atlas.frameCount, frameWidth, frameHeight);
   const metadata = atlasMetadata(atlas, frameWidth, frameHeight);
   const pixels = new Uint8ClampedArray(metadata.width * metadata.height * 4);
   const frames: TextureLabAtlasFramePixels[] = [];
