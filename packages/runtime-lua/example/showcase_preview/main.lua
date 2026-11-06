@@ -453,6 +453,9 @@ end
 local particleState = {
   systems = {},
   timeline = nil,
+  movement = nil,
+  movementX = 0,
+  movementY = 0,
   timelineState = { time = 0, playing = false },
   payloadSignature = "",
   lastScrubVersion = -1,
@@ -776,7 +779,7 @@ local function resetParticleSystems()
   particleState.lastBurstCount = 0
   local mode = particleState.timeline and particleState.timeline.mode
   for _, entry in ipairs(particleState.systems) do
-    if entry.ps then
+    if entry.ps and entry.enabled then
       pcall(entry.ps.reset, entry.ps)
       local base = entry.base or {}
       pcall(entry.ps.setEmitterLifetime, entry.ps, tonumber(base.emitterLifetime) or -1)
@@ -875,7 +878,20 @@ local function applyParticlePayload(payload)
   for _, sysData in ipairs(systems) do
     if type(sysData) == "table" then
       local preset = tostring(sysData.texturePreset or "circle")
-      local ok0, img = pcall(generatePresetImage, preset)
+      local textureUpload = hydrateUpload({
+        filename = sysData.textureFilename,
+        dataBase64 = sysData.textureAssetBase64,
+        dataKey = sysData.textureAssetDataKey,
+        dataLength = sysData.textureAssetDataLength,
+      })
+      local img
+      if type(textureUpload) == "table" and type(textureUpload.dataBase64) == "string" and textureUpload.dataBase64 ~= "" then
+        img = PreviewRuntime.imageFromUpload(textureUpload, textureUpload.filename or "particle-texture.png")
+      end
+      local ok0 = img ~= nil
+      if not img then
+        ok0, img = pcall(generatePresetImage, preset)
+      end
       if not ok0 or not img then
         ok0, img = pcall(generatePresetImage, "circle")
       end
@@ -892,10 +908,36 @@ local function applyParticlePayload(payload)
           if type(sysData.properties) == "table" then
             pcall(applySystemProperties, ps, sysData.properties)
           end
+          local atlas = type(sysData.textureAtlas) == "table" and sysData.textureAtlas or nil
+          if atlas then
+            local imageWidth, imageHeight = img:getDimensions()
+            local columns = math.max(1, math.floor(tonumber(atlas.columns) or 1))
+            local rows = math.max(1, math.floor(tonumber(atlas.rows) or 1))
+            local frameWidth = math.max(1, math.floor(tonumber(atlas.frameWidth) or imageWidth / columns))
+            local frameHeight = math.max(1, math.floor(tonumber(atlas.frameHeight) or imageHeight / rows))
+            local frameCount = math.max(1, math.min(math.floor(tonumber(atlas.frameCount) or columns * rows), columns * rows))
+            local quads = {}
+            for frame = 0, frameCount - 1 do
+              quads[#quads + 1] = love.graphics.newQuad(
+                (frame % columns) * frameWidth,
+                math.floor(frame / columns) * frameHeight,
+                frameWidth,
+                frameHeight,
+                imageWidth,
+                imageHeight
+              )
+            end
+            pcall(ps.setQuads, ps, unpack(quads))
+          end
+          local shader
+          if type(sysData.shaderSource) == "string" and sysData.shaderSource ~= "" then
+            shader = PreviewRuntime.buildShader(sysData.shaderSource, "", true)
+          end
           pcall(ps.start, ps)
           local props = type(sysData.properties) == "table" and sysData.properties or {}
           particleState.systems[#particleState.systems + 1] = {
             ps = ps,
+            shader = shader,
             blendMode = tostring(sysData.blendMode or "alpha"),
             enabled = sysData.enabled ~= false,
             x = tonumber(sysData.x) or 0,
@@ -929,6 +971,9 @@ local function applyParticlePayload(payload)
   end
 
   particleState.timeline = normalizeTimeline(composite.timeline, systems)
+  particleState.movement = type(composite.movement) == "table" and composite.movement or nil
+  particleState.movementX = 0
+  particleState.movementY = 0
   local incomingState = type(composite.timelineState) == "table" and composite.timelineState or {}
   particleState.lastScrubVersion = tonumber(incomingState.scrubVersion) or -1
   seekParticleTimeline(tonumber(incomingState.time) or 0, incomingState.playing == true)
@@ -953,21 +998,25 @@ local function drawParticlePreview(w, h)
   end
 
   local prevBlend, prevAlphaMode = love.graphics.getBlendMode()
+  local prevShader = love.graphics.getShader()
   local pr, pg, pb, pa = love.graphics.getColor()
 
   for _, entry in ipairs(particleState.systems) do
-    if entry.ps then
-      if entry.blendMode == "add" then
-        love.graphics.setBlendMode("add")
-      else
-        love.graphics.setBlendMode("alpha")
+    if entry.ps and entry.enabled then
+      local blendMode = entry.blendMode or "alpha"
+      local okBlend = pcall(love.graphics.setBlendMode, blendMode)
+      if not okBlend then love.graphics.setBlendMode("alpha") end
+      love.graphics.setShader(entry.shader)
+      if entry.shader and type(entry.shader.send) == "function" then
+        pcall(entry.shader.send, entry.shader, "u_time", love.timer.getTime())
       end
       love.graphics.setColor(1, 1, 1, entry.opacity or 1)
-      love.graphics.draw(entry.ps, cx + entry.x, cy + entry.y)
+      love.graphics.draw(entry.ps, cx + particleState.movementX + entry.x, cy + particleState.movementY + entry.y)
     end
   end
 
   love.graphics.setBlendMode(prevBlend, prevAlphaMode)
+  love.graphics.setShader(prevShader)
   love.graphics.setColor(pr, pg, pb, pa)
 end
 
@@ -1063,9 +1112,26 @@ function love.update(dt)
       end
       particleState.timelineState.time = nextTime
     end
+    local movement = particleState.movement
+    if type(movement) == "table" then
+      local pattern = movement.pattern
+      local t = (tonumber(movement.t) or 0) + dt * (tonumber(movement.speed) or 1)
+      if pattern == "circle" then
+        particleState.movementX = math.cos(t) * (tonumber(movement.radius) or 50)
+        particleState.movementY = math.sin(t) * (tonumber(movement.radius) or 50)
+      elseif pattern == "figure-eight" then
+        particleState.movementX = math.sin(t) * (tonumber(movement.radiusX) or 80)
+        particleState.movementY = math.sin(t * 2) * (tonumber(movement.radiusY) or 40) * 0.5
+      elseif pattern == "irregular" then
+        local scale = tonumber(movement.scale) or 50
+        particleState.movementX = (math.sin(t * 0.7 + 1.2) * 0.55 + math.sin(t * 1.9) * 0.3 + math.sin(t * 3.1) * 0.15) * scale
+        particleState.movementY = (math.sin(t * 0.9 + 2.4) * 0.55 + math.sin(t * 1.7 + 0.3) * 0.3 + math.sin(t * 2.9) * 0.15) * scale
+      end
+      movement.t = t
+    end
     applyTimelineAt(particleState.timelineState.time or 0, particleState.timelineState.playing == true)
     for _, entry in ipairs(particleState.systems) do
-      if entry.ps then
+      if entry.ps and entry.enabled then
         pcall(entry.ps.update, entry.ps, dt)
       end
     end
