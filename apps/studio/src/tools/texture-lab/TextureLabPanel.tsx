@@ -402,6 +402,9 @@ function loadTextureLabFrameDimensions(dataUrl: string): Promise<{ width: number
 }
 
 async function textureLabFrameFromFile(file: File, index: number): Promise<TextureLabAtlasCustomFrame> {
+  if (file.size > 1024 * 1024) {
+    throw new Error('Each uploaded image must be 1 MiB or smaller so the project can be saved reliably.');
+  }
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ''));
@@ -419,6 +422,9 @@ async function textureLabFrameFromFile(file: File, index: number): Promise<Textu
 }
 
 async function textureLabImageMaskFromFile(file: File): Promise<TextureLabImageMaskRecipe> {
+  if (file.size > 1024 * 1024) {
+    throw new Error('Image masks must be 1 MiB or smaller so the project can be saved reliably.');
+  }
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ''));
@@ -1389,6 +1395,12 @@ export function TextureLabPanel({
   const customFrameInputRef = useRef<HTMLInputElement | null>(null);
   const imageMaskInputRef = useRef<HTMLInputElement | null>(null);
   const { recipe, setRecipe, patch: patchRecipeStore } = useTextureLabRecipe();
+
+  useEffect(() => {
+    const onStorageError = () => toast.error('Studio could not save your latest changes. Remove large uploaded images or saved recipes and try again.');
+    window.addEventListener('feather:studio-storage-error', onStorageError);
+    return () => window.removeEventListener('feather:studio-storage-error', onStorageError);
+  }, []);
   const textureDimensions = useMemo(() => textureLabRecipeDimensions(recipe), [recipe]);
   const textureDimensionFields = useMemo(
     () => ({ size: recipe.size, width: textureDimensions.width, height: textureDimensions.height }),

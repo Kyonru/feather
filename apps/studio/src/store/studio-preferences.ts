@@ -207,6 +207,7 @@ export function readLegacyStudioPreferences(
 
 function createStudioStorage(): StateStorage {
   const storage = globalThis.localStorage;
+  let lastStorageErrorAt = 0;
   return {
     getItem: (name) => storage.getItem(name),
     removeItem: (name) => storage.removeItem(name),
@@ -215,6 +216,10 @@ function createStudioStorage(): StateStorage {
         storage.setItem(name, value);
       } catch (error) {
         console.warn('[Feather] Could not persist studio preferences:', error);
+        if (Date.now() - lastStorageErrorAt > 10_000) {
+          lastStorageErrorAt = Date.now();
+          window.dispatchEvent(new CustomEvent('feather:studio-storage-error'));
+        }
       }
     },
   };
