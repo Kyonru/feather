@@ -44,8 +44,8 @@ export function TextureImporter({ texturePath, texturePreset, textureFilename, o
   return (
     <div className="grid gap-2">
       <div className="flex gap-2">
-        <Input className="h-8 min-w-0 flex-1 font-mono text-xs" value={current} readOnly />
-        <Button size="icon" variant="outline" className="size-8" title="Import texture" onClick={pickFile}>
+        <Input className="h-8 min-w-0 flex-1 font-mono text-xs" value={current} readOnly aria-label="Current emitter texture" />
+        <Button size="icon" variant="outline" className="size-8" title="Import texture" aria-label="Import texture" onClick={pickFile}>
           <FolderOpenIcon className="size-4" />
         </Button>
         <TextureLabDialog
@@ -57,8 +57,9 @@ export function TextureImporter({ texturePath, texturePreset, textureFilename, o
         />
       </div>
       <div className="grid gap-1">
-        <Label className="text-[10px] text-muted-foreground font-semibold">Game path</Label>
+        <Label htmlFor="particle-game-texture-path" className="text-[10px] text-muted-foreground font-semibold">Game path</Label>
         <Input
+          id="particle-game-texture-path"
           className="h-8 font-mono text-xs"
           placeholder="gfx/fire.png"
           defaultValue={texturePath}
