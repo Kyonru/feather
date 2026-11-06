@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Studio now describes Particle Playground's authenticated in-game preview alongside Shader Graph pairing.
+- Studio loads each authoring tool on demand instead of downloading all three on launch.
 
 - Shader Graph palette buttons now add the focused node to the canvas on click or keyboard activation; drag placement remains available.
 - Shader Graph preset selectors reset after applying a preset, so the same preset can be applied again without choosing another first.

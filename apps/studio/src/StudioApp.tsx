@@ -1,12 +1,9 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { BlendIcon, MenuIcon, PlugZapIcon, SparklesIcon, UnplugIcon, WandSparklesIcon } from 'lucide-react';
 import type { ElementType } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@feather/ui/sheet';
 import { cn } from '@feather/ui';
 
-import ParticleSystemPlayground from './tools/particle-system-playground';
-import ShaderGraph from './tools/shader-graph';
-import TextureLab from './tools/texture-lab';
 import { useMcpCreativeBridge } from './hooks/use-mcp-creative-bridge';
 import { useInspectorBridge } from './useInspectorBridge';
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
@@ -36,6 +33,10 @@ const TOOLS: Record<StudioToolId, { label: string; icon: ElementType; render: ()
   'particle-playground': { label: 'Particles', icon: SparklesIcon, render: () => <ParticleSystemPlayground /> },
   'texture-lab': { label: 'Texture Lab', icon: WandSparklesIcon, render: () => <TextureLab /> },
 };
+
+const ShaderGraph = lazy(() => import('./tools/shader-graph'));
+const ParticleSystemPlayground = lazy(() => import('./tools/particle-system-playground'));
+const TextureLab = lazy(() => import('./tools/texture-lab'));
 
 function sessionLabel(session: { id: string; name: string | null }): string {
   return session.name ?? `Game ${session.id.slice(0, 8)}`;
@@ -246,7 +247,9 @@ export function StudioApp() {
       </header>
 
       <main className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden" data-testid="studio-tool-surface">
-        {TOOLS[activeTool].render()}
+        <Suspense fallback={<div role="status" aria-busy="true" className="grid h-full place-items-center text-sm text-muted-foreground">Loading tool…</div>}>
+          {TOOLS[activeTool].render()}
+        </Suspense>
       </main>
     </div>
   );
