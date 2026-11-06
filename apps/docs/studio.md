@@ -73,9 +73,9 @@ an error.
 
 ## Pairing with Inspector
 
-Connecting adds a scoped Shader Graph preview in a running game. Particle
-systems and textures remain local authoring inputs; apply them through Studio's
-particle and shader tools, then export them for the game.
+Connecting adds scoped Shader Graph and Particle Playground previews in a
+running game. Textures and other authoring state remain local; use Studio's
+tools to apply them to an effect or shader, then export them for the game.
 
 1. Start Feather Inspector and attach your game as usual.
 2. In Studio, open the tools menu and choose **Connect Inspector**.
@@ -93,7 +93,7 @@ Pairing is explicit. Studio never searches for Inspector on its own.
   every request. It expires, and Inspector can revoke it.
 - **Local only.** The connection is loopback; nothing is reachable from your
   network.
-- **Scoped preview.** A pairing sends only the creative preview actions it was
+- **Scoped preview.** A pairing sends only the shader and particle preview actions it was
   granted, and only to the selected game. Restarting that game makes the old
   preview stale until Studio sends it to the new session.
 - **Local work stays local.** Disconnecting removes live preview but keeps the
