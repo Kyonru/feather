@@ -71,6 +71,9 @@ test('every tool is usable with no Inspector and no game', async ({ page }) => {
   for (const tool of TOOLS) {
     await chooseTool(page, tool.id);
     await expect(surface).toBeVisible();
+    // Tool modules are lazy loaded; wait for the suspense fallback to clear
+    // before judging whether a tool rendered useful content.
+    await expect(surface.getByText('Loading tool…')).toBeHidden();
     await expect(surface).not.toContainText('not available in this session');
     await expect(surface).not.toContainText('No session');
     // Something substantial rendered, not just a frame.
