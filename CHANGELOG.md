@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Texture Lab now gives its generator filter and selected-generator control distinct accessible names.
 - Studio now describes Particle Playground's authenticated in-game preview alongside Shader Graph pairing.
 - Studio loads each authoring tool on demand instead of downloading all three on launch.
 - Inspector keeps Console route code in its lazy chunk by sharing only snippet data with Command Center.

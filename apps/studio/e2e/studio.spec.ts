@@ -513,7 +513,7 @@ test('Texture Lab keeps every editor behind its preview-priority workbench', asy
   await expect(page.getByRole('tab', { name: /Atlas/ })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByTestId('texture-lab-atlas-panel')).toBeVisible();
   await page.getByRole('tab', { name: 'Parameters' }).click();
-  await expect(page.getByLabel('Texture generator')).toBeVisible();
+  await expect(page.getByLabel('Texture generator', { exact: true })).toBeVisible();
   await expect(page.getByTestId('texture-lab-saved-recipes')).toBeVisible();
 });
 

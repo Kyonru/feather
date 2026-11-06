@@ -3100,7 +3100,7 @@ export function TextureLabPanel({
       </div>
       <div className="shrink-0 px-2 pb-2">
         <Input
-          aria-label="Search texture generators"
+          aria-label="Filter texture generators"
           placeholder="Search generators…"
           value={generatorSearch}
           onChange={(event) => setGeneratorSearch(event.target.value)}
