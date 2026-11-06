@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Shader Graph now exports generated GLSL source separately from its editable graph file and reports file-save errors.
 - Particle Playground project exports now round-trip version 4 files, retain uploaded/generated textures, copy Lua definitions instead of JSON, and save a project ZIP from Studio and the browser showcase.
+- Particle workspace save failures now show an actionable warning instead of being silently ignored.
 - LuaRocks source archives now resolve correctly from both full-platform `v*` tags and independent `runtime-v*` tags. The runtime portion of this release is published as [runtime-v4.1.0].
 
 ## [v4.0.0] - 2026-06-14 - The one with MCPs

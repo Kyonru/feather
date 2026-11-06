@@ -79,13 +79,14 @@ function readLocalParticleWorkspaces(): Record<string, ParticleSystemPlaygroundD
 }
 
 function writeLocalParticleWorkspace(workspaceId: string, data: ParticleSystemPlaygroundData) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return true;
   try {
     const workspaces = readLocalParticleWorkspaces();
     workspaces[workspaceId] = particleDataForPersistence(data);
     window.localStorage.setItem(LOCAL_PARTICLE_WORKSPACES_STORAGE_KEY, JSON.stringify(workspaces));
+    return true;
   } catch {
-    // Local creative workspaces are convenience state; ignore quota/storage failures.
+    return false;
   }
 }
 
@@ -484,6 +485,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
   const historyStateRef = useRef<ParticleHistoryState>(historyState);
   const historyScope = useRef<string | null>('Showcase Fire');
   const dataRef = useRef<ParticleSystemPlaygroundData>(data);
+  const storageWarningShown = useRef(false);
 
   useEffect(() => {
     dataRef.current = data;
@@ -539,7 +541,13 @@ export function useLocalParticlePlayground(workspaceId?: string) {
     // external-owner subscription. Notifying here would feed the edit back
     // into this hook and clear the undo stack that recorded it. MCP mutations
     // use replaceLocalParticleWorkspace instead so an open UI still updates.
-    writeLocalParticleWorkspace(workspaceId, data);
+    const saved = writeLocalParticleWorkspace(workspaceId, data);
+    if (saved) {
+      storageWarningShown.current = false;
+    } else if (!storageWarningShown.current) {
+      storageWarningShown.current = true;
+      toast.error('Studio could not save this particle workspace. Export a project ZIP and free browser storage before continuing.');
+    }
   }, [data, workspaceId]);
 
   const currentHistorySnapshot = useCallback(() => snapshotParticleAuthoring(dataRef.current), []);
