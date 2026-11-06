@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph palette buttons now add the focused node to the canvas on click or keyboard activation; drag placement remains available.
 - Shader Graph preset selectors reset after applying a preset, so the same preset can be applied again without choosing another first.
 - Shader Graph inspector fields now expose their visible labels to screen readers, and icon-only delete/copy actions have explicit accessible names.
+- Particle preview switching now reports runtime failures and keeps retry possible until the new composite is confirmed.
 - Texture Lab atlas ZIP compression now yields to the UI instead of blocking on synchronous compression.
 - The standalone particle preview now loads uploaded textures and emitter shaders, honors blend modes, movement, and texture atlas playback, and skips disabled emitters.
 - Studio's **Show in Game** particle preview now uses authored emission rates and the game's frame step; the bounded runtime preview mode also keeps its reduced rate stable across frames.

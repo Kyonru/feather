@@ -117,8 +117,18 @@ export function ParticlePreviewMonitor({
     }
     if (runtimeSuspended) return;
     if (activeGameCompositeRef.current === playground.activeComposite) return;
-    activeGameCompositeRef.current = playground.activeComposite;
-    void setRuntimePreviewActiveRef.current(true, playground.activeComposite, true);
+    const composite = playground.activeComposite;
+    setStatus('sending');
+    setError(null);
+    void setRuntimePreviewActiveRef.current(true, composite, true)
+      .then(() => {
+        activeGameCompositeRef.current = composite;
+        setStatus('live');
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Could not switch the preview in the game. It may have disconnected — check it is still running.');
+        setStatus('error');
+      });
   }, [canShowInGame, clearGamePreview, gamePreviewActive, playground.activeComposite, runtimeSuspended, standalone]);
 
   useEffect(() => {
@@ -129,10 +139,10 @@ export function ParticlePreviewMonitor({
     }
 
     const composite = playground.activeComposite;
-    activeGameCompositeRef.current = composite;
     setStatus('sending');
     void setRuntimePreviewActiveRef.current(true, composite, true)
       .then(() => {
+        activeGameCompositeRef.current = composite;
         const timelineState = playground.composite?.timelineState;
         if (timelineState) {
           playground.seekTimeline(timelineState.time ?? 0, true, true);
