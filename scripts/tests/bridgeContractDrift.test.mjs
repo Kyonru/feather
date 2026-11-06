@@ -76,7 +76,11 @@ test('an undeclared code used by the Rust server fails', () => {
 
 test('an action Rust forwards that TypeScript never allowed fails', () => {
   const { status, output } = runCheck({
-    rs: replaceOnce(RS, '("particle-system-playground", &["set-shader"])', '("particle-system-playground", &["set-shader", "export-zip"])'),
+    rs: replaceOnce(
+      RS,
+      '("particle-system-playground", &["set-shader", "import-project", "restore-composite", "runtime-preview", "timeline-control"])',
+      '("particle-system-playground", &["set-shader", "import-project", "restore-composite", "runtime-preview", "timeline-control", "export-zip"])',
+    ),
   });
   assert.equal(status, 1);
   assert.match(output, /allowlist for "particle-system-playground" differs/);
@@ -91,7 +95,7 @@ test('a size limit changed on one side fails', () => {
 });
 
 test('a version bumped on one side fails', () => {
-  const { status, output } = runCheck({ rs: replaceOnce(RS, 'pub const BRIDGE_VERSION: u32 = 2;', 'pub const BRIDGE_VERSION: u32 = 3;') });
+  const { status, output } = runCheck({ rs: replaceOnce(RS, 'pub const BRIDGE_VERSION: u32 = 4;', 'pub const BRIDGE_VERSION: u32 = 5;') });
   assert.equal(status, 1);
   assert.match(output, /Bridge version mismatch/);
 });
