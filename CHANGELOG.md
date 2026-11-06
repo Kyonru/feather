@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Particle Show in Game now syncs authoring edits after a short debounce, shows when the runtime snapshot is stale, and provides a manual Refresh action.
 - Particle emitter numeric controls now have associated labels, including both sides of range fields and their option selectors.
 - Particle timeline clips can now be selected and nudged with the keyboard; Shift plus an arrow uses a larger step.
+- Particle emitters can now be reordered with labeled Move up/Move down buttons, with the new position announced to screen readers.
 - Texture Lab atlas ZIP compression now yields to the UI instead of blocking on synchronous compression.
 - The standalone particle preview now loads uploaded textures and emitter shaders, honors blend modes, movement, and texture atlas playback, and skips disabled emitters.
 - Studio's **Show in Game** particle preview now uses authored emission rates and the game's frame step; the bounded runtime preview mode also keeps its reduced rate stable across frames.

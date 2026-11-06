@@ -3,7 +3,7 @@ import { Badge } from '@feather/ui/badge';
 import { Button } from '@feather/ui/button';
 import { cn } from '@feather/ui';
 import type { ParticleSystemPlaygroundSystem } from '@studio/types/particle-system-playground';
-import { GripVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { ArrowDownIcon, ArrowUpIcon, GripVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 
 const DND_KEY = 'emitter-index';
 
@@ -19,6 +19,17 @@ type Props = {
 
 export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, onAdd, onRemove, onReorder }: Props) {
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [announcement, setAnnouncement] = useState('');
+
+  function reorder(fromIndex: number, toIndex: number) {
+    const fromPosition = systems.findIndex((system) => system.index === fromIndex);
+    const toPosition = systems.findIndex((system) => system.index === toIndex);
+    if (fromPosition < 0 || toPosition < 0 || fromPosition === toPosition) return;
+    const moved = systems[fromPosition];
+    onReorder(fromIndex, toIndex);
+    onSelect(toIndex);
+    setAnnouncement(`Moved ${moved.title} to emitter ${toPosition + 1} of ${systems.length}.`);
+  }
 
   function handleDragStart(e: React.DragEvent, index: number) {
     e.dataTransfer.effectAllowed = 'move';
@@ -46,11 +57,7 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
     if (!raw) return;
     const fromSystemIndex = Number(raw);
     if (fromSystemIndex !== toSystemIndex) {
-      onReorder(fromSystemIndex, toSystemIndex);
-      onSelect(toSystemIndex);
-      setTimeout(() => {
-        onSelect(toSystemIndex);
-      }, 0); // Delay to allow state update before selecting
+      reorder(fromSystemIndex, toSystemIndex);
     }
   }
 
@@ -60,7 +67,8 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
 
   return (
     <div className="grid gap-1 p-2">
-      {systems.map((system) => {
+      <div className="sr-only" role="status" aria-live="polite">{announcement}</div>
+      {systems.map((system, position) => {
         const active = system.index === activeIndex;
         const isDragTarget = overIndex === system.index;
         const disabled = system.enabled === false;
@@ -85,6 +93,7 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
           >
             {!isGameComposite && (
               <span
+                aria-hidden="true"
                 className={cn(
                   'ml-1 flex size-5 shrink-0 cursor-grab items-center justify-center rounded opacity-0 group-hover:opacity-60 active:cursor-grabbing',
                   active && 'opacity-60',
@@ -95,7 +104,10 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
             )}
             {isGameComposite && <span className="ml-1 w-1" />}
             <button
+              type="button"
+              aria-current={active ? 'true' : undefined}
               className="grid min-w-0 grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-2 px-2 py-2 text-left"
+              aria-label={`Select emitter ${system.index}: ${system.title}${disabled ? ', disabled' : ''}`}
               onClick={() => onSelect(system.index)}
             >
               <span className="flex size-6 items-center justify-center rounded border bg-background/20 font-mono text-[10px]">
@@ -120,21 +132,41 @@ export function EmitterList({ systems, activeIndex, isGameComposite, onSelect, o
               </Badge>
             </button>
             {!isGameComposite && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className={cn(
-                  'mr-1 size-7 shrink-0',
-                  active
-                    ? 'text-muted-foreground hover:text-destructive'
-                    : 'text-muted-foreground hover:text-destructive',
-                )}
-                title={systems.length > 1 ? 'Delete emitter' : 'A composite needs at least one emitter'}
-                disabled={systems.length <= 1}
-                onClick={() => onRemove(system.index)}
-              >
-                <Trash2Icon className="size-3.5" />
-              </Button>
+              <div className="mr-1 flex shrink-0 items-center">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={`Move ${system.title} up`}
+                  title="Move emitter up"
+                  disabled={position === 0}
+                  onClick={() => reorder(system.index, systems[position - 1]!.index)}
+                >
+                  <ArrowUpIcon className="size-3.5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={`Move ${system.title} down`}
+                  title="Move emitter down"
+                  disabled={position === systems.length - 1}
+                  onClick={() => reorder(system.index, systems[position + 1]!.index)}
+                >
+                  <ArrowDownIcon className="size-3.5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-7 text-muted-foreground hover:text-destructive"
+                  aria-label={`Delete ${system.title}`}
+                  title={systems.length > 1 ? 'Delete emitter' : 'A composite needs at least one emitter'}
+                  disabled={systems.length <= 1}
+                  onClick={() => onRemove(system.index)}
+                >
+                  <Trash2Icon className="size-3.5" />
+                </Button>
+              </div>
             )}
           </div>
         );
