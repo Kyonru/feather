@@ -253,6 +253,10 @@ async function particlePreviewFrame(page: Page) {
   return frame!;
 }
 
+async function openEmitterGroup(page: Page, label: string) {
+  await page.locator('summary').filter({ hasText: new RegExp(`^›${label}$`) }).click();
+}
+
 async function particlePreviewStatus(page: Page) {
   const frame = await particlePreviewFrame(page);
   return frame.evaluate(() => {
@@ -343,7 +347,7 @@ test('standalone showcase loads the landing page and tools', async ({ page }) =>
     .getByRole('button', { name: /particle playground/i })
     .click();
   await expect(page.getByRole('heading', { name: 'Particles Playground' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Emission', exact: true })).toBeVisible();
+  await openEmitterGroup(page, 'Emission');
   await expect(page.getByText('Rate', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Play$/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Emit$/ })).toHaveCount(0);
@@ -586,6 +590,7 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await page.getByRole('button', { name: 'Add Emitter' }).click();
   await expect(page.getByTestId('particle-emitter-row-2')).toBeVisible();
   await page.getByTestId('particle-emitter-row-1').click();
+  await openEmitterGroup(page, 'Emission');
   await page.getByText('Emitter Lifetime').locator('..').getByRole('spinbutton').fill('0.8');
   await page.getByRole('tab', { name: 'Timeline' }).click();
   await expect(page.getByTestId('particle-timeline-panel')).toBeVisible();
@@ -615,7 +620,9 @@ test('particle playground timeline edits clips and keyframes in the showcase', a
   await page.getByTitle('Reset playhead').click();
 
   await page.getByTestId('particle-timeline-track-1').click();
-  await expect(page.getByRole('button', { name: 'Select Emitter' })).toBeVisible();
+  await expect(
+    page.getByTestId('particle-timeline-inspector').getByRole('button', { name: 'Select Emitter', exact: true }),
+  ).toBeVisible();
 
   const firstClipEndHandle = page.getByTestId('particle-timeline-clip-end-handle-1').first();
   await firstClipEndHandle.scrollIntoViewIfNeeded();
@@ -840,6 +847,7 @@ test('particle playground undo redo history works in the showcase', async ({ pag
   await expect(undoButton).toBeDisabled();
   await expect(redoButton).toBeDisabled();
 
+  await openEmitterGroup(page, 'Emission');
   const rate = page.getByText('Rate', { exact: true }).locator('..').getByRole('spinbutton');
   await expect(rate).toHaveValue('100');
   await rate.fill('150');
