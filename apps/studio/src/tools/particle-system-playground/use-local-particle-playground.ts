@@ -66,6 +66,17 @@ function particleDataForPersistence(data: ParticleSystemPlaygroundData): Particl
   };
 }
 
+function sameParticleAuthoring(left: ParticleSystemPlaygroundData | null, right: ParticleSystemPlaygroundData): boolean {
+  if (!left || left.activeComposite !== right.activeComposite || left.composites !== right.composites) return false;
+  if (!left.data || !right.data) return left.data === right.data;
+  return left.data.systems === right.data.systems
+    && left.data.timeline === right.data.timeline
+    && left.data.movement === right.data.movement
+    && left.data.previewEnabled === right.data.previewEnabled
+    && left.data.x === right.data.x
+    && left.data.y === right.data.y;
+}
+
 function readLocalParticleWorkspaces(): Record<string, ParticleSystemPlaygroundData> {
   if (typeof window === 'undefined') return {};
   try {
@@ -531,18 +542,22 @@ export function useLocalParticlePlayground(workspaceId?: string) {
   // `data` still belongs to the workspace being left, so that one pass is
   // skipped — writing it would copy the old workspace into the new one.
   const writtenFor = useRef(workspaceId);
+  const lastPersistedAuthoring = useRef<ParticleSystemPlaygroundData | null>(null);
   useEffect(() => {
     if (!workspaceId) return;
     if (writtenFor.current !== workspaceId) {
       writtenFor.current = workspaceId;
+      lastPersistedAuthoring.current = null;
       return;
     }
+    if (sameParticleAuthoring(lastPersistedAuthoring.current, data)) return;
     // This render already owns `data`; persist it without notifying the
     // external-owner subscription. Notifying here would feed the edit back
     // into this hook and clear the undo stack that recorded it. MCP mutations
     // use replaceLocalParticleWorkspace instead so an open UI still updates.
     const saved = writeLocalParticleWorkspace(workspaceId, data);
     if (saved) {
+      lastPersistedAuthoring.current = data;
       storageWarningShown.current = false;
     } else if (!storageWarningShown.current) {
       storageWarningShown.current = true;
