@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MonitorOffIcon, MonitorPlayIcon, PinIcon, PinOffIcon, RefreshCwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
+import { CopyIcon, MonitorOffIcon, MonitorPlayIcon, PinIcon, PinOffIcon, RefreshCwIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
 import { Button } from '@feather/ui/button';
 import { sessionSupportsRuntime, useSessionStore } from '@studio/session';
 import { useShaderGraphStore } from '@studio/store/shader-graph';
@@ -93,6 +93,7 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
   const payloadRef = useRef<Record<string, unknown>>({ tool: 'idle' });
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [standaloneCompileError, setStandaloneCompileError] = useState<string | null>(null);
   const previewSrc = `${import.meta.env.BASE_URL}showcase-lovejs/webgl.html?featherPreview=${PREVIEW_ASSET_VERSION}`;
   const activeSubgraph = activeSubgraphId ? subgraphs.find((subgraph) => subgraph.id === activeSubgraphId) : null;
   const graphNodes = activeSubgraph?.nodes ?? nodes;
@@ -138,7 +139,15 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
   useEffect(() => {
     function handlePreviewMessage(event: MessageEvent) {
       if (event.source !== iframeRef.current?.contentWindow) return;
-      if (event.data?.source !== 'feather-showcase' || event.data?.type !== 'preview:ready') return;
+      if (event.data?.source !== 'feather-showcase') return;
+      if (event.data?.type === 'preview:shader-status') {
+        const previewStatus = event.data.status as { tool?: string; error?: string } | undefined;
+        if (previewStatus?.tool === 'shader-graph') {
+          setStandaloneCompileError(previewStatus.error || null);
+        }
+        return;
+      }
+      if (event.data?.type !== 'preview:ready') return;
       loadedRef.current = true;
       sendPayload();
     }
@@ -323,6 +332,21 @@ function ActiveLoveNodePreview({ nodeId, pinned }: Pick<Props, 'nodeId' | 'pinne
           </div>
         )}
       </div>
+      {standaloneCompileError && canPreview && (
+        <div role="alert" className="flex items-start gap-2 border-t border-danger/30 bg-danger-surface px-2 py-1.5 text-[10px] text-danger">
+          <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">Preview error: {standaloneCompileError}</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-6 shrink-0 px-1.5 text-[10px]"
+            aria-label="Copy shader preview error"
+            onClick={() => void navigator.clipboard.writeText(standaloneCompileError)}
+          >
+            <CopyIcon className="size-3" /> Copy
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

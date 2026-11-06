@@ -313,7 +313,7 @@ local function publishShaderStatus()
   end
   local textureCount = type(shaderState.textures) == "table" and #shaderState.textures or 0
   local expression = string.format(
-    "window._featherShaderPreviewStatus={tool:'shader-graph',shader:%s,drawable:%s,textureCount:%d,error:%s,name:%s}",
+    "window._featherShaderPreviewStatus={tool:'shader-graph',shader:%s,drawable:%s,textureCount:%d,error:%s,name:%s};if(window.parent&&window.parent!==window)window.parent.postMessage({source:'feather-showcase',type:'preview:shader-status',status:window._featherShaderPreviewStatus},'*')",
     shaderState.shader and "true" or "false",
     shaderState.drawable and "true" or "false",
     textureCount,
