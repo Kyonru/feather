@@ -85,7 +85,7 @@ After changing Rust code, `pnpm run inspector:tauri` rebuilds automatically. For
 
 ## Showcase app
 
-`apps/showcase/` is a standalone browser-only build (no Tauri, no WS) of Feather Studio. It has no page code: `apps/showcase/src/main.tsx` imports Studio's web mount from `apps/studio/src/showcase/`. Its Vite and Playwright configs live in `apps/showcase/`.
+`apps/showcase/` is a standalone browser-only build (no Tauri, no WS) of Feather Studio. It has no page code: `apps/showcase/src/main.tsx` imports Studio's application entry from `apps/studio/src/main.tsx`, so the same shell and tools render in both hosts. Its Vite and Playwright configs live in `apps/showcase/`.
 
 Showcase-relevant e2e tests live in `apps/showcase/e2e/showcase.spec.ts`. Run with `pnpm run test:showcase:e2e`.
 

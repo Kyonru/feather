@@ -37,12 +37,9 @@ const host = await resolveHost();
 /**
  * Studio's provider stack.
  *
- * This mounted `HostProvider` alone until now, which is why none of the tools
- * could be rendered: they reference design tokens 394 times and every one
- * resolved to nothing without `ThemeProvider`, their hooks need a query client,
- * and `@feather/ui` components need the UI dependencies. The showcase has run
- * the same tools successfully with these four all along — see
- * `showcase/providers.tsx`, which this mirrors.
+ * The tools depend on environment capabilities, design tokens, a query client,
+ * and shared UI dependencies. The browser Showcase imports this entry too, so
+ * both hosts receive the same provider stack.
  *
  * The query client keeps a long `gcTime` because creative state is expensive to
  * rebuild and cheap to hold.

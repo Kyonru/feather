@@ -17,12 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The Showcase landing page now describes its three browser-hosted creative tools and makes the separate desktop debugging boundary clear.
+- The browser Showcase now mounts Studio's actual shell and tools, keeping navigation, authoring, storage, and exports consistent with desktop Studio.
 - Updated catalog pins for `feel` to v1.4.1 and `glyph` to v0.4.0, including their newly shipped modules, and added the checksum-pinned `gpuparticles` v0.2.0 runtime and GLSL sources.
 - `feather create` still uses the Oval-Tutu bootstrap by default, but now deeply cleans its sample game, placeholder product identity, funding metadata, workspace words, README, and stale usage examples while preserving its build workflows, legal attribution, and required build dependencies.
 
 ### Tests
 
+- Showcase workflow coverage now exercises the shared Studio shell, local-only state, browser exports, persistence, and compact-window layout.
 - Shader Graph export coverage now follows the Studio export menu and verifies editable graph downloads alongside GLSL and bundle artifacts.
 - Particle ZIP coverage now verifies generated Lua texture paths resolve to archived image files.
 - Shader Graph export coverage now checks bundle manifests and generated stage files.

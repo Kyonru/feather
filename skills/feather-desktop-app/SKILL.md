@@ -44,7 +44,7 @@ They are separate applications ([architecture](../../apps/docs/architecture.md))
 - Tauri utilities: `apps/inspector/src/utils/linking.ts`, `apps/inspector/src/utils/file.ts`, `apps/inspector/src/utils/platform.ts`.
 - Tauri/Rust layer: `apps/inspector/src-tauri/src/ws_server.rs`, `lib.rs`, `cli_status.rs`.
 - Studio: shell `apps/studio/src/StudioApp.tsx`, tools `apps/studio/src/tools/{shader-graph,particle-system-playground,texture-lab}/`, Inspector pairing `apps/studio/src/useInspectorBridge.ts`, Rust shell `apps/studio/src-tauri/`.
-- Showcase: `apps/showcase/` is a thin web shell; what it renders is Studio's public web mount in `apps/studio/src/showcase/` (browser-only, no Tauri, no session bridge).
+- Showcase: `apps/showcase/` is a thin browser host that imports Studio's application entry directly (no Tauri, no session bridge, no duplicate tool pages).
 
 ## Verification
 

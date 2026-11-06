@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BlendIcon, MenuIcon, PlugZapIcon, SparklesIcon, UnplugIcon, WandSparklesIcon } from 'lucide-react';
 import type { ElementType } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@feather/ui/sheet';
@@ -9,6 +9,16 @@ import { useMcpCreativeBridge } from './hooks/use-mcp-creative-bridge';
 import { useInspectorBridge } from './useInspectorBridge';
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
 import { STUDIO_TOOLS, useStudioUiStore, type StudioToolId } from './store/studio-ui';
+
+const TOOL_PATHS: Record<StudioToolId, string> = {
+  'shader-graph': '/shader-graph',
+  'particle-playground': '/particle-system-playground',
+  'texture-lab': '/texture-lab',
+};
+
+function toolForPath(pathname: string): StudioToolId | undefined {
+  return STUDIO_TOOLS.find((tool) => TOOL_PATHS[tool] === pathname.replace(/\/$/, ''));
+}
 
 /**
  * Feather Studio's shell.
@@ -229,12 +239,25 @@ export function StudioApp() {
   const activeTool = useStudioUiStore((state) => state.activeTool);
   const setActiveTool = useStudioUiStore((state) => state.setActiveTool);
 
+  const isDesktop = '__TAURI_INTERNALS__' in globalThis;
+
+  useEffect(() => {
+    if (isDesktop) return;
+    const linkedTool = toolForPath(window.location.pathname);
+    if (linkedTool) setActiveTool(linkedTool);
+  }, [isDesktop, setActiveTool]);
+
+  const selectTool = (tool: StudioToolId) => {
+    setActiveTool(tool);
+    if (!isDesktop) window.history.replaceState({}, '', TOOL_PATHS[tool]);
+  };
+
   return (
     <div className="flex h-screen min-h-0 w-full flex-col overflow-hidden bg-background text-foreground">
       {/* One value step above the work, and no rule between them. Thin, because
           the canvas wants the height as much as the width. */}
       <header data-testid="studio-strip" className="flex h-9 shrink-0 items-center gap-2 bg-sidebar px-2 text-xs">
-        <ToolMenu activeTool={activeTool} onSelect={setActiveTool} />
+        <ToolMenu activeTool={activeTool} onSelect={selectTool} />
         <span className="truncate font-medium" data-testid="studio-current-tool">
           {TOOLS[activeTool].label}
         </span>

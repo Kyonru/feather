@@ -1,9 +1,6 @@
 /**
- * The showcase entry.
- *
- * Deliberately three lines of its own: everything it renders belongs to Feather
- * Studio, and the showcase exists only to host it in a browser with the web host
- * and no session bridge.
+ * Showcase is the browser host for Feather Studio. Keep this entry as a single
+ * import so its tools, navigation, persistence, and exports come from the same
+ * application code as the desktop build.
  */
-import '@studio/showcase/showcase-app.css';
-import '@studio/showcase/mount';
+import '@studio/main';

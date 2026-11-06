@@ -1,8 +1,9 @@
 # Standalone Showcase
 
-The standalone showcase is a browser-hosted version of Feather Studio's visual
-authoring tools. It lets you try Shader Graph, Particle Playground, and Texture
-Lab without starting the desktop app or connecting a local LÖVE project.
+The standalone showcase hosts the same Feather Studio application in a browser.
+It uses Studio's shell, Shader Graph, Particle Playground, Texture Lab,
+navigation, storage, and export workflows without starting the desktop app or
+connecting a local LÖVE project.
 
 [Open the standalone showcase](https://feather-showcase.up.railway.app/)
 
@@ -15,19 +16,15 @@ tool, including clip timing and keyframe lanes.
 
 ## What Works There
 
-- **Shader Graph** runs in the browser with the same graph editor, code output,
-  template controls, node previews, and love.js preview target used by the
-  desktop development flow.
-- **Particle System Playground** runs with the same emitter editor, timeline,
-  keyframe easing, local preview, and export workflow.
-- **Texture Lab** runs with the same procedural generators, recipe editor,
-  texture preview, atlas tools, and PNG export used by Studio.
+- **Shader Graph**, **Particle System Playground**, and **Texture Lab** are the
+  same Studio tools used by the desktop application. Showcase does not maintain
+  separate editor implementations.
 - Generated shader graphs and particle projects can be exported and imported
   between the showcase and the desktop app.
 
-The showcase does not connect to a running game. Connected-game preview actions
-such as **Show in Game**, runtime overlay apply, or game-owned particle systems
-are only available from the Feather desktop app with a live session.
+The showcase does not connect to a running game. The Studio shell reports a
+local-only state; connected-game preview actions are available from desktop
+Studio paired with Inspector and a live session.
 
 ## Local Development
 

@@ -5,7 +5,7 @@
 - `apps/inspector/src/main.tsx`: React entry.
 - `apps/inspector/src/providers.tsx`: app providers.
 - `apps/inspector/src/router.tsx`: route definitions.
-- `apps/studio/src/main.tsx`: Studio's desktop entry; `apps/studio/src/showcase/mount.tsx` is its web mount, which `apps/showcase/src/main.tsx` imports.
+- `apps/studio/src/main.tsx`: Studio's application entry. `apps/showcase/src/main.tsx` imports it directly so the browser host renders the same shell and tools.
 
 ## Pages
 
@@ -64,4 +64,4 @@ Use existing utility wrappers for:
 
 This keeps browser/showcase behavior and desktop-only behavior easier to separate.
 
-The showcase must stay browser-only. Avoid direct Tauri calls or WebSocket assumptions in Studio code that `apps/studio/src/showcase/` mounts; reach the environment through `@feather/host`.
+The showcase must stay browser-only. Avoid direct Tauri calls or WebSocket assumptions in Studio code; reach the environment through `@feather/host`. Keep Showcase as a thin host and do not add parallel tool pages or editors.
