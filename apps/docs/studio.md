@@ -57,6 +57,12 @@ so Studio asks for confirmation first and always keeps at least one workspace.
 Existing per-tool work is adopted by the first workspace after upgrading rather
 than replaced with an empty one.
 
+Particle projects can be saved as `.featherparticles` files or as a project ZIP.
+The ZIP contains the editable project, its generated Lua definition, shader
+sources, uploaded/generated textures and atlas metadata. Use **Copy Lua Code**
+to copy the authored particle table; the project and its textures stay in the
+saved project files.
+
 Studio says *"Local only"* when no Inspector is running. That is a state, not
 an error.
 

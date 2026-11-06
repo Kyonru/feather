@@ -79,6 +79,8 @@ export type ParticleSystemPlaygroundSystem = {
   texturePath: string;
   texturePreset: string;
   textureFilename: string;
+  /** Embedded source image for locally authored uploads and generated textures. */
+  textureAssetBase64?: string;
   textureAtlas?: TextureLabAtlasMetadata;
   shaderPath: string;
   shaderFilename: string;

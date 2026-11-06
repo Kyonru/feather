@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useHost } from '@feather/host';
+import { zipSync } from 'fflate';
 import { toast } from 'sonner';
 import type {
   ParticleTimeline,
@@ -33,6 +35,12 @@ import {
   type ParticleHistoryState,
 } from '@studio/tools/particle-system-playground/history';
 import type { TextureLabAtlasMetadata } from '@studio/types/texture-lab';
+import {
+  exportParticleLua,
+  exportParticleProject,
+  particleProjectZipEntries,
+  safeParticleFilename,
+} from './artifacts';
 
 export type LocalParticleParamValue = string | number | boolean;
 type ParamValue = LocalParticleParamValue;
@@ -120,17 +128,6 @@ export function subscribeLocalParticleWorkspace(workspaceId: string, listener: L
     listeners.delete(listener);
     if (listeners.size === 0) localParticleWorkspaceListeners.delete(workspaceId);
   };
-}
-
-function downloadProject(project: ParticleSystemPlaygroundProjectFile) {
-  const json = JSON.stringify(project, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${project.name.replace(/[^a-zA-Z0-9._-]+/g, '-') || 'particle-project'}.featherparticles`;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 function timelinesEqual(a: ParticleTimeline, b: ParticleTimeline): boolean {
@@ -481,6 +478,7 @@ export function updateLocalParticleSystem(
 }
 
 export function useLocalParticlePlayground(workspaceId?: string) {
+  const host = useHost();
   const [data, setData] = useState<ParticleSystemPlaygroundData>(() => loadLocalParticleWorkspace(workspaceId));
   const [historyState, setHistoryState] = useState<ParticleHistoryState>(() => createParticleHistoryState());
   const historyStateRef = useRef<ParticleHistoryState>(historyState);
@@ -831,7 +829,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
             ...current.data,
             systems: current.data.systems.map((item) =>
               item.index === current.activeSystem
-                ? { ...item, texturePreset: preset, texturePath: '', textureFilename: `${preset}.png`, textureAtlas: undefined, exportReady: true }
+                ? { ...item, texturePreset: preset, texturePath: '', textureFilename: `${preset}.png`, textureAssetBase64: undefined, textureAtlas: undefined, exportReady: true }
                 : item,
             ),
           },
@@ -853,6 +851,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
                     texturePath,
                     texturePreset: '',
                     textureFilename: texturePath.split(/[\\/]/).pop() || 'texture.png',
+                    textureAssetBase64: undefined,
                     textureAtlas: undefined,
                     exportReady: true,
                   }
@@ -862,7 +861,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
         };
       });
     },
-    setTextureFromUpload: (filename: string, _dataBase64?: string, textureAtlas?: TextureLabAtlasMetadata) => {
+    setTextureFromUpload: (filename: string, dataBase64?: string, textureAtlas?: TextureLabAtlasMetadata) => {
       recordHistory(`system:${data.activeSystem}:texture`, false);
       setData((current) => {
         if (!current.data) return current;
@@ -877,6 +876,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
                     texturePath: '',
                     texturePreset: '',
                     textureFilename: filename,
+                    textureAssetBase64: dataBase64,
                     textureAtlas,
                     exportReady: true,
                   }
@@ -906,23 +906,40 @@ export function useLocalParticlePlayground(workspaceId?: string) {
       }
       toast.success('Shader applied to showcase preview');
     },
-    exportCode: () => {
-      navigator.clipboard.writeText(JSON.stringify(data.data, null, 2)).catch(() => {});
-      toast.success('Copied showcase particle data');
+    exportCode: async () => {
+      try {
+        const { source } = exportParticleLua(dataRef.current);
+        await navigator.clipboard.writeText(source);
+        toast.success('Particle Lua code copied');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Could not copy particle Lua code');
+      }
     },
-    exportZip: () => toast.info('ZIP export is available in the Feather desktop app.'),
-    saveProject: () => {
-      if (!data.data || !data.activeComposite) return;
-      const compositeData = { ...withNormalizedTimeline(data.data) };
-      delete compositeData.timelineState;
-      downloadProject({
-        type: PARTICLE_PROJECT_TYPE,
-        version: PARTICLE_PROJECT_VERSION,
-        exportedAt: new Date().toISOString(),
-        name: data.activeComposite,
-        composite: compositeData,
-      });
-      toast.success('Particle project saved');
+    exportZip: async () => {
+      try {
+        const current = dataRef.current;
+        const archive = zipSync(particleProjectZipEntries(current));
+        const filename = `${safeParticleFilename(current.activeComposite ?? 'particle-effect')}-project.zip`;
+        const saved = await host.saveBinaryFile(filename, archive);
+        if (!saved) throw new Error('The project ZIP was not saved. Choose another location and try again.');
+        toast.success('Particle project ZIP saved');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to save particle project ZIP');
+      }
+    },
+    saveProject: async () => {
+      try {
+        const project = exportParticleProject(dataRef.current);
+        const saved = await host.saveTextFile({
+          defaultName: project.filename,
+          extensions: ['featherparticles'],
+          filterName: 'Feather Particle Project',
+          text: project.content,
+        });
+        if (saved) toast.success('Particle project saved');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to save particle project');
+      }
     },
     importProject: (raw: string) => {
       let project: ParticleSystemPlaygroundProjectFile;
@@ -934,7 +951,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
       }
       if (
         project.type !== PARTICLE_PROJECT_TYPE ||
-        (project.version !== 1 && project.version !== 2 && project.version !== 3) ||
+        !Number.isInteger(project.version) || project.version < 1 || project.version > PARTICLE_PROJECT_VERSION ||
         !project.composite?.systems?.length
       ) {
         toast.error('Unsupported particle project file');

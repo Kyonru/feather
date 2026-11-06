@@ -44,7 +44,7 @@ export function ExportPanel({
           <CodeIcon /> Copy Lua Code
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onExportZip}>
-          <FileArchiveIcon /> Save Runtime ZIP
+          <FileArchiveIcon /> Save Project ZIP
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
