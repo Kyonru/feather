@@ -313,8 +313,9 @@ export function NodeInspector() {
   return (
     <div className="flex flex-col gap-3 p-3 text-xs">
       <div className="grid gap-1">
-        <Label className="section-label">Shader Name</Label>
+        <Label htmlFor="shader-name-input" className="section-label">Shader Name</Label>
         <Input
+          id="shader-name-input"
           className="h-7 text-xs font-mono"
           value={shaderName}
           onChange={(e) => setShaderName(e.target.value)}
@@ -332,6 +333,8 @@ export function NodeInspector() {
               <div className="text-[10px] text-muted-foreground">{def.label}</div>
             </div>
             <button
+              type="button"
+              aria-label="Delete node"
               onClick={() => removeNode(selected.id)}
               className="flex items-center justify-center size-6 rounded hover:bg-danger-surface text-muted-foreground hover:text-danger transition-colors shrink-0 mt-0.5"
               title="Delete node (Del)"
@@ -341,8 +344,9 @@ export function NodeInspector() {
           </div>
 
           <div className="grid gap-1">
-            <Label className="text-[10px] text-muted-foreground">Node Name</Label>
+            <Label htmlFor="shader-node-name-input" className="text-[10px] text-muted-foreground">Node Name</Label>
             <Input
+              id="shader-node-name-input"
               className="h-7 text-xs"
               value={selected.data.label ?? def.label}
               placeholder={def.label}
@@ -720,6 +724,8 @@ export function NodeInspector() {
               </div>
             </div>
             <button
+              type="button"
+              aria-label="Delete edge"
               onClick={() => removeEdge(selectedEdge.id)}
               className="flex items-center justify-center size-6 rounded hover:bg-danger-surface text-muted-foreground hover:text-danger transition-colors shrink-0"
               title="Delete edge (Del)"

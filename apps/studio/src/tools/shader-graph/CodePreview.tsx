@@ -149,6 +149,8 @@ export function CodePreview() {
         <div className="flex items-center gap-2">
           <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', statusColor)}>{validationStatus}</Badge>
           <button
+            type="button"
+            aria-label={copied ? 'GLSL copied' : 'Copy GLSL'}
             onClick={handleCopy}
             className="flex items-center justify-center size-5 rounded hover:bg-muted text-muted-foreground transition-colors"
             title="Copy GLSL"
@@ -369,6 +371,7 @@ export function ShaderOutputDock({
             </span>
             <button
               type="button"
+              aria-label="Copy raw shader error"
               className="flex size-5 items-center justify-center rounded text-danger transition-colors hover:bg-danger-surface"
               title="Copy raw shader error"
               onClick={copyValidationErrors}
