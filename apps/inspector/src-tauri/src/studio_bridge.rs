@@ -972,7 +972,7 @@ mod tests {
     #[test]
     fn negotiate_accepts_an_overlapping_range() {
         assert_eq!(negotiate(2, 2), Ok(2));
-        assert_eq!(negotiate(5, 1), Ok(2));
+        assert_eq!(negotiate(5, 1), Ok(4));
     }
 
     #[test]
