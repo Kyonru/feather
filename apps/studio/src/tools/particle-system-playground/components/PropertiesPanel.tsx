@@ -2,7 +2,6 @@ import { Checkbox } from '@feather/ui/checkbox';
 import { Input } from '@feather/ui/input';
 import { Label } from '@feather/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
-import { Separator } from '@feather/ui/separator';
 import {
   BLEND_MODES,
   EMISSION_AREA_DISTRIBUTIONS,
@@ -198,11 +197,12 @@ export function PropertiesPanel({ system, onChange }: Props) {
       <MotionPresets system={system} onChange={onChange} />
 
       {groups.map((group) => (
-        <section key={group.title} className="grid gap-3">
-          <div className="flex items-center gap-3">
-            <h3 className="section-label">{group.title}</h3>
-            <Separator className="flex-1" />
-          </div>
+        <details key={group.title} className="group rounded-md border border-border/60 px-2.5">
+          <summary className="cursor-pointer list-none py-2.5 text-xs font-semibold text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <span className="mr-2 inline-block transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+            {group.title}
+          </summary>
+          <div className="grid gap-3 pb-3">
           {group.title === 'Direction And Speed' && <DirectionSpreadGizmo system={system} onChange={onChange} />}
           {group.title === 'Shape' && <TextureOffsetGizmo system={system} onChange={onChange} />}
           {group.title === 'Rotation' && <RotationSpinGizmo system={system} onChange={onChange} />}
@@ -224,16 +224,24 @@ export function PropertiesPanel({ system, onChange }: Props) {
               ),
             )}
           </div>
-        </section>
+          </div>
+        </details>
       ))}
 
-      <AccelerationEditor system={system} onChange={onChange} />
+      <details className="group rounded-md border border-border/60 px-2.5">
+        <summary className="cursor-pointer list-none py-2.5 text-xs font-semibold text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <span className="mr-2 inline-block transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+          Acceleration And Damping
+        </summary>
+        <div className="pb-3"><AccelerationEditor system={system} onChange={onChange} /></div>
+      </details>
 
-      <section className="grid gap-3">
-        <div className="flex items-center gap-3">
-          <h3 className="section-label">Emission Area</h3>
-          <Separator className="flex-1" />
-        </div>
+      <details className="group rounded-md border border-border/60 px-2.5">
+        <summary className="cursor-pointer list-none py-2.5 text-xs font-semibold text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <span className="mr-2 inline-block transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+          Emission Area
+        </summary>
+        <div className="grid gap-3 pb-3">
         <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
             <Label id={`particle-${system.index}-distribution-label`} className="text-[10px] text-muted-foreground font-semibold">Distribution</Label>
@@ -271,7 +279,8 @@ export function PropertiesPanel({ system, onChange }: Props) {
             </Label>
           </div>
         </div>
-      </section>
+        </div>
+      </details>
     </div>
   );
 }

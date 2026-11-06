@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Particle emitters can now be reordered with labeled Move up/Move down buttons, with the new position announced to screen readers.
 - Particle texture import and game path controls now expose accessible names and label associations.
 - The Particle Playground empty state now describes its visible import and create actions.
+- Particle emitter properties now use keyboard-operable disclosure groups to reduce inspector scrolling.
 - Texture Lab atlas ZIP compression now yields to the UI instead of blocking on synchronous compression.
 - The standalone particle preview now loads uploaded textures and emitter shaders, honors blend modes, movement, and texture atlas playback, and skips disabled emitters.
 - Studio's **Show in Game** particle preview now uses authored emission rates and the game's frame step; the bounded runtime preview mode also keeps its reduced rate stable across frames.
