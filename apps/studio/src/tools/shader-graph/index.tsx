@@ -8,6 +8,7 @@ import { useActiveSession, sessionSupportsRuntime } from '@studio/session';
 import { useWorkspaceToolKey } from '@studio/store/studio-workspaces';
 import { useHost } from '@feather/host';
 import { Button } from '@feather/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@feather/ui/dropdown-menu';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@feather/ui/resizable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
 import { useShaderGraphStore } from '@studio/store/shader-graph';
@@ -298,18 +299,18 @@ export default function ShaderGraph() {
                 <Trash2Icon className="size-4" />
                 Clear
               </Button>
-              <Button size="sm" variant="outline" className="h-8 gap-2 text-xs" onClick={exportGlsl}>
-                <DownloadIcon className="size-4" />
-                Export GLSL
-              </Button>
-              <Button size="sm" variant="outline" className="h-8 gap-2 text-xs" onClick={exportBundle}>
-                <DownloadIcon className="size-4" />
-                Export Bundle
-              </Button>
-              <Button size="sm" className="h-8 gap-2 text-xs" onClick={exportGraph}>
-                <DownloadIcon className="size-4" />
-                Export Graph
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-8 gap-2 text-xs">
+                    <DownloadIcon className="size-4" /> Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={exportGlsl}>Export GLSL</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={exportBundle}>Export Bundle</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={exportGraph}>Export Graph</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
           <input
