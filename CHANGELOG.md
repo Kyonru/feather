@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Shader Graph code generation now indexes connected inputs once, avoiding repeated full-edge scans on large graphs.
 - Shader Graph files now keep uploaded textures with their node bindings, so imported graphs retain their images.
 - Shader Graph now exports generated GLSL source separately from its editable graph file and reports file-save errors.
 - Particle Playground project exports now round-trip version 4 files, retain uploaded/generated textures, copy Lua definitions instead of JSON, and save a project ZIP from Studio and the browser showcase.
