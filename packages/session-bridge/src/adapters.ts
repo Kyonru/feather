@@ -29,6 +29,8 @@ import {
   type HandshakeParams,
   type HandshakeResult,
   type PreviewCancelParams,
+  type PreviewResult,
+  type PreviewResultParams,
   type PreviewSendParams,
   type PreviewSendResult,
   type SessionList,
@@ -49,6 +51,7 @@ export interface SessionBridge {
   selectSession(sessionId: string): Promise<BridgeResult<BridgeSessionSummary>>;
   sendPreview(params: PreviewSendParams): Promise<BridgeResult<PreviewSendResult>>;
   cancelPreview(params: PreviewCancelParams): Promise<BridgeResult<PreviewSendResult>>;
+  previewResult(params: PreviewResultParams): Promise<BridgeResult<PreviewResult>>;
   exportPreferences(): Promise<unknown | null>;
   /** Give the capability back. Best effort; a failed release still forgets it locally. */
   release(): Promise<void>;
@@ -74,6 +77,7 @@ export function createNullBridge(): SessionBridge {
     selectSession: none,
     sendPreview: none,
     cancelPreview: none,
+    previewResult: none,
     exportPreferences: async () => null,
     release: async () => undefined,
   };
@@ -159,6 +163,7 @@ export function createClientBridge(
     selectSession: (sessionId) => call<BridgeSessionSummary>('sessions.select', { sessionId }),
     sendPreview: (params) => call<PreviewSendResult>('preview.send', params),
     cancelPreview: (params) => call<PreviewSendResult>('preview.cancel', params),
+    previewResult: (params) => call<PreviewResult>('preview.result', params),
 
     async exportPreferences() {
       const response = await call<unknown>('preferences.export', {});
@@ -359,6 +364,9 @@ export function createBridgeServer(handlers: BridgeServerHandlers) {
         }
         return ok(id, { requestId } satisfies PreviewSendResult);
       }
+
+      case 'preview.result':
+        return ok(id, { status: 'pending' } satisfies PreviewResult);
 
       case 'preferences.export':
         return ok(id, handlers.exportPreferences());

@@ -780,6 +780,11 @@ export const useWsConnection = () => {
             const response = msg as any;
             const pluginId = response.plugin;
             const action = response.action;
+            if (pluginId === 'shader-graph' && action === 'compile-shader' && typeof response.requestId === 'string' && response.requestId.startsWith('studio-')) {
+              void invoke('record_studio_preview_result', { sessionId, response }).catch((error: unknown) => {
+                console.warn('Could not relay the shader compiler response to Studio:', error);
+              });
+            }
             if (pluginId && action) {
               queryClient.setQueryData(sessionQueryKey.pluginAction(sessionId, pluginId, action), response);
             }

@@ -44,9 +44,8 @@ use tokio::sync::oneshot;
 use crate::ws_server::Sessions;
 
 /// Keep in step with `BRIDGE_VERSION` in the TypeScript contract. v2 removed
-/// the generic `session.send`; v1 peers are refused because they would still
-/// expect it.
-pub const BRIDGE_VERSION: u32 = 2;
+/// the generic `session.send`; v3 adds correlated game response polling.
+pub const BRIDGE_VERSION: u32 = 3;
 pub const BRIDGE_MIN_SUPPORTED: u32 = 2;
 
 pub const BRIDGE_METHODS: &[&str] = &[
@@ -55,6 +54,7 @@ pub const BRIDGE_METHODS: &[&str] = &[
     "sessions.select",
     "preview.send",
     "preview.cancel",
+    "preview.result",
     "preferences.export",
     "capability.release",
 ];
@@ -400,6 +400,7 @@ pub struct BridgeState {
     /// Needed for `preferences.export`: the payload lives in the Inspector
     /// webview's local storage, which this process cannot read directly.
     exporter: PreferencesExporter,
+    preview_results: Arc<Mutex<HashMap<String, (String, u64, Value)>>>,
 }
 
 impl BridgeState {
@@ -410,7 +411,31 @@ impl BridgeState {
         server_version: String,
         exporter: PreferencesExporter,
     ) -> Self {
-        Self { sessions, capabilities, directory, server_version, exporter }
+        Self { sessions, capabilities, directory, server_version, exporter, preview_results: Arc::new(Mutex::new(HashMap::new())) }
+    }
+
+    pub fn record_preview_result(&self, session_id: &str, response: Value) -> Result<(), String> {
+        let request_id = bounded_str(response.get("requestId"), BRIDGE_MAX_ID_LENGTH)
+            .filter(|request_id| request_id.starts_with("studio-"))
+            .ok_or_else(|| "Preview response has no Studio request ID.".to_string())?;
+        if response.get("plugin").and_then(Value::as_str) != Some("shader-graph")
+            || response.get("action").and_then(Value::as_str) != Some("compile-shader")
+        {
+            return Err("Only shader compile responses may be relayed to Studio.".into());
+        }
+        if response.to_string().len() > 64 * 1024 {
+            return Err("Shader compile response is larger than 64 KiB.".into());
+        }
+        let mut results = self.preview_results.lock().unwrap_or_else(|e| e.into_inner());
+        let now = now_millis();
+        results.retain(|_, (_, received, _)| now.saturating_sub(*received) < 120_000);
+        if results.len() >= 256 {
+            if let Some(oldest) = results.iter().min_by_key(|(_, (_, received, _))| *received).map(|(id, _)| id.clone()) {
+                results.remove(&oldest);
+            }
+        }
+        results.insert(request_id.to_string(), (session_id.to_string(), now, response));
+        Ok(())
     }
 }
 
@@ -662,6 +687,30 @@ async fn process(state: &BridgeState, body: &[u8]) -> Value {
             }
         }
 
+        "preview.result" => {
+            let Some(session_id) = bounded_str(params.get("sessionId"), BRIDGE_MAX_ID_LENGTH) else {
+                return fail(id, "malformed", "preview.result needs a sessionId.");
+            };
+            let Some(request_id) = bounded_str(params.get("requestId"), BRIDGE_MAX_ID_LENGTH)
+                .filter(|request_id| request_id.starts_with("studio-"))
+            else {
+                return fail(id, "malformed", "preview.result needs a Studio requestId.");
+            };
+            if grant.session_id.as_deref() != Some(session_id) {
+                return fail(id, "forbidden", "That game is outside this pairing.");
+            }
+            if !state.directory.list(&state.sessions).iter().any(|session| session.id == session_id) {
+                return fail(id, "stale-session", "The game this pairing previewed into has disconnected or restarted.");
+            }
+            let result = state.preview_results.lock().unwrap_or_else(|e| e.into_inner()).remove(request_id);
+            match result {
+                Some((result_session, _received, response)) if result_session == session_id => {
+                    ok(id, json!({ "status": "complete", "response": response }))
+                }
+                _ => ok(id, json!({ "status": "pending" })),
+            }
+        }
+
         // Answered by the Inspector webview, which holds the legacy payload.
         // Null means "nothing to hand over", which is the normal case for a
         // fresh install and is not an error.
@@ -784,6 +833,16 @@ pub fn resolve_studio_preferences_export(
     exporter.resolve(&id, payload);
 }
 
+/// Store the correlated compiler response so the paired Studio can retrieve it.
+#[tauri::command]
+pub fn record_studio_preview_result(
+    session_id: String,
+    response: Value,
+    state: tauri::State<BridgeState>,
+) -> Result<(), String> {
+    state.record_preview_result(&session_id, response)
+}
+
 /// Active Studio pairings, for Inspector's settings. Tokens are never returned.
 #[tauri::command]
 pub fn list_studio_pairings(capabilities: tauri::State<BridgeCapabilities>) -> Vec<PairingSummary> {
@@ -881,6 +940,23 @@ mod tests {
 
     fn preview(session: &str, plugin: &str, action: &str) -> Value {
         json!({ "sessionId": session, "plugin": plugin, "action": action, "params": { "pixelSource": "x" } })
+    }
+
+    #[test]
+    fn only_correlated_shader_compile_responses_are_retained_for_studio() {
+        let fixture = Fixture::new(&[]);
+        let response = json!({
+            "requestId": "studio-request-1",
+            "plugin": "shader-graph",
+            "action": "compile-shader",
+            "data": { "status": "error", "pixelError": "syntax error" },
+        });
+        assert!(fixture.state.record_preview_result("s1", response).is_ok());
+        assert!(fixture.state.record_preview_result("s1", json!({
+            "requestId": "studio-request-2",
+            "plugin": "console",
+            "action": "eval",
+        })).is_err());
     }
 
     #[test]
@@ -1009,6 +1085,27 @@ mod tests {
         assert_eq!(delivered[0]["requestId"], sent["result"]["requestId"]);
         assert_eq!(delivered[1]["type"], "cmd:plugin:action:cancel");
         assert_ne!(delivered[0]["requestId"], delivered[1]["requestId"]);
+    }
+
+    #[tokio::test]
+    async fn studio_can_read_only_its_correlated_shader_compile_result() {
+        let fixture = Fixture::new(&["s1"]);
+        let cap = fixture.handshake("studio-response-reader").await;
+        let sent = fixture.method(&cap, "preview.send", preview("s1", "shader-graph", "compile-shader")).await;
+        let request_id = sent["result"]["requestId"].as_str().unwrap();
+        let response = json!({
+            "requestId": request_id,
+            "plugin": "shader-graph",
+            "action": "compile-shader",
+            "data": { "status": "error", "pixelError": "driver error" },
+        });
+        fixture.state.record_preview_result("s1", response.clone()).unwrap();
+
+        let result = fixture.method(&cap, "preview.result", json!({ "sessionId": "s1", "requestId": request_id })).await;
+        assert_eq!(result["result"]["status"], "complete");
+        assert_eq!(result["result"]["response"], response);
+        let duplicate = fixture.method(&cap, "preview.result", json!({ "sessionId": "s1", "requestId": request_id })).await;
+        assert_eq!(duplicate["result"]["status"], "pending");
     }
 
     #[tokio::test]

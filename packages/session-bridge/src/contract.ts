@@ -29,12 +29,13 @@
  */
 
 /**
- * v2 replaced the generic `session.send` with the narrow preview methods.
+ * v2 replaced the generic `session.send` with the narrow preview methods;
+ * v3 adds a session-scoped result poll for correlated compile responses.
  *
  * The minimum moved with it on purpose: a v1 peer would still speak
  * `session.send`, and accepting one would reopen exactly the surface v2 closes.
  */
-export const BRIDGE_VERSION = 2;
+export const BRIDGE_VERSION = 3;
 
 /** Oldest peer version this build can still talk to. */
 export const BRIDGE_MIN_SUPPORTED = 2;
@@ -46,6 +47,7 @@ export const BRIDGE_METHODS = [
   'sessions.select',
   'preview.send',
   'preview.cancel',
+  'preview.result',
   'preferences.export',
   'capability.release',
 ] as const;
@@ -192,6 +194,13 @@ export interface PreviewCancelParams {
   plugin: string;
   action: string;
 }
+
+export interface PreviewResultParams {
+  sessionId: string;
+  requestId: string;
+}
+
+export type PreviewResult = { status: 'pending' } | { status: 'complete'; response: Record<string, unknown> };
 
 export interface PreviewSendResult {
   /** Echoed by the runtime on its response, so the answer can be matched later. */

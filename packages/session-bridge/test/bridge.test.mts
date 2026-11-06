@@ -137,7 +137,7 @@ test('a handshake returns a scoped grant, not just a token', async () => {
   assert.ok(!grant.value.methods.includes('handshake'));
   assert.deepEqual(
     [...grant.value.methods].sort(),
-    ['capability.release', 'preferences.export', 'preview.cancel', 'preview.send', 'sessions.list', 'sessions.select'],
+    ['capability.release', 'preferences.export', 'preview.cancel', 'preview.result', 'preview.send', 'sessions.list', 'sessions.select'],
   );
   assert.deepEqual(grant.value.plugins, PREVIEW_ALLOWLIST);
 });

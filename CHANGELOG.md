@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Shader Graph Validate now waits for the correlated LÖVE compiler response and displays pixel/vertex errors instead of silently returning to idle.
 - Particle timeline playback no longer serializes and rewrites the full workspace, including image data, on every animation tick.
 - Shader Graph code generation now indexes connected inputs once, avoiding repeated full-edge scans on large graphs.
 - Shader Graph files now keep uploaded textures with their node bindings, so imported graphs retain their images.

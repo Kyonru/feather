@@ -1,9 +1,8 @@
-import { useCallback, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { sendCommand } from '@feather/session-bridge';
 import { sessionSupportsRuntime, useSessionStore } from '@studio/session';
 import { useShaderGraphStore } from '@studio/store/shader-graph';
-import { sessionQueryKey } from '@studio/lib/session-query-keys';
+import { useInspectorConnection } from '@studio/store/inspector-connection';
 import { codegen } from '@studio/tools/shader-graph/codegen';
 import { shaderGraphGamePreviewController } from '@studio/tools/shader-graph/gamePreviewController';
 import { diagnoseShaderGraph, hasBlockingDiagnostics } from '@studio/tools/shader-graph/diagnostics';
@@ -11,7 +10,7 @@ import type { GeneratedGlsl, ShaderParameter, ShaderTextureUpload } from '@studi
 
 const PLUGIN_ID = 'particle-system-playground';
 const SHADER_GRAPH_PLUGIN = 'shader-graph';
-const VALIDATION_WAIT_MS = 4_000;
+const VALIDATION_WAIT_MS = 5_000;
 
 export type ShaderPreviewShape = 'circle' | 'line' | 'rectangle';
 export type ShaderPreviewColor = [number, number, number, number];
@@ -37,12 +36,6 @@ export function useShaderGraph() {
   const runtimeSuspended = useSessionStore((s) =>
     runtimeSessionId ? s.sessions[runtimeSessionId]?.runtimeSuspended === true : false,
   );
-
-  const compileQuery = useQuery<CompileResponse>({
-    queryKey: sessionQueryKey.pluginAction(runtimeSessionId ?? '', SHADER_GRAPH_PLUGIN, 'compile-shader'),
-    queryFn: () => ({ status: 'ok' as const }),
-    enabled: false,
-  });
 
   const generateAndStore = useCallback(() => {
     const glsl = codegen(store.nodes, store.edges, store.subgraphs);
@@ -76,23 +69,40 @@ export function useShaderGraph() {
     store.setValidationStatus('validating');
     store.setValidationErrors({});
     try {
-      await sendCommand(runtimeSessionId, {
-        type: 'cmd:plugin:action',
+      const bridge = useInspectorConnection.getState().bridge;
+      const sent = await bridge.sendPreview({
+        sessionId: runtimeSessionId,
         plugin: SHADER_GRAPH_PLUGIN,
         action: 'compile-shader',
         params: { pixelSource: glsl.pixel, vertexSource: glsl.vertex ?? '' },
       });
-      // The game's verdict has no path back to Studio over the bridge yet
-      // (the request carries a requestId for when it does). Waiting forever
-      // would leave "validating" on screen as if an answer were coming.
-      setTimeout(() => {
-        if (useShaderGraphStore.getState().validationStatus === 'validating') {
-          useShaderGraphStore.getState().setValidationStatus('idle');
+      if (!sent.ok) throw new Error(sent.error);
+      const deadline = Date.now() + VALIDATION_WAIT_MS;
+      let response: CompileResponse | null = null;
+      while (Date.now() < deadline) {
+        const result = await bridge.previewResult({ sessionId: runtimeSessionId, requestId: sent.value.requestId });
+        if (!result.ok) throw new Error(result.error);
+        if (result.value.status === 'complete') {
+          response = result.value.response as CompileResponse;
+          break;
         }
-      }, VALIDATION_WAIT_MS);
-    } catch {
+        await new Promise((resolve) => window.setTimeout(resolve, 120));
+      }
+      if (!response) throw new Error('The game did not return a shader compile result within 5 seconds. Check that Feather is running in the game.');
+      const payload = response.data ?? response;
+      if (response.status === 'error' && !response.data) {
+        store.setValidationStatus('error');
+        store.setValidationErrors({ pixelError: response.message ?? 'Shader validation failed' });
+      } else if (payload.status === 'ok' || response.status === 'success') {
+        store.setValidationStatus('ok');
+        store.setValidationErrors({});
+      } else {
+        store.setValidationStatus('error');
+        store.setValidationErrors({ pixelError: payload.pixelError, vertexError: payload.vertexError });
+      }
+    } catch (error) {
       store.setValidationStatus('error');
-      store.setValidationErrors({ pixelError: 'Failed to reach game process' });
+      store.setValidationErrors({ pixelError: error instanceof Error ? error.message : 'Failed to reach game process' });
     }
   }, [generateAndStore, runtimeSessionId, runtimeSuspended, store]);
 
@@ -155,31 +165,6 @@ export function useShaderGraph() {
     if (!runtimeSessionId) return;
     await shaderGraphGamePreviewController.clear(runtimeSessionId);
   }, [runtimeSessionId]);
-
-  const compileResult = compileQuery.data;
-
-  useEffect(() => {
-    if (!compileResult || store.validationStatus !== 'validating') return;
-
-    if (compileResult.status === 'error' && !compileResult.data) {
-      store.setValidationStatus('error');
-      store.setValidationErrors({ pixelError: compileResult.message ?? 'Shader validation failed' });
-      return;
-    }
-
-    const payload = compileResult.data ?? compileResult;
-    if (payload.status === 'ok') {
-      store.setValidationStatus('ok');
-      store.setValidationErrors({});
-      return;
-    }
-
-    store.setValidationStatus('error');
-    store.setValidationErrors({
-      pixelError: payload.pixelError,
-      vertexError: payload.vertexError,
-    });
-  }, [compileResult, store]);
 
   return {
     ...store,

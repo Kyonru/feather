@@ -86,6 +86,13 @@ pub fn run() {
     // list and revoke pairings individually.
     let studio_capabilities = studio_bridge::BridgeCapabilities::default();
     let studio_sessions = studio_bridge::SessionDirectory::default();
+    let studio_bridge_state = studio_bridge::BridgeState::new(
+        sessions.clone(),
+        studio_capabilities.clone(),
+        studio_sessions.clone(),
+        env!("CARGO_PKG_VERSION").to_string(),
+        preferences_exporter.clone(),
+    );
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -100,6 +107,7 @@ pub fn run() {
         .manage(preferences_exporter.clone())
         .manage(studio_capabilities.clone())
         .manage(studio_sessions.clone())
+        .manage(studio_bridge_state.clone())
         .setup(move |app| {
             let handle = app.handle().clone();
             mcp_bridge.set_app_handle(handle.clone());
@@ -130,19 +138,14 @@ pub fn run() {
                 .unwrap_or(4008);
             preferences_exporter.set_app_handle(app.handle().clone());
             studio_bridge::start_bridge_server(
-                studio_bridge::BridgeState::new(
-                    sessions.clone(),
-                    studio_capabilities.clone(),
-                    studio_sessions.clone(),
-                    env!("CARGO_PKG_VERSION").to_string(),
-                    preferences_exporter.clone(),
-                ),
+                studio_bridge_state.clone(),
                 studio_bridge_port,
             );
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             studio_bridge::resolve_studio_preferences_export,
+            studio_bridge::record_studio_preview_result,
             studio_bridge::list_studio_pairings,
             studio_bridge::revoke_studio_pairing,
             studio_bridge::set_studio_bridge_sessions,
