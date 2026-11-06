@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- The standalone particle preview now loads uploaded textures and emitter shaders, honors supported blend modes and movement, and skips disabled emitters.
+- The standalone particle preview now loads uploaded textures and emitter shaders, honors blend modes, movement, and texture atlas playback, and skips disabled emitters.
 - Studio's **Show in Game** particle preview now uses authored emission rates and the game's frame step; the bounded runtime preview mode also keeps its reduced rate stable across frames.
 - Particle project ZIP Lua definitions now point to the matching archived texture paths instead of a bare filename.
 - Particle texture bytes are now removed from the love.js polling payload and cached in bounded chunks, avoiding repeated full-image JSON serialization during preview.

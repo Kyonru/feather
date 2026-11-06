@@ -462,6 +462,28 @@ local particleState = {
   lastBurstCount = 0,
 }
 
+local function emitterSystems(entry)
+  if type(entry.systems) == "table" then
+    return entry.systems
+  end
+  return entry.ps and { entry.ps } or {}
+end
+
+local function syncAtlasVariants(entry)
+  local systems = emitterSystems(entry)
+  if #systems < 2 then return end
+  local okRate, rate = pcall(systems[1].getEmissionRate, systems[1])
+  for index = 2, #systems do
+    pcall(ParticleLifecycle.copyProperties, systems[1], systems[index], true)
+  end
+  if okRate then
+    local splitRate = rate / #systems
+    for _, system in ipairs(systems) do
+      pcall(system.setEmissionRate, system, splitRate)
+    end
+  end
+end
+
 local TIMELINE_LANES = {
   "opacity",
   "emissionRate",
@@ -643,10 +665,12 @@ local function publishParticleStatus()
   local systems = {}
   for _, entry in ipairs(particleState.systems) do
     local count = 0
-    if entry.ps and type(entry.ps.getCount) == "function" then
-      local ok, value = pcall(entry.ps.getCount, entry.ps)
-      if ok then
-        count = tonumber(value) or 0
+    for _, system in ipairs(emitterSystems(entry)) do
+      if type(system.getCount) == "function" then
+        local ok, value = pcall(system.getCount, system)
+        if ok then
+          count = count + (tonumber(value) or 0)
+        end
       end
     end
     total = total + count
@@ -709,6 +733,7 @@ local function applyTimelineAt(time, allowEmission)
         entry.tickOptions
       )
       entry.opacity = resolved.opacity
+      syncAtlasVariants(entry)
     end
   end
 end
@@ -727,11 +752,13 @@ local function emitTimelineStarts(previousTime, nextTime)
         if previousTime <= startTime and nextTime >= startTime then
           local base = entry.base or {}
           local count = math.max(0, math.floor(tonumber(clip.emit) or tonumber(entry.emitAtStart) or 0))
-          pcall(entry.ps.setEmitterLifetime, entry.ps, tonumber(base.emitterLifetime) or -1)
-          pcall(entry.ps.start, entry.ps)
-          if count > 0 then
-            pcall(entry.ps.emit, entry.ps, count)
-            emitted = emitted + count
+          for _, system in ipairs(emitterSystems(entry)) do
+            pcall(system.setEmitterLifetime, system, tonumber(base.emitterLifetime) or -1)
+            pcall(system.start, system)
+            if count > 0 then
+              pcall(system.emit, system, count)
+              emitted = emitted + count
+            end
           end
         end
       end
@@ -780,19 +807,19 @@ local function resetParticleSystems()
   local mode = particleState.timeline and particleState.timeline.mode
   for _, entry in ipairs(particleState.systems) do
     if entry.ps and entry.enabled then
-      pcall(entry.ps.reset, entry.ps)
       local base = entry.base or {}
-      pcall(entry.ps.setEmitterLifetime, entry.ps, tonumber(base.emitterLifetime) or -1)
-      pcall(entry.ps.start, entry.ps)
       if entry.applyState then
         ParticleApply.invalidate(entry.applyState)
       end
-      -- Warm to the steady state before the first draw, using the same rule
-      -- the game and the exported file use. This preview ignored kickStart
-      -- entirely, so an ambient effect always began empty here.
-      ParticleLifecycle.warm(function(dt)
-        pcall(entry.ps.update, entry.ps, dt)
-      end, entry.warm, mode)
+      for _, system in ipairs(emitterSystems(entry)) do
+        pcall(system.reset, system)
+        pcall(system.setEmitterLifetime, system, tonumber(base.emitterLifetime) or -1)
+        pcall(system.start, system)
+        -- Warm to the steady state using the same rule as the game and export.
+        ParticleLifecycle.warm(function(dt)
+          pcall(system.update, system, dt)
+        end, entry.warm, mode)
+      end
     end
   end
 end
@@ -817,7 +844,9 @@ local function seekParticleTimeline(time, playing)
     applyTimelineAt(nextTime, true)
     for _, entry in ipairs(particleState.systems) do
       if entry.ps and entry.enabled then
-        pcall(entry.ps.update, entry.ps, nextTime - current)
+        for _, system in ipairs(emitterSystems(entry)) do
+          pcall(system.update, system, nextTime - current)
+        end
       end
     end
     current = nextTime
@@ -859,8 +888,8 @@ end
 
 local function applyParticlePayload(payload)
   for _, entry in ipairs(particleState.systems) do
-    if entry.ps then
-      pcall(entry.ps.release, entry.ps)
+    for _, system in ipairs(emitterSystems(entry)) do
+      pcall(system.release, system)
     end
   end
   particleState.systems = {}
@@ -909,6 +938,7 @@ local function applyParticlePayload(payload)
             pcall(applySystemProperties, ps, sysData.properties)
           end
           local atlas = type(sysData.textureAtlas) == "table" and sysData.textureAtlas or nil
+          local particleSystems = { ps }
           if atlas then
             local imageWidth, imageHeight = img:getDimensions()
             local columns = math.max(1, math.floor(tonumber(atlas.columns) or 1))
@@ -927,7 +957,21 @@ local function applyParticlePayload(payload)
                 imageHeight
               )
             end
-            pcall(ps.setQuads, ps, unpack(quads))
+            if atlas.playback == "variants" then
+              local variantCount = math.min(#quads, 16)
+              pcall(ps.setQuads, ps, quads[1])
+              for frame = 2, variantCount do
+                local variant = love.graphics.newParticleSystem(img, bufSize)
+                if variant then
+                  pcall(ParticleLifecycle.copyProperties, ps, variant, true)
+                  pcall(variant.setQuads, variant, quads[frame])
+                  pcall(variant.start, variant)
+                  particleSystems[#particleSystems + 1] = variant
+                end
+              end
+            else
+              pcall(ps.setQuads, ps, unpack(quads))
+            end
           end
           local shader
           if type(sysData.shaderSource) == "string" and sysData.shaderSource ~= "" then
@@ -937,6 +981,7 @@ local function applyParticlePayload(payload)
           local props = type(sysData.properties) == "table" and sysData.properties or {}
           particleState.systems[#particleState.systems + 1] = {
             ps = ps,
+            systems = particleSystems,
             shader = shader,
             blendMode = tostring(sysData.blendMode or "alpha"),
             enabled = sysData.enabled ~= false,
@@ -965,6 +1010,7 @@ local function applyParticlePayload(payload)
               offsetY = tonumber(props.offsetY) or 0,
             },
           }
+          syncAtlasVariants(particleState.systems[#particleState.systems])
         end
       end
     end
@@ -1011,7 +1057,9 @@ local function drawParticlePreview(w, h)
         pcall(entry.shader.send, entry.shader, "u_time", love.timer.getTime())
       end
       love.graphics.setColor(1, 1, 1, entry.opacity or 1)
-      love.graphics.draw(entry.ps, cx + particleState.movementX + entry.x, cy + particleState.movementY + entry.y)
+      for _, system in ipairs(emitterSystems(entry)) do
+        love.graphics.draw(system, cx + particleState.movementX + entry.x, cy + particleState.movementY + entry.y)
+      end
     end
   end
 
@@ -1132,7 +1180,9 @@ function love.update(dt)
     applyTimelineAt(particleState.timelineState.time or 0, particleState.timelineState.playing == true)
     for _, entry in ipairs(particleState.systems) do
       if entry.ps and entry.enabled then
-        pcall(entry.ps.update, entry.ps, dt)
+        for _, system in ipairs(emitterSystems(entry)) do
+          pcall(system.update, system, dt)
+        end
       end
     end
     publishParticleStatus()
