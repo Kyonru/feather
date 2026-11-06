@@ -1321,7 +1321,6 @@ function TextureShapeEditor({ shape, pixelated, dataUrl, aspectRatio, previewGro
               <button
                 key={index}
                 type="button"
-                aria-label={`Shape point ${index + 1}`}
                 data-testid={`texture-lab-shape-point-${index}`}
                 data-point={`${world.x}:${world.y}`}
                 className="absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-sm cursor-grab active:cursor-grabbing"
