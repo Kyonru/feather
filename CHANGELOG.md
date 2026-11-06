@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Desktop Particle Playground can now show a local project in the connected LÖVE runtime, including its uploaded assets and atlas data; timeline controls target the imported runtime composite.
 - Shader Graph Validate now waits for the correlated LÖVE compiler response and displays pixel/vertex errors instead of silently returning to idle.
 - Particle timeline playback no longer serializes and rewrites the full workspace, including image data, on every animation tick.
 - Shader Graph code generation now indexes connected inputs once, avoiding repeated full-edge scans on large graphs.

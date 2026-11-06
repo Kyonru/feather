@@ -43,9 +43,10 @@ use tokio::sync::oneshot;
 
 use crate::ws_server::Sessions;
 
-/// Keep in step with `BRIDGE_VERSION` in the TypeScript contract. v2 removed
-/// the generic `session.send`; v3 adds correlated game response polling.
-pub const BRIDGE_VERSION: u32 = 3;
+    /// Keep in step with `BRIDGE_VERSION` in the TypeScript contract. v2 removed
+/// the generic `session.send`; v3 adds correlated result polling and v4 adds
+/// particle project playback actions.
+pub const BRIDGE_VERSION: u32 = 4;
 pub const BRIDGE_MIN_SUPPORTED: u32 = 2;
 
 pub const BRIDGE_METHODS: &[&str] = &[
@@ -75,7 +76,7 @@ pub const BRIDGE_SERVER_ERROR_CODES: &[&str] = &[
 /// The whole of what a bridge capability can make a game do.
 pub const PREVIEW_ALLOWLIST: &[(&str, &[&str])] = &[
     ("shader-graph", &["preview-shader", "clear-preview", "compile-shader"]),
-    ("particle-system-playground", &["set-shader"]),
+    ("particle-system-playground", &["set-shader", "import-project", "restore-composite", "runtime-preview", "timeline-control"]),
 ];
 
 pub const BRIDGE_MAX_REQUEST_BYTES: usize = 8 * 1024 * 1024;
@@ -418,10 +419,13 @@ impl BridgeState {
         let request_id = bounded_str(response.get("requestId"), BRIDGE_MAX_ID_LENGTH)
             .filter(|request_id| request_id.starts_with("studio-"))
             .ok_or_else(|| "Preview response has no Studio request ID.".to_string())?;
-        if response.get("plugin").and_then(Value::as_str) != Some("shader-graph")
-            || response.get("action").and_then(Value::as_str) != Some("compile-shader")
-        {
-            return Err("Only shader compile responses may be relayed to Studio.".into());
+        let plugin = response.get("plugin").and_then(Value::as_str).unwrap_or("");
+        let action = response.get("action").and_then(Value::as_str).unwrap_or("");
+        let relayable = (plugin == "shader-graph" && action == "compile-shader")
+            || (plugin == "particle-system-playground"
+                && ["import-project", "restore-composite", "runtime-preview", "timeline-control"].contains(&action));
+        if !relayable {
+            return Err("This plugin action response cannot be relayed to Studio.".into());
         }
         if response.to_string().len() > 64 * 1024 {
             return Err("Shader compile response is larger than 64 KiB.".into());
@@ -833,7 +837,7 @@ pub fn resolve_studio_preferences_export(
     exporter.resolve(&id, payload);
 }
 
-/// Store the correlated compiler response so the paired Studio can retrieve it.
+    /// Store a bounded correlated creative-action response for its paired Studio.
 #[tauri::command]
 pub fn record_studio_preview_result(
     session_id: String,
@@ -943,7 +947,7 @@ mod tests {
     }
 
     #[test]
-    fn only_correlated_shader_compile_responses_are_retained_for_studio() {
+    fn only_correlated_allowed_creative_responses_are_retained_for_studio() {
         let fixture = Fixture::new(&[]);
         let response = json!({
             "requestId": "studio-request-1",
@@ -957,6 +961,12 @@ mod tests {
             "plugin": "console",
             "action": "eval",
         })).is_err());
+        assert!(fixture.state.record_preview_result("s1", json!({
+            "requestId": "studio-request-3",
+            "plugin": "particle-system-playground",
+            "action": "import-project",
+            "status": "success",
+        })).is_ok());
     }
 
     #[test]

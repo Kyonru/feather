@@ -61,7 +61,11 @@ Particle projects can be saved as `.featherparticles` files or as a project ZIP.
 The ZIP contains the editable project, its generated Lua definition, shader
 sources, uploaded/generated textures and atlas metadata. Use **Copy Lua Code**
 to copy the authored particle table; the project and its textures stay in the
-saved project files.
+saved project files. In desktop Studio, **Show in Game** imports the current
+project snapshot into the connected LÖVE runtime; hide and show again after
+emitter or asset edits to refresh it. Timeline playback controls sync while
+that game preview is active. The browser showcase uses its local love.js
+preview only.
 
 Studio says *"Local only"* when no Inspector is running. That is a state, not
 an error.

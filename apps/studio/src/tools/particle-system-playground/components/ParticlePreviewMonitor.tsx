@@ -183,7 +183,7 @@ export function ParticlePreviewMonitor({
   }
 
   const description = previewEnabled
-    ? 'Local love.js preview updates while you edit emitters, timeline clips, and assets.'
+    ? 'Local particle simulation updates while you edit. Show in Game uses LÖVE itself for the runtime-accurate result.'
     : 'Local preview is paused for this scratch composite.';
   const footer = standalone
     ? 'This isolated love.js preview is local to the browser showcase.'
@@ -219,7 +219,7 @@ export function ParticlePreviewMonitor({
       : gamePreviewActive && runtimeSuspended
         ? 'Running from the last particle payload. Resume Feather to sync edits.'
         : gamePreviewActive
-        ? 'Runtime preview is live in the connected game. Timeline and emitter edits sync while it stays enabled.'
+        ? 'The game is drawing the latest imported project. Hide and show it again after emitter or asset edits to refresh.'
         : 'Tauri uses the connected LÖVE runtime for particle preview right now. Nothing is drawn in the game until you choose Show in Game.';
     const statusMessage = error ?? effectiveDisabledReason ?? runtimeMessage;
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHost } from '@feather/host';
 import { zipSync } from 'fflate';
 import { toast } from 'sonner';
+import { sessionSupportsRuntime, useSessionStore } from '@studio/session';
 import type {
   ParticleTimeline,
   ParticleTimelineState,
@@ -35,16 +36,19 @@ import {
   type ParticleHistoryState,
 } from '@studio/tools/particle-system-playground/history';
 import type { TextureLabAtlasMetadata } from '@studio/types/texture-lab';
+import { useInspectorConnection } from '@studio/store/inspector-connection';
 import {
   exportParticleLua,
   exportParticleProject,
   particleProjectZipEntries,
+  projectForLocalParticleData,
   safeParticleFilename,
 } from './artifacts';
 
 export type LocalParticleParamValue = string | number | boolean;
 type ParamValue = LocalParticleParamValue;
 const LOCAL_PARTICLE_WORKSPACES_STORAGE_KEY = 'feather-local-particle-workspaces';
+const RUNTIME_ACTION_TIMEOUT_MS = 5_000;
 
 type LocalParticleWorkspaceListener = (data: ParticleSystemPlaygroundData) => void;
 const localParticleWorkspaceListeners = new Map<string, Set<LocalParticleWorkspaceListener>>();
@@ -497,6 +501,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
   const historyScope = useRef<string | null>('Showcase Fire');
   const dataRef = useRef<ParticleSystemPlaygroundData>(data);
   const storageWarningShown = useRef(false);
+  const runtimePreview = useRef<{ sessionId: string; composite: string; active: boolean } | null>(null);
 
   useEffect(() => {
     dataRef.current = data;
@@ -745,6 +750,80 @@ export function useLocalParticlePlayground(workspaceId?: string) {
     });
   }
 
+  async function sendRuntimeTimeline(command: 'play' | 'pause' | 'stop' | 'seek', time?: number) {
+    const target = runtimePreview.current;
+    if (!target?.active) return;
+    try {
+      await sendRuntimeAction(target.sessionId, 'timeline-control', {
+        action: 'timeline-control',
+        composite: target.composite,
+        command,
+        ...(time !== undefined ? { time } : {}),
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? `Game timeline update failed: ${error.message}` : 'Game timeline update failed');
+    }
+  }
+
+  async function sendRuntimeAction(
+    sessionId: string,
+    action: 'import-project' | 'restore-composite' | 'runtime-preview' | 'timeline-control',
+    params: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const bridge = useInspectorConnection.getState().bridge;
+    const sent = await bridge.sendPreview({
+      sessionId,
+      plugin: 'particle-system-playground',
+      action,
+      params,
+    });
+    if (!sent.ok) throw new Error(sent.error);
+    const deadline = Date.now() + RUNTIME_ACTION_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      const result = await bridge.previewResult({ sessionId, requestId: sent.value.requestId });
+      if (!result.ok) throw new Error(result.error);
+      if (result.value.status === 'complete') {
+        const response = result.value.response;
+        if (response.status === 'error') {
+          throw new Error(typeof response.message === 'string' ? response.message : 'The LÖVE runtime rejected the particle preview action.');
+        }
+        return response;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 120));
+    }
+    throw new Error('The LÖVE runtime did not answer the particle preview action within 5 seconds.');
+  }
+
+  async function setRuntimePreviewActive(active: boolean) {
+    const sessionState = useSessionStore.getState();
+    const sessionId = sessionState.sessionId;
+    const session = sessionId ? sessionState.sessions[sessionId] : null;
+    if (!sessionId || !sessionSupportsRuntime(session)) throw new Error('Connect a LÖVE game in Feather Inspector to use game runtime preview.');
+    if (!active) {
+      await sendRuntimeAction(sessionId, 'runtime-preview', { action: 'runtime-preview', active: false });
+      if (runtimePreview.current?.sessionId === sessionId) runtimePreview.current.active = false;
+      return;
+    }
+    const current = dataRef.current;
+    const project = projectForLocalParticleData(current);
+    let target = runtimePreview.current;
+    if (!target || target.sessionId !== sessionId) {
+      const suffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+      target = { sessionId, composite: `${safeParticleFilename(project.name)} Studio ${suffix}`, active: false };
+      await sendRuntimeAction(sessionId, 'import-project', { action: 'import-project', project: { ...project, name: target.composite } });
+      runtimePreview.current = target;
+    } else {
+      await sendRuntimeAction(sessionId, 'restore-composite', {
+        action: 'restore-composite',
+        composite: target.composite,
+        data: project.composite,
+        activeSystem: current.activeSystem,
+      });
+    }
+    await sendRuntimeAction(sessionId, 'runtime-preview', { action: 'runtime-preview', active: true, composite: target.composite });
+    target.active = true;
+  }
+
   return {
     plugin: { id: 'particle-system-playground', disabled: false, incompatible: false },
     available: true,
@@ -766,7 +845,7 @@ export function useLocalParticlePlayground(workspaceId?: string) {
     updateSystemParam,
     updateParam,
     sendAction: () => Promise.resolve(),
-    setRuntimePreviewActive: () => Promise.resolve(),
+    setRuntimePreviewActive,
     refreshAfterAction: () => undefined,
     selectComposite: (name: string) => {
       clearHistory();
@@ -826,19 +905,28 @@ export function useLocalParticlePlayground(workspaceId?: string) {
       });
     },
     updateTimeline,
-    playTimeline: () => {
+    playTimeline: (sendRuntime = runtimePreview.current?.active === true) => {
       const timeline = data.data ? normalizeParticleTimeline(data.data.timeline, data.data.systems) : null;
       const time = data.data?.timelineState?.time ?? 0;
       const restart = !!timeline && normalizeParticleTimelineMode(timeline.mode, timeline.loop ? 'loop' : 'one-shot') === 'one-shot' && time >= timeline.duration - 0.001;
       setTimelineState({ ...(restart ? { time: 0 } : {}), playing: true });
+      if (sendRuntime) void sendRuntimeTimeline('play');
     },
-    pauseTimeline: (time?: number) =>
+    pauseTimeline: (time?: number, sendRuntime = runtimePreview.current?.active === true) => {
       setTimelineState({
         ...(typeof time === 'number' && Number.isFinite(time) ? { time } : {}),
         playing: false,
-      }),
-    stopTimeline: () => setTimelineState({ time: 0, playing: false }),
-    seekTimeline: (time: number) => setTimelineState({ time, playing: false }),
+      });
+      if (sendRuntime) void sendRuntimeTimeline('pause', time);
+    },
+    stopTimeline: (sendRuntime = runtimePreview.current?.active === true) => {
+      setTimelineState({ time: 0, playing: false });
+      if (sendRuntime) void sendRuntimeTimeline('stop');
+    },
+    seekTimeline: (time: number, _immediate?: boolean, sendRuntime = runtimePreview.current?.active === true) => {
+      setTimelineState({ time, playing: false });
+      if (sendRuntime) void sendRuntimeTimeline('seek', time);
+    },
     emit: () => toast.success('Emit sent to the showcase preview'),
     reset: () => toast.success('Preview reset'),
     kickStart: () => toast.success('Kick start sent to the showcase preview'),

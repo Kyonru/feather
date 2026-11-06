@@ -30,12 +30,13 @@
 
 /**
  * v2 replaced the generic `session.send` with the narrow preview methods;
- * v3 adds a session-scoped result poll for correlated compile responses.
+ * v3 adds a session-scoped result poll for correlated compile responses;
+ * v4 adds narrowly-scoped particle project playback actions.
  *
  * The minimum moved with it on purpose: a v1 peer would still speak
  * `session.send`, and accepting one would reopen exactly the surface v2 closes.
  */
-export const BRIDGE_VERSION = 3;
+export const BRIDGE_VERSION = 4;
 
 /** Oldest peer version this build can still talk to. */
 export const BRIDGE_MIN_SUPPORTED = 2;
@@ -93,7 +94,7 @@ export type BridgeErrorCode =
  */
 export const PREVIEW_ALLOWLIST: Readonly<Record<string, readonly string[]>> = {
   'shader-graph': ['preview-shader', 'clear-preview', 'compile-shader'],
-  'particle-system-playground': ['set-shader'],
+  'particle-system-playground': ['set-shader', 'import-project', 'restore-composite', 'runtime-preview', 'timeline-control'],
 };
 
 /** Size and shape limits, checked before anything is forwarded. */

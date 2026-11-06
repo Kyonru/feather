@@ -196,7 +196,7 @@ export default function ParticleSystemPlaygroundPage() {
                 {timelineOpen ? (
                   <ResizablePanelGroup id="studio-particle-preview-stack" orientation="vertical" className="h-0 min-h-0 flex-1" defaultLayout={previewLayout.defaultLayout} onLayoutChanged={previewLayout.onLayoutChanged}>
                     <ResizablePanel id="particle-canvas" defaultSize="38%" minSize="26%" className="min-h-0 overflow-hidden">
-                      <ParticlePreviewMonitor playground={playground} standalone isGameComposite={isGameComposite} allowGamePreview={false} gamePreviewActive={gamePreviewActive} onGamePreviewActiveChange={setGamePreviewActive} />
+                      <ParticlePreviewMonitor playground={playground} standalone={host.kind === 'web'} isGameComposite={isGameComposite} allowGamePreview={host.kind === 'tauri'} gamePreviewActive={gamePreviewActive} onGamePreviewActiveChange={setGamePreviewActive} />
                     </ResizablePanel>
                     <ResizableHandle className="bg-border/40" />
                     <ResizablePanel id="particle-timeline" defaultSize="62%" minSize="40%" className="min-h-0 overflow-auto bg-card p-2">
@@ -204,7 +204,7 @@ export default function ParticleSystemPlaygroundPage() {
                     </ResizablePanel>
                   </ResizablePanelGroup>
                 ) : (
-                  <div className="h-0 min-h-0 flex-1 overflow-hidden"><ParticlePreviewMonitor playground={playground} standalone isGameComposite={isGameComposite} allowGamePreview={false} gamePreviewActive={gamePreviewActive} onGamePreviewActiveChange={setGamePreviewActive} /></div>
+                  <div className="h-0 min-h-0 flex-1 overflow-hidden"><ParticlePreviewMonitor playground={playground} standalone={host.kind === 'web'} isGameComposite={isGameComposite} allowGamePreview={host.kind === 'tauri'} gamePreviewActive={gamePreviewActive} onGamePreviewActiveChange={setGamePreviewActive} /></div>
                 )}
               </>
             )}
