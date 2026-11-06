@@ -1385,6 +1385,7 @@ export function TextureLabPanel({
     null,
   );
   const [asyncPreviewError, setAsyncPreviewError] = useState<string | null>(null);
+  const [asyncPreviewPending, setAsyncPreviewPending] = useState(false);
   const customFrameInputRef = useRef<HTMLInputElement | null>(null);
   const imageMaskInputRef = useRef<HTMLInputElement | null>(null);
   const { recipe, setRecipe, patch: patchRecipeStore } = useTextureLabRecipe();
@@ -1799,19 +1800,24 @@ export function TextureLabPanel({
     if (customAtlasEnabled || !imageMaskReady) {
       setAsyncPreviewPixels(null);
       setAsyncPreviewError(null);
+      setAsyncPreviewPending(false);
       return;
     }
     let cancelled = false;
+    setAsyncPreviewPending(true);
     setAsyncPreviewError(null);
     const render = atlasEnabled ? renderTextureLabAtlasPixelsAsync(recipe) : renderTextureLabPixelsAsync(recipe);
     void render
       .then((nextPixels) => {
-        if (!cancelled) setAsyncPreviewPixels(nextPixels);
+        if (cancelled) return;
+        setAsyncPreviewPixels(nextPixels);
+        setAsyncPreviewPending(false);
       })
       .catch((error) => {
         if (cancelled) return;
         setAsyncPreviewPixels(null);
         setAsyncPreviewError(error instanceof Error ? error.message : 'Image mask preview failed');
+        setAsyncPreviewPending(false);
       });
     return () => {
       cancelled = true;
@@ -2634,7 +2640,7 @@ export function TextureLabPanel({
               onChange={(nextSpline) => patch({ spline: nextSpline })}
             />
           ) : (
-            <div className="surface p-2">
+            <div className="surface relative p-2">
               <div className={cn('grid min-h-[24rem] place-items-center rounded-sm p-4', previewGroundClassName(previewGround))}>
                 <img
                   data-testid="texture-lab-preview"
@@ -2647,6 +2653,11 @@ export function TextureLabPanel({
                   )}
                 />
               </div>
+              {asyncPreviewPending && (
+                <div role="status" className="absolute right-4 top-4 rounded-sm border bg-background/95 px-2 py-1 text-xs text-muted-foreground shadow-sm">
+                  Updating preview…
+                </div>
+              )}
             </div>
           )}
           {!compact && (
