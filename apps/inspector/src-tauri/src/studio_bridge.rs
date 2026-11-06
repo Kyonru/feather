@@ -1101,6 +1101,8 @@ mod tests {
     async fn studio_can_read_only_its_correlated_shader_compile_result() {
         let fixture = Fixture::new(&["s1"]);
         let cap = fixture.handshake("studio-response-reader").await;
+        let selected = fixture.method(&cap, "sessions.select", json!({ "sessionId": "s1" })).await;
+        assert_eq!(selected["ok"], true, "{selected}");
         let sent = fixture.method(&cap, "preview.send", preview("s1", "shader-graph", "compile-shader")).await;
         let request_id = sent["result"]["requestId"].as_str().unwrap();
         let response = json!({
