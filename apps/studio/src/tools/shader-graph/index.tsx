@@ -1,5 +1,5 @@
 import { ReactFlowProvider } from '@xyflow/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { zip } from 'fflate';
 import { DownloadIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
@@ -34,6 +34,8 @@ function defaultFilename(shaderName: string) {
 }
 
 export default function ShaderGraph() {
+  const [loadPresetSelection, setLoadPresetSelection] = useState('');
+  const [insertPresetSelection, setInsertPresetSelection] = useState('');
   const host = useHost();
   const activeSession = useActiveSession();
   const localMode = !sessionSupportsRuntime(activeSession);
@@ -252,7 +254,13 @@ export default function ShaderGraph() {
               {localMode ? 'Local' : `Live preview · ${activeSession?.name ?? 'game'}`}
             </Badge>
             <div className="flex flex-wrap justify-end gap-2">
-              <Select onValueChange={loadPreset}>
+              <Select
+                value={loadPresetSelection}
+                onValueChange={(value) => {
+                  loadPreset(value);
+                  setLoadPresetSelection('');
+                }}
+              >
                 <SelectTrigger aria-label="Load preset" className="h-8 w-48 text-xs">
                   <SelectValue placeholder="Load preset" />
                 </SelectTrigger>
@@ -264,7 +272,13 @@ export default function ShaderGraph() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select onValueChange={insertPreset}>
+              <Select
+                value={insertPresetSelection}
+                onValueChange={(value) => {
+                  insertPreset(value);
+                  setInsertPresetSelection('');
+                }}
+              >
                 <SelectTrigger aria-label="Insert preset" className="h-8 w-48 text-xs">
                   <SelectValue placeholder="Insert preset" />
                 </SelectTrigger>
