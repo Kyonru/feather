@@ -9,7 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { useHost } from '@feather/host';
-import { zipSync, strToU8 } from 'fflate';
+import { zip, strToU8 } from 'fflate';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -533,7 +533,9 @@ export function TextureLabActionControls({
         for (const frame of bundle.frames) {
           archive[`frames/${frame.filename}`] = Uint8Array.from(atob(frame.dataBase64), (char) => char.charCodeAt(0));
         }
-        const bytes = zipSync(archive);
+        const bytes = await new Promise<Uint8Array>((resolve, reject) => {
+          zip(archive, { level: 6 }, (error, result) => (error ? reject(error) : resolve(result)));
+        });
         void downloadFile(host, textureLabAtlasZipName(bundle.texture), bytesToBase64(bytes), 'base64');
         return;
       }
