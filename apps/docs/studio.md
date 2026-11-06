@@ -59,7 +59,8 @@ than replaced with an empty one.
 
 Particle projects can be saved as `.featherparticles` files or as a project ZIP.
 The ZIP contains the editable project, its generated Lua definition, shader
-sources, uploaded/generated textures and atlas metadata. Use **Copy Lua Code**
+sources, uploaded/generated textures and atlas metadata. The Lua definition
+references uploaded images by their archive-relative `textures/` paths. Use **Copy Lua Code**
 to copy the authored particle table; the project and its textures stay in the
 saved project files. In desktop Studio, **Show in Game** imports the current
 project snapshot into the connected LÖVE runtime; hide and show again after

@@ -22,11 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Particle ZIP coverage now verifies generated Lua texture paths resolve to archived image files.
 - Shader Graph export coverage now checks bundle manifests and generated stage files.
 - Expanded CLI create coverage for Oval-Tutu cleanup boundaries, preserved build assets and attribution, TUA layout/configuration, generated-output targeting, editor recommendations, the optional bundled scaffold, and git recovery guidance.
 
 ### Fixed
 
+- Particle project ZIP Lua definitions now point to the matching archived texture paths instead of a bare filename.
 - Particle texture bytes are now removed from the love.js polling payload and cached in bounded chunks, avoiding repeated full-image JSON serialization during preview.
 - Particle Project ZIP compression now yields through the asynchronous ZIP encoder instead of blocking the Studio UI.
 - Shader Graph adds a portable bundle export with pixel/vertex source, referenced textures, uniform bindings and parameter metadata.
