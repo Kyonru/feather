@@ -130,8 +130,30 @@ function snapshot(state: Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs'>
   return { nodes: state.nodes, edges: state.edges, subgraphs: state.subgraphs };
 }
 
+function sameGraphItem(a: object, b: object): boolean {
+  if (a === b) return true;
+  const aRecord = a as Record<string, unknown>;
+  const bRecord = b as Record<string, unknown>;
+  const keys = Object.keys(aRecord);
+  if (keys.length !== Object.keys(bRecord).length) return false;
+  return keys.every((key) => {
+    if (key === 'position') {
+      const aPosition = aRecord.position as { x?: number; y?: number } | undefined;
+      const bPosition = bRecord.position as { x?: number; y?: number } | undefined;
+      return aPosition === bPosition || (aPosition?.x === bPosition?.x && aPosition?.y === bPosition?.y);
+    }
+    return Object.is(aRecord[key], bRecord[key]);
+  });
+}
+
+function sameGraphItems(a: object[], b: object[]): boolean {
+  return a === b || (a.length === b.length && a.every((item, index) => sameGraphItem(item, b[index])));
+}
+
 function sameGraph(a: GraphSnapshot, b: GraphSnapshot): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+  if (a.nodes === b.nodes && a.edges === b.edges && a.subgraphs === b.subgraphs) return true;
+  if (!sameGraphItems(a.nodes, b.nodes) || !sameGraphItems(a.edges, b.edges)) return false;
+  return a.subgraphs === b.subgraphs || JSON.stringify(a.subgraphs) === JSON.stringify(b.subgraphs);
 }
 
 function emptyShaderGraphWorkspace(): ShaderGraphWorkspaceSnapshot {

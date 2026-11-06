@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shader Graph standalone preview errors now appear in accessible React text and can be copied.
 - Texture Lab spline and shape points can now be selected and nudged with arrow keys, with live coordinate announcements.
 - Shader Graph exports now share one menu to reduce toolbar crowding at narrower window widths.
+- Shader Graph history checks now compare nodes and edges shallowly, avoiding repeated serialization of large nested graphs during edits.
 - Texture Lab atlas ZIP compression now yields to the UI instead of blocking on synchronous compression.
 - The standalone particle preview now loads uploaded textures and emitter shaders, honors blend modes, movement, and texture atlas playback, and skips disabled emitters.
 - Studio's **Show in Game** particle preview now uses authored emission rates and the game's frame step; the bounded runtime preview mode also keeps its reduced rate stable across frames.
