@@ -1,0 +1,33 @@
+[package]
+name = "feather-studio"
+version = "0.1.0"
+description = "Feather Studio is a standalone creative tool for LÖVE: shader graphs, texture generation, and particle authoring. It edits assets locally and can optionally push them to a game through Feather Inspector."
+authors = ["kyonru"]
+edition = "2021"
+
+[lib]
+name = "feather_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-opener = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+uuid = { version = "1", features = ["v4"] }
+
+# Deliberately absent, compared with the Inspector crate:
+#   tauri-plugin-shell — Studio spawns no CLI sidecar.
+#
+# axum and tokio ARE here, for the loopback creative MCP endpoint in
+# creative_mcp.rs. The boundary that matters is not "no HTTP server" but "no
+# second path to a running game": that endpoint serves Studio's own authoring
+# state, and pushing work into a game still goes through the authenticated
+# Inspector bridge. Studio still runs no WebSocket server and owns no sessions.

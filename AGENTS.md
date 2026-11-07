@@ -4,17 +4,39 @@ This is the canonical repo guide for coding agents. Keep subsystem-specific deta
 
 Feather is a CLI debugger, inspector, desktop devtool, VS Code companion, and package manager for Love2D games. It injects a Lua runtime through the CLI and shows a live React + Tauri desktop app with logs, variables, performance, plugins, build tools, and creative inspectors.
 
+## Architecture And Design Sources
+
+Feather's architecture is organized around release boundaries. Read
+[`apps/docs/architecture.md`](./apps/docs/architecture.md) before structural, build, release or
+packaging work, and read [`apps/docs/decisions.md`](./apps/docs/decisions.md) before reopening a
+settled architecture choice.
+
+Before changing Inspector or Studio behavior or UI, read
+[`skills/feather-desktop-app/references/design-rules.md`](./skills/feather-desktop-app/references/design-rules.md).
+Particle runtime semantics live beside their implementation in
+[`packages/runtime-lua/plugins/particle-system-playground/README.md`](./packages/runtime-lua/plugins/particle-system-playground/README.md).
+Future work belongs in [`ROADMAP.md`](./ROADMAP.md); do not create parallel tracking documents.
+
 ## Project Layout
 
-- `cli/` - TypeScript CLI using Commander. Workspace package `@kyonru/feather`.
-- `src/` - React desktop app using Vite, Tailwind, Radix/Base UI, and Tauri APIs.
-- `src-tauri/` - Rust/Tauri shell and WebSocket server.
-- `src-lua/feather/` - Embedded Lua runtime loaded into running games.
-- `src-lua/plugins/` - Built-in Lua plugins.
-- `vscode-extension/` - VS Code extension workspace package.
-- `packages/` - Curated Love2D package catalog entries.
+Everything that ships lives under `apps/`; `packages/` holds only what those
+applications consume.
+
+- `apps/inspector/` - Tauri desktop debugger. React in `apps/inspector/src/`, Rust WS server in `apps/inspector/src-tauri/`.
+- `apps/studio/` - Feather Studio: shader graph, texture lab, particle playground. Separate
+  application with its own binary, bundle identifier, version and release feed.
+- `apps/showcase/` - Thin shell hosting Studio for the web. No page code of its own.
+- `apps/cli/` - TypeScript CLI using Commander. Workspace package `@kyonru/feather`.
+- `apps/vscode-extension/` - VS Code extension. Vendors a pinned platform snapshot.
+- `apps/docs/` - Zensical documentation site.
+- `packages/protocol/` - Wire message registry and envelope.
+- `packages/host/` - Environment capabilities, with Tauri and browser implementations.
+- `packages/session-bridge/` - Versioned Inspector↔Studio process contract.
+- `packages/ui/` - Shared interface primitives.
+- `packages/runtime-lua/` - The Lua runtime and built-in plugins. Publishes to LuaRocks.
+- `catalog/packages/` - Curated Love2D package catalog entries (`catalog/packages/*.json`).
+  Published to the `packages` branch by `.github/workflows/registry.yml`.
 - `scripts/` - Registry/catalog generators, checksum tools, bundle helpers.
-- `docs/` - Zensical documentation site.
 - `skills/` - Repo-local agent skills. Read the matching skill before editing a subsystem.
 
 ## Pick The Right Skill
@@ -39,18 +61,18 @@ For package or plugin work that changes generated files, read the relevant skill
 New packages:
 
 - Read `skills/feather-package-catalog/SKILL.md` and its workflow reference before editing catalog data.
-- Prefer `npm run package:add` for GitHub-hosted packages and `npm run package:add-url` for direct file URL packages.
-- Commit both the source `packages/<id>.json` file and the generated `cli/src/generated/registry.json` update.
-- Verify with `npm run check:registry`, `npm run cli:build`, `npm run feather -- package info <id>`, and a package install into a temp or fixture project.
+- Prefer `pnpm run package:add` for GitHub-hosted packages and `pnpm run package:add-url` for direct file URL packages.
+- Commit both the source `catalog/packages/<id>.json` file and the generated `apps/cli/src/generated/registry.json` update.
+- Verify with `pnpm run check:registry`, `pnpm run cli:build`, `pnpm run feather -- package info <id>`, and a package install into a temp or fixture project.
 - Update package docs, e2e coverage, and `CHANGELOG.md` when the package is user-visible.
 
 New plugins:
 
 - Read `skills/feather-plugin-authoring/SKILL.md` and its catalog/testing reference before adding plugin files.
-- Built-in plugins should usually include `src-lua/plugins/<plugin-id>/init.lua`, `manifest.lua`, and `README.md`.
+- Built-in plugins should usually include `packages/runtime-lua/plugins/<plugin-id>/init.lua`, `manifest.lua`, and `README.md`.
 - Declare capabilities, default options, `optIn`, and `disabled` deliberately; risky or development-only plugins stay opt-in and disabled.
-- Add Lua e2e coverage under `src-lua/e2e/plugins/` for runtime behavior, and desktop/showcase e2e when React-rendered plugin UI changes.
-- Run `bash scripts/generate-manifest.sh`, `npm run generate:plugin-catalog`, `npm run cli:build`, `npm run typecheck:lua`, and `npm run test:lua:e2e`.
+- Add Lua e2e coverage under `packages/runtime-lua/e2e/plugins/` for runtime behavior, and desktop/showcase e2e when React-rendered plugin UI changes.
+- Run `bash scripts/generate-manifest.sh`, `pnpm run generate:plugin-catalog`, `pnpm run cli:build`, `pnpm run typecheck:lua`, and `pnpm run test:lua:e2e`.
 - Update plugin docs, any docs symlink targets, and `CHANGELOG.md`.
 
 New features:
@@ -58,22 +80,25 @@ New features:
 - Pick the primary subsystem skill first, then load adjacent skills for protocol, CLI, desktop, package, plugin, or extension effects.
 - Start from existing command/page/hook/store/runtime patterns before adding new abstractions.
 - Add or update e2e coverage in the subsystem that proves the user workflow, not only unit coverage for helper code.
-- Update docs in the same change. Prefer canonical docs beside the subsystem, exposed through `docs/` with symlinks when practical.
+- Update docs in the same change. Prefer canonical docs beside the subsystem, exposed through `apps/docs/` with symlinks when practical.
 - Update `CHANGELOG.md` for user-visible behavior and add compare-link bookkeeping when preparing a release section.
 - Regenerate catalogs, registries, manifests, or bundled assets whenever the source files they represent change.
 
 ## Dev Setup
 
 ```sh
-npm install
-npm run cli:build
-npm run feather -- --help
-npm run dev
-npm run tauri dev
-npm run docs
+pnpm install
+pnpm run cli:build
+pnpm run feather --help
+pnpm run up -- --studio    # Inspector + Studio + an example game, in order; Ctrl+C stops all
+pnpm run inspector:tauri   # or one app at a time
+pnpm run studio:tauri
+pnpm run docs
 ```
 
-`npm run cli:build` is required before local `npm run feather -- ...` smoke checks.
+`pnpm run cli:build` is required before local `pnpm run feather -- ...` smoke checks. Never run a bare
+`pnpm run tauri ...`: there are two `src-tauri` directories, and the Tauri CLI picks one by search
+order rather than by intent. The `inspector:*` and `studio:*` scripts pin the project.
 
 ## Generated Files
 
@@ -81,8 +106,8 @@ Do not edit generated files by hand.
 
 | File                                  | Generator/check                                                    |
 | ------------------------------------- | ------------------------------------------------------------------ |
-| `cli/src/generated/registry.json`     | `npm run generate:registry` / `npm run check:registry`             |
-| `cli/src/generated/plugin-catalog.ts` | `npm run generate:plugin-catalog` / `npm run check:plugin-catalog` |
+| `apps/cli/src/generated/registry.json`     | `pnpm run generate:registry` / `pnpm run check:registry`             |
+| `apps/cli/src/generated/plugin-catalog.ts` | `pnpm run generate:plugin-catalog` / `pnpm run check:plugin-catalog` |
 
 When source catalog or manifest files change, run the generator and include the generated result.
 
@@ -90,16 +115,16 @@ When source catalog or manifest files change, run the generator and include the 
 
 Update docs when a user-facing command, config field, plugin option, build behavior, package behavior, extension behavior, or safety check changes.
 
-Prefer canonical documentation beside the subsystem it describes, then expose it through `docs/` with a symlink when practical. Edit the source-side file, not only the symlink path.
+Prefer canonical documentation beside the subsystem it describes, then expose it through `apps/docs/` with a symlink when practical. Edit the source-side file, not only the symlink path.
 
 Docs symlink source files:
 
-- `docs/cli.md` points to `cli/README.md`.
-- `docs/vscode-extension.md` points to `vscode-extension/README.md`.
-- `docs/packages.md` points to `packages/README.md`.
-- `docs/plugins.md` points to `src-lua/plugins/README.md`.
-- `docs/plugins-ui.md` points to `src-lua/plugins/plugins-ui.md`.
-- Plugin pages under `docs/plugins/` usually point to `src-lua/plugins/<plugin-id>/README.md`.
+- `apps/docs/cli.md` points to `apps/cli/README.md`.
+- `apps/docs/vscode-extension.md` points to `apps/vscode-extension/README.md`.
+- `apps/docs/packages.md` points to `catalog/packages/README.md`.
+- `apps/docs/plugins.md` points to `packages/runtime-lua/plugins/README.md`.
+- `apps/docs/plugins-ui.md` points to `packages/runtime-lua/plugins/plugins-ui.md`.
+- Plugin pages under `apps/docs/plugins/` usually point to `packages/runtime-lua/plugins/<plugin-id>/README.md`.
 
 Edit the source file, not only the docs path.
 

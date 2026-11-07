@@ -1,0 +1,78 @@
+import { readCompatibleLockfile } from '../../lib/package/compat.js';
+import { fail } from '../../lib/command.js';
+import { printBlank, printJson, printLine, printMuted, style } from '../../lib/output.js';
+import { trustBadge } from '../../lib/trust.js';
+import { packageCatalogJson, packageLockJson } from './json.js';
+import { registryStatusJson } from '../../lib/package/registry.js';
+import { loadRegistryStatusOrExit, resolvePackageProjectDir } from './shared.js';
+
+export type PackageInfoOptions = {
+  offline?: boolean;
+  dir?: string;
+  registryUrl?: string;
+  json?: boolean;
+};
+
+export async function packageInfoCommand(name: string, opts: PackageInfoOptions = {}): Promise<void> {
+  const projectDir = resolvePackageProjectDir(opts.dir);
+  const lockfile = readCompatibleLockfile(projectDir);
+
+  const load = await loadRegistryStatusOrExit({ offline: opts.offline, registryUrl: opts.registryUrl, json: opts.json });
+  if (!load) return;
+  const { registry } = load;
+
+  const entry = registry.packages[name];
+  if (!entry) {
+    fail(`Package "${name}" not found.`);
+  }
+
+  const installed = lockfile.packages[name];
+  if (opts.json) {
+    printJson({
+      projectDir,
+      package: packageCatalogJson(name, entry, installed),
+      installed: installed ? packageLockJson(name, installed) : null,
+      files: entry.install.files,
+      dependencyAliases: entry.dependencyAliases ?? [],
+      usage: entry.example ?? `local lib = require("${entry.require}")`,
+      registry: registryStatusJson(load),
+    });
+    return;
+  }
+
+  printBlank();
+  printLine(`${style.heading(name)}  ${trustBadge(entry.trust)}`);
+  printMuted(entry.description);
+  printBlank();
+  printLine(`  Source:   ${style.info(`github.com/${entry.source.repo}`)}`);
+  printLine(`  Version:  ${entry.source.tag}`);
+  printLine(`  Tags:     ${entry.tags.join(', ') || '—'}`);
+  if (entry.install.layout === 'fixed') printLine(`  Layout:   fixed runtime paths`);
+  if (entry.dependencies?.length) printLine(`  Depends:  ${entry.dependencies.join(', ')}`);
+  if (entry.dependencyAliases?.length) {
+    printLine('  Aliases:');
+    for (const alias of entry.dependencyAliases) {
+      printLine(`    ${alias.target} → ${alias.require ?? alias.dependency}`);
+    }
+  }
+  if (entry.license) printLine(`  License:  ${entry.license}`);
+  if (entry.homepage) printLine(`  Docs:     ${style.info(entry.homepage)}`);
+  if (installed) {
+    printLine(`  Status:   ${style.success('installed')} @ ${installed.version}`);
+  }
+  if (entry.subpackages?.length) {
+    printLine(`  Modules:  ${entry.subpackages.join(', ')}`);
+  }
+  printBlank();
+  printLine('  Files to install:');
+  for (const f of entry.install.files) {
+    printLine(`    ${style.muted(f.name)}  →  ${f.target}`);
+  }
+  for (const alias of entry.dependencyAliases ?? []) {
+    printLine(`    ${style.muted(alias.target)}  →  ${alias.target}  ${style.muted('generated alias')}`);
+  }
+  printBlank();
+  printLine('  Usage:');
+  printLine(`    ${style.info(entry.example ?? `local lib = require("${entry.require}")`)}`);
+  printBlank();
+}

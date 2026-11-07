@@ -9,7 +9,7 @@ import {
   restoreParticleSnapshotToData,
   snapshotParticleAuthoring,
   undoParticleHistory,
-} from '../../src/pages/particle-system-playground/history.ts';
+} from '../../apps/studio/src/tools/particle-system-playground/history.ts';
 
 function system(index, title = `Emitter ${index}`) {
   return {

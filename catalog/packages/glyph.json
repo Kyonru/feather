@@ -1,0 +1,252 @@
+{
+  "type": "love2d-library",
+  "trust": "verified",
+  "description": "ui framework for love2d",
+  "tags": [
+    "ui",
+    "framework",
+    "layout",
+    "button",
+    "component"
+  ],
+  "homepage": "https://github.com/kyonru/glyph.lua",
+  "license": "MIT",
+  "source": {
+    "repo": "kyonru/glyph.lua",
+    "tag": "v0.4.0",
+    "commitSha": "992dd7fe08079216bbcf0904acfa7621e8b6bdbd",
+    "baseUrl": "https://raw.githubusercontent.com/kyonru/glyph.lua/992dd7fe08079216bbcf0904acfa7621e8b6bdbd/"
+  },
+  "install": {
+    "files": [
+      {
+        "name": "glyph/accessibility.lua",
+        "sha256": "9756625a2e5e4c89f39c204d779da49fd4110dec94b527f79ce90b131d2363ee",
+        "target": "lib/glyph/accessibility.lua"
+      },
+      {
+        "name": "glyph/animation.lua",
+        "sha256": "968a9b7705e72d358a6d4a220f04698e651bd926acf9d1c2f08c9be5e8f98de3",
+        "target": "lib/glyph/animation.lua"
+      },
+      {
+        "name": "glyph/callback_bus.lua",
+        "sha256": "8a1cc5ad6ab53b3d333f188fc9208ae6b0813374864ba028f16059cb3a8e07f3",
+        "target": "lib/glyph/callback_bus.lua"
+      },
+      {
+        "name": "glyph/components.lua",
+        "sha256": "94e0b800b58adc71267ac49877a948c6b93006dc2d51d5b100ac949d126c8e5f",
+        "target": "lib/glyph/components.lua"
+      },
+      {
+        "name": "glyph/dialogue.lua",
+        "sha256": "381421473ab97b7d188c6f163dda78d0d87f8bf302845ad9eac4e0487acb0168",
+        "target": "lib/glyph/dialogue.lua"
+      },
+      {
+        "name": "glyph/feedback.lua",
+        "sha256": "3cd748f24869f7a21b1779bd69c08676a99bf246968cdacca12814c2a19ecdf5",
+        "target": "lib/glyph/feedback.lua"
+      },
+      {
+        "name": "glyph/filter.lua",
+        "sha256": "7f6280b82b7ee3d0323f44d9ba592a3968f350abf967e870a4780135d4e8973c",
+        "target": "lib/glyph/filter.lua"
+      },
+      {
+        "name": "glyph/grid_math.lua",
+        "sha256": "6a822e3d8485983040d092ac3f99404653ca8658b17dc7040366993cd3fce10c",
+        "target": "lib/glyph/grid_math.lua"
+      },
+      {
+        "name": "glyph/i18n.lua",
+        "sha256": "ece9cb01d7835b37b16a8c79c0bdbf09e672889d51227d9ddf7d2f40710e854e",
+        "target": "lib/glyph/i18n.lua"
+      },
+      {
+        "name": "glyph/init.lua",
+        "sha256": "cf042b2a85e89a8a7f4147352b121a6ef708d4260f8993029bd25f7c53bdc1b8",
+        "target": "lib/glyph/init.lua"
+      },
+      {
+        "name": "glyph/instance.lua",
+        "sha256": "bda5e6afb1920697bed415b43ecbda75e91037e1530d982604e057d357d1b693",
+        "target": "lib/glyph/instance.lua"
+      },
+      {
+        "name": "glyph/layout.lua",
+        "sha256": "a361bfded4eabb35194d698873dc77d24d7d80a92bbe595ba6ec86349a8f29e4",
+        "target": "lib/glyph/layout.lua"
+      },
+      {
+        "name": "glyph/menori.lua",
+        "sha256": "39435e5a8144580f2f6cd8c79c5edbaf5c56bf2c63872ce32467731dff71a87f",
+        "target": "lib/glyph/menori.lua"
+      },
+      {
+        "name": "glyph/modal.lua",
+        "sha256": "0803a147cb1ed0e3ccf14345ccf7db764632685cfb5377e6db0a5d492cdbb444",
+        "target": "lib/glyph/modal.lua"
+      },
+      {
+        "name": "glyph/navigate.lua",
+        "sha256": "4976cf23a99912af8a7db54e27f786a1a96282fcc7758e58b04bdfb80f2146a5",
+        "target": "lib/glyph/navigate.lua"
+      },
+      {
+        "name": "glyph/path.lua",
+        "sha256": "d24b58048f051176af86f02c8497e49e7cac192670d0b92e5e3375ca1e3571cb",
+        "target": "lib/glyph/path.lua"
+      },
+      {
+        "name": "glyph/responsive.lua",
+        "sha256": "3ef02233955843c59bd223a58af2dc807538b123a21549ccf52ad72447366dbd",
+        "target": "lib/glyph/responsive.lua"
+      },
+      {
+        "name": "glyph/rich_text_backend.lua",
+        "sha256": "c4525f8064137d7633c0f2ea4d5a8f4c9bd7a897658ed30ab85dd18ce23ac54d",
+        "target": "lib/glyph/rich_text_backend.lua"
+      },
+      {
+        "name": "glyph/runtime.lua",
+        "sha256": "d6c365a63ae9a98dad0c21995d1f55b1b2bf5e33d4c72650231e50e3827a94b4",
+        "target": "lib/glyph/runtime.lua"
+      },
+      {
+        "name": "glyph/scene.lua",
+        "sha256": "110ba34ba6c71aa8fb3a7c28dbd290ced46787689a3967922cea892d2c48ea10",
+        "target": "lib/glyph/scene.lua"
+      },
+      {
+        "name": "glyph/sprite_sheet.lua",
+        "sha256": "e77ed78b1a1690d55a192d6bf3a1b6bce5b886d52e1f7ceee81ac69d1f44a5d7",
+        "target": "lib/glyph/sprite_sheet.lua"
+      },
+      {
+        "name": "glyph/style.lua",
+        "sha256": "ab972725c10c589b8497e402aee622404f2a7f6c839830f4fb15e77bf2e783b2",
+        "target": "lib/glyph/style.lua"
+      },
+      {
+        "name": "glyph/surface.lua",
+        "sha256": "20fcb2d89e5613554f2307889f329ede0e116991a8b817bc16e67f65c517454a",
+        "target": "lib/glyph/surface.lua"
+      },
+      {
+        "name": "glyph/theme.lua",
+        "sha256": "73bf82e140de16b100db25a6cbe67c53df197d5f93a9cf2b8968706d51b52c6e",
+        "target": "lib/glyph/theme.lua"
+      },
+      {
+        "name": "glyph/transitions.lua",
+        "sha256": "c854f265a7e3d7382c101385e38d4b213cfba87749faa9d48ead8b23d656cfd7",
+        "target": "lib/glyph/transitions.lua"
+      },
+      {
+        "name": "glyph/types.lua",
+        "sha256": "e01d16a364e179e32a3d38321601cdbe7ade2c0152e11d182b2548434457efd0",
+        "target": "lib/glyph/types.lua"
+      },
+      {
+        "name": "glyph/typography.lua",
+        "sha256": "19de92c4955f02e2883b1a1495788013affeecbafef27cf18572b33a35ff159e",
+        "target": "lib/glyph/typography.lua"
+      },
+      {
+        "name": "glyph/vendor/feel.lua",
+        "sha256": "a9ec7b9314c3219650b92642682df6dac4d099369b946f4f3dfea9e8e0e735ce",
+        "target": "lib/glyph/vendor/feel.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/feedbacks.lua",
+        "sha256": "0e5fcb0644bfaca767b55e04492cc18f0d3b6ec65a16e9c7be8b3b914aa85d7f",
+        "target": "lib/glyph/vendor/feel/feedbacks.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/g3d.lua",
+        "sha256": "01bd77cd598ea1721009b1d0df492f4247e07d0e36d90430e9ac06208a1da72f",
+        "target": "lib/glyph/vendor/feel/g3d.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/init.lua",
+        "sha256": "a44ae523ed8e6b06e6b295b4d4df462c24d837530a8f065f2fd6c31f7db16bb6",
+        "target": "lib/glyph/vendor/feel/init.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/love.lua",
+        "sha256": "a8ef00afd1c0d8ff9b3aae781c8d40595dba81d956b85e601d32ffe0846cab34",
+        "target": "lib/glyph/vendor/feel/love.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/menori.lua",
+        "sha256": "5953dc1f55fc809a7a4d8b236c26ad1b85fb6f1393df57cf86a17f0f7126e7aa",
+        "target": "lib/glyph/vendor/feel/menori.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/presets.lua",
+        "sha256": "32453dcaa782cb4f2fc6a51b1dbd23c6690b035aeabda8850bc7e30661c3f08e",
+        "target": "lib/glyph/vendor/feel/presets.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/types/feel-feedbacks.lua",
+        "sha256": "7ad405bf7ad40410d16c2474e92df2a5ed69731b8806775d0c1f09a282a7bf2e",
+        "target": "lib/glyph/vendor/feel/types/feel-feedbacks.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/types/feel-g3d.lua",
+        "sha256": "8939b3a2b7365c77892f84b2e5ace4845a6f9a915a3a763c97509979a9dd8df3",
+        "target": "lib/glyph/vendor/feel/types/feel-g3d.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/types/feel-love.lua",
+        "sha256": "6071ec680bc98cffc8ff2b918d4458193dc8fcc6ec88180cca8e3ba8e7b6301b",
+        "target": "lib/glyph/vendor/feel/types/feel-love.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/types/feel-menori.lua",
+        "sha256": "38b17ffdd7c4f7c42d3be6ce1c118fb68009026da206f943890dfae6b0dbb147",
+        "target": "lib/glyph/vendor/feel/types/feel-menori.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/types/feel.lua",
+        "sha256": "397b018877efe83217368454341b6d9fc9a6f5fc436e7b0b9a1683eadf03b380",
+        "target": "lib/glyph/vendor/feel/types/feel.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/validate.lua",
+        "sha256": "0d5c57fc075a0976dddaf28226b2d5def0a987d7bd47416c1be9b124217ef215",
+        "target": "lib/glyph/vendor/feel/validate.lua"
+      },
+      {
+        "name": "glyph/vendor/feel/vendor/flux.lua",
+        "sha256": "a8595b034f83aff86591d9d343abf0f7c0873ee4bb6036dfc5008503153e22fa",
+        "target": "lib/glyph/vendor/feel/vendor/flux.lua"
+      },
+      {
+        "name": "glyph/vendor/flux.lua",
+        "sha256": "11542ab78001f99d94d0b9ca3f99072494e1e4f4ce395db203bf4f7e6f7889d5",
+        "target": "lib/glyph/vendor/flux.lua"
+      },
+      {
+        "name": "glyph/viewport_backend.lua",
+        "sha256": "8a876330f278cd06ab34aa0adb714055c84b9cdfe79c3a4a7a577b1156312a11",
+        "target": "lib/glyph/viewport_backend.lua"
+      },
+      {
+        "name": "glyph/virtual_list.lua",
+        "sha256": "a8e0a0e630a2c44a9ce8c39780ec81e9de364bc58c93a2a6493245c6c843ba39",
+        "target": "lib/glyph/virtual_list.lua"
+      }
+    ],
+    "licenses": [
+      {
+        "name": "LICENSE",
+        "sha256": "59097e7d15d2ac4fe00dc8e82845bdb7b0a15f2d4502aadf3820120c0f092169"
+      }
+    ]
+  },
+  "require": "lib.glyph",
+  "example": "local glyph = require('lib.glyph')"
+}

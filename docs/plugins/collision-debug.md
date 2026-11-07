@@ -1,1 +1,0 @@
-../../src-lua/plugins/collision-debug/README.md

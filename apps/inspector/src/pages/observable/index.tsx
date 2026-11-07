@@ -1,0 +1,432 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useHost, type FeatherHost } from '@feather/host';
+import { useSessionStore } from '@/store/session';
+import { Freshness } from '@/components/freshness';
+import { sessionQueryKey } from '@/lib/session-query-keys';
+import { sendBackgroundCommand } from '@/lib/send-command';
+import { usePanelState } from '@/store/panel-state';
+import { PageLayout } from '@/components/page-layout';
+import { SectionCards } from './section-cards';
+import { useObservability, ObserverEntry } from '@/hooks/use-observability';
+import { Button } from '@feather/ui/button';
+import { LuaBlock } from '@/components/code';
+import { Separator } from '@feather/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@feather/ui/tabs';
+import { ScrollArea } from '@feather/ui/scroll-area';
+import { useConfig } from '@/hooks/use-config';
+import { lineDiff, hasDiff } from '@/utils/diff';
+import { cn } from '@/utils/styles';
+import { Badge } from '@feather/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
+import { ActivityIcon, DownloadIcon } from 'lucide-react';
+import { downloadFile } from '@/utils/file';
+import {
+  TriageCopyButton,
+  TriageDetailsPanel,
+  TriageEmptyState,
+  TriageSearch,
+  TriageSummaryChip,
+  TriageToolbar,
+} from '@/components/triage';
+
+type ObserverSortKey = 'changed' | 'key' | 'group' | 'type' | 'changes' | 'lastChanged' | 'lastSeen' | 'size';
+type ChangeWindowKey = '5000' | '10000' | '30000' | '60000' | 'sticky';
+
+const CHANGE_WINDOW_STORAGE_KEY = 'feather-observability-change-window';
+
+const sortLabels: Record<ObserverSortKey, string> = {
+  changed: 'Changed first',
+  key: 'Key',
+  group: 'Group',
+  type: 'Type',
+  changes: 'Most changes',
+  lastChanged: 'Last changed',
+  lastSeen: 'Last seen',
+  size: 'Largest value',
+};
+
+const changeWindowLabels: Record<ChangeWindowKey, string> = {
+  '5000': 'Changed: 5s',
+  '10000': 'Changed: 10s',
+  '30000': 'Changed: 30s',
+  '60000': 'Changed: 1m',
+  sticky: 'Changed: sticky',
+};
+
+function readStoredChangeWindow(): ChangeWindowKey {
+  if (typeof window === 'undefined') return 'sticky';
+  const stored = window.localStorage.getItem(CHANGE_WINDOW_STORAGE_KEY);
+  return stored && stored in changeWindowLabels ? (stored as ChangeWindowKey) : 'sticky';
+}
+
+function applyChangeWindow(entry: ObserverEntry, changeWindow: ChangeWindowKey, now: number): ObserverEntry {
+  const changed =
+    changeWindow === 'sticky'
+      ? (entry.changeCount ?? 0) > 0
+      : entry.lastChanged !== undefined && now - entry.lastChanged <= Number(changeWindow);
+  return entry.changed === changed ? entry : { ...entry, changed };
+}
+
+function formatObservedTime(time?: number) {
+  if (!time) return 'Never';
+  return new Date(time).toLocaleTimeString();
+}
+
+function exportObservers(host: FeatherHost, data: ObserverEntry[]) {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    count: data.length,
+    observers: data,
+  };
+  const src = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(payload, null, 2))}`;
+  void downloadFile(host, `feather-observers-${Date.now()}.json`, src, 'string');
+}
+
+function DiffView({ oldValue, newValue }: { oldValue: string; newValue: string }) {
+  const lines = lineDiff(oldValue, newValue);
+  return (
+    <div className="rounded-md bg-muted font-mono text-xs leading-5 overflow-auto p-3">
+      {lines.map((line, i) => (
+        <div
+          key={i}
+          className={cn('px-1 whitespace-pre', {
+            'bg-ok-surface text-ok': line.kind === 'added',
+            'bg-danger-surface text-danger line-through': line.kind === 'removed',
+            'text-muted-foreground': line.kind === 'same',
+          })}
+        >
+          {line.kind === 'added' ? '+ ' : line.kind === 'removed' ? '- ' : '  '}
+          {line.text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HistoryEntry({ value, index, total }: { value: string; index: number; total: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLatest = index === total - 1;
+  const preview = value.split('\n')[0];
+
+  return (
+    <div className="text-xs border rounded-md overflow-hidden">
+      <button
+        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-muted/50"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <span className="font-mono truncate text-muted-foreground">{preview}</span>
+        <span className="text-muted-foreground ml-2 shrink-0">{isLatest ? 'previous' : `${total - index} ago`}</span>
+      </button>
+      {expanded && (
+        <div className="border-t">
+          <LuaBlock code={value} showLineNumbers={false} className="text-xs" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ObserveSidePanel({ data, onClose }: { onClose: (o: boolean) => void; data: ObserverEntry }) {
+  const diffLines = data.previous !== undefined ? lineDiff(data.previous, data.value) : [];
+  const showDiff = hasDiff(diffLines);
+  const defaultTab = showDiff ? 'diff' : 'current';
+
+  return (
+    <TriageDetailsPanel
+      title={data.key}
+      onClose={() => onClose(false)}
+      subtitle={<span>{data.value.length.toLocaleString()} chars</span>}
+      badges={
+        <>
+          {data.changed && <span className="inline-block size-2 rounded-full bg-warn" title="Value changed" />}
+          <Badge variant="secondary" className="font-mono text-[10px]">
+            {data.type}
+          </Badge>
+          {data.group && (
+            <Badge variant="outline" className="font-mono text-[10px]">
+              {data.group}
+            </Badge>
+          )}
+        </>
+      }
+    >
+        <Tabs defaultValue={defaultTab} className="h-full flex flex-col">
+          <TabsList className="shrink-0">
+            <TabsTrigger value="current">Current</TabsTrigger>
+            <TabsTrigger value="diff" disabled={!showDiff}>
+              Diff {showDiff && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-warn inline-block" />}
+            </TabsTrigger>
+            <TabsTrigger value="history" disabled={data.history.length === 0}>
+              History{' '}
+              {data.history.length > 0 && <span className="ml-1 text-muted-foreground">({data.history.length})</span>}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="current" className="flex-1 overflow-auto space-y-4 mt-3">
+            <div className="flex flex-wrap gap-2 text-xs">
+              <TriageSummaryChip label="Changes" value={data.changeCount ?? 0} />
+              <TriageSummaryChip label="First Seen" value={formatObservedTime(data.firstSeen)} />
+              <TriageSummaryChip label="Last Seen" value={formatObservedTime(data.lastSeen)} />
+              <TriageSummaryChip label="Last Changed" value={formatObservedTime(data.lastChanged)} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium">Value</span>
+                <TriageCopyButton value={data.value} label="value" />
+              </div>
+              <LuaBlock className="max-h-[100%]" code={data.value} showLineNumbers={false} />
+            </div>
+            <Separator />
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-medium">Observer JSON</span>
+                <TriageCopyButton value={JSON.stringify(data, null, 2)} label="observer JSON" />
+              </div>
+              <LuaBlock className="mt-1" code={JSON.stringify(data, null, 2)} showLineNumbers={false} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="diff" className="flex-1 overflow-auto mt-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Changes from previous value</span>
+            </div>
+            <DiffView oldValue={data.previous ?? ''} newValue={data.value} />
+          </TabsContent>
+
+          <TabsContent value="history" className="flex-1 overflow-hidden mt-3">
+            <ScrollArea className="h-full">
+              <div className="space-y-2 pr-3">
+                {[...data.history].reverse().map((v, i) => (
+                  <HistoryEntry key={i} value={v} index={data.history.length - 1 - i} total={data.history.length} />
+                ))}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
+    </TriageDetailsPanel>
+  );
+}
+
+export default function Page() {
+  const host = useHost();
+  const sessionId = useSessionStore((state) => state.sessionId);
+  const [search, setSearch] = usePanelState('observability.search', '');
+  const [typeFilter, setTypeFilter] = usePanelState('observability.typeFilter', 'all');
+  const [groupFilter, setGroupFilter] = usePanelState('observability.groupFilter', 'all');
+  const [sortBy, setSortBy] = usePanelState<ObserverSortKey>('observability.sortBy', 'changed');
+  const [changeWindow, setChangeWindow] = useState<ChangeWindowKey>(readStoredChangeWindow);
+  const [now, setNow] = useState(() => Date.now());
+  const [changedOnly, setChangedOnly] = usePanelState('observability.changedOnly', false);
+  const { data: searchedDataRaw, all: allRaw } = useObservability(search);
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const onSelect = (key: string) => setSelected(key);
+  const onClose = () => setSelected(null);
+
+  useConfig();
+
+  useEffect(() => {
+    window.localStorage.setItem(CHANGE_WINDOW_STORAGE_KEY, changeWindow);
+  }, [changeWindow]);
+
+  useEffect(() => {
+    if (changeWindow === 'sticky') return;
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [changeWindow]);
+
+  const all = useMemo(() => allRaw.map((item) => applyChangeWindow(item, changeWindow, now)), [allRaw, changeWindow, now]);
+  const searchedData = useMemo(
+    () => searchedDataRaw.map((item) => applyChangeWindow(item, changeWindow, now)),
+    [searchedDataRaw, changeWindow, now],
+  );
+
+  const typeOptions = useMemo(() => Array.from(new Set(all.map((item) => item.type))).sort(), [all]);
+  const groupOptions = useMemo(() => Array.from(new Set(all.map((item) => item.group ?? 'ungrouped'))).sort(), [all]);
+  const data = useMemo(() => {
+    return searchedData
+      .filter((item) => typeFilter === 'all' || item.type === typeFilter)
+      .filter((item) => groupFilter === 'all' || (item.group ?? 'ungrouped') === groupFilter)
+      .filter((item) => !changedOnly || item.changed)
+      .sort((a, b) => {
+        if (sortBy === 'key') return a.key.localeCompare(b.key);
+        if (sortBy === 'group') return (a.group ?? '').localeCompare(b.group ?? '') || a.key.localeCompare(b.key);
+        if (sortBy === 'type') return a.type.localeCompare(b.type) || a.key.localeCompare(b.key);
+        if (sortBy === 'changes') return (b.changeCount ?? 0) - (a.changeCount ?? 0) || a.key.localeCompare(b.key);
+        if (sortBy === 'lastChanged') return (b.lastChanged ?? 0) - (a.lastChanged ?? 0) || a.key.localeCompare(b.key);
+        if (sortBy === 'lastSeen') return (b.lastSeen ?? 0) - (a.lastSeen ?? 0) || a.key.localeCompare(b.key);
+        if (sortBy === 'size') return (b.valueLength ?? b.value.length) - (a.valueLength ?? a.value.length) || a.key.localeCompare(b.key);
+        return Number(b.changed) - Number(a.changed) || a.key.localeCompare(b.key);
+      });
+  }, [searchedData, typeFilter, groupFilter, changedOnly, sortBy]);
+
+  const selectedEntry = data.find((item) => item.key === selected);
+  const changedCount = all.filter((item) => item.changed).length;
+  const historyCount = all.reduce((count, item) => count + item.history.length, 0);
+  const totalChanges = all.reduce((count, item) => count + (item.changeCount ?? 0), 0);
+
+  useEffect(() => {
+    if (selected && !selectedEntry) setSelected(null);
+  }, [selected, selectedEntry]);
+
+  if (all.length === 0 && !search) {
+    return (
+      <PageLayout>
+        <div className="flex h-full flex-col items-center justify-center gap-6 px-4 py-16 text-center">
+          <TriageEmptyState
+            title="No observers yet"
+            description={
+              <>
+                Call <code className="font-mono">DEBUGGER:observe()</code> anywhere in your game loop to watch values in
+                real time.
+              </>
+            }
+            className="min-h-0 border-0"
+          />
+          <LuaBlock
+            className="w-full max-w-lg text-left"
+            showLineNumbers={false}
+            code={`-- Call this each frame (or whenever the value changes)
+function love.update(dt)
+  DEBUGGER:observe("player.x", player.x)
+  DEBUGGER:observe("player.y", player.y)
+  DEBUGGER:observe("health", player.health)
+  DEBUGGER:observe("state", player.state)
+end`}
+          />
+        </div>
+      </PageLayout>
+    );
+  }
+
+  return (
+    <PageLayout right={selected && selectedEntry && <ObserveSidePanel data={selectedEntry} onClose={onClose} />}>
+      <div className="space-y-3 px-4 pb-1 lg:px-6">
+        <div className="flex flex-wrap gap-2">
+          <TriageSummaryChip label="Observers" value={all.length} />
+          <TriageSummaryChip label="Changed" value={changedCount} tone={changedCount > 0 ? 'warning' : 'default'} />
+          <TriageSummaryChip label="Types" value={typeOptions.length} />
+          <TriageSummaryChip label="Changes" value={totalChanges} tone={totalChanges > 0 ? 'good' : 'muted'} />
+          {/* Observed values are the data you must least afford to read stale:
+              the whole point is watching them change. */}
+          {sessionId && (
+            <Freshness
+              queryKey={sessionQueryKey.observers(sessionId)}
+              onRefresh={() => sendBackgroundCommand(sessionId, { type: 'req:observers' })}
+              className="ml-auto"
+            />
+          )}
+        </div>
+
+        <TriageToolbar
+          className="rounded-md border px-3"
+          search={<TriageSearch placeholder="Search keys or values..." value={search} onChange={setSearch} />}
+          filters={
+            <>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="h-9 w-[180px]">
+              <SelectValue placeholder="All types" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+
+              {typeOptions.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={groupFilter} onValueChange={setGroupFilter}>
+            <SelectTrigger className="h-9 w-[180px]">
+              <SelectValue placeholder="All groups" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value="all">All groups</SelectItem>
+
+              {groupOptions.map((group) => (
+                <SelectItem key={group} value={group}>
+                  {group}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as ObserverSortKey)}>
+            <SelectTrigger className="h-9 w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(sortLabels).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={changeWindow} onValueChange={(value) => setChangeWindow(value as ChangeWindowKey)}>
+            <SelectTrigger className="h-9 w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(changeWindowLabels).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant={changedOnly ? 'default' : 'outline'}
+            size="default"
+            onClick={() => setChangedOnly((value) => !value)}
+          >
+            <ActivityIcon className="size-4" />
+            Changed
+          </Button>
+            </>
+          }
+          actions={
+            <>
+          <Button variant="outline" size="default" onClick={() => exportObservers(host, data)}>
+            <DownloadIcon className="size-4" />
+            Export JSON
+          </Button>
+          {data.length > 0 && (
+            <TriageSummaryChip
+              label="Shown"
+              value={`${data.length.toLocaleString()} / ${all.length.toLocaleString()}${historyCount > 0 ? `, ${historyCount.toLocaleString()} history` : ''}`}
+              tone="muted"
+            />
+          )}
+            </>
+          }
+        />
+      </div>
+      {data.length === 0 ? (
+        <TriageEmptyState
+          className="mx-4 flex-1"
+          title="No observers match the current filters."
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              data-testid="observability-clear-filters"
+              onClick={() => {
+                setSearch('');
+                setTypeFilter('all');
+                setGroupFilter('all');
+                setChangedOnly(false);
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        />
+      ) : (
+        <SectionCards data={data} selected={selected} onSelect={onSelect} />
+      )}
+    </PageLayout>
+  );
+}

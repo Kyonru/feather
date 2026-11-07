@@ -19,6 +19,7 @@ Current command palette actions include:
 - `feather.buildConfig`
 - `feather.buildRelease`
 - `feather.refreshProjectView`
+- `feather.selectProject`
 
 Keep IDs stable for users, keybindings, and command palette muscle memory.
 
@@ -27,24 +28,25 @@ Keep IDs stable for users, keybindings, and command palette muscle memory.
 Local development:
 
 ```bash
-npm install
-npm run cli:build
-npm run extension:build
+pnpm install
+pnpm run extension:build
 ```
+
+Then press F5 with the "Feather VS Code Extension" launch configuration (`.vscode/launch.json`).
 
 Packaging:
 
-- `npm run extension:prepare` builds/copies local CLI/runtime assets for the extension.
-- `npm run extension:binary` builds packaged CLI binaries.
-- `npm run extension:package` prepares, builds, generates the icon, and packages with `vsce`.
+- `pnpm run extension:prepare` builds/copies local CLI/runtime assets for the extension.
+- `pnpm run extension:binary` builds packaged CLI binaries.
+- `pnpm run extension:package` prepares, builds, generates the icon, and packages with `vsce`.
 
-The packaged extension should use bundled assets. Local development should use `vscode-extension/bundled-bin/feather-dev.mjs` or the workspace CLI path prepared by scripts.
+The packaged extension should use bundled assets. Local development should use `apps/vscode-extension/bundled-bin/feather-dev.mjs` or the workspace CLI path prepared by scripts.
 
 ## Testing
 
-- `npm run extension:build`
-- `npm run extension:test`
-- `npm run extension:test:integration`
+- `pnpm run extension:build`
+- `pnpm run extension:test`
+- `pnpm run extension:test:integration` (downloads VS Code into `node_modules/.vscode-test`; opens a window, so it needs a desktop session)
 
 Run package-level checks after changing scripts, bundled binary resolution, icon generation, or files included in the VSIX.
 

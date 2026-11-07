@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate src-lua/manifest.txt from the actual src-lua/ directory tree.
+# Generate packages/runtime-lua/manifest.txt from the actual packages/runtime-lua/ directory tree.
 #
 # Run this before tagging a release:
 #   bash scripts/generate-manifest.sh
@@ -15,11 +15,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SRC_LUA="${SCRIPT_DIR}/../src-lua"
+SRC_LUA="${SCRIPT_DIR}/../packages/runtime-lua"
 MANIFEST="${SRC_LUA}/manifest.txt"
 
 {
-  # Core: every .lua file under feather/, path relative to src-lua/
+  # Core: every .lua file under feather/, path relative to packages/runtime-lua/
   find "${SRC_LUA}/feather" -type f -name "*.lua" | sort | while IFS= read -r f; do
     rel="${f#${SRC_LUA}/}"
     printf 'core:%s\n' "$rel"

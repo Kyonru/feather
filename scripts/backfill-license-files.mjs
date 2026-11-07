@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-shot: discovers common upstream license files for packages/*.json and
+ * One-shot: discovers common upstream license files for catalog/packages/*.json and
  * writes install.licenses entries with SHA-256 checksums.
  *
  * Usage:
@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
-const packagesDir = join(root, "packages");
+const packagesDir = join(root, "catalog/packages");
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");

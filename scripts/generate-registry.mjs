@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Compose cli/src/generated/registry.json from packages/*.json.
+ * Compose cli/src/generated/registry.json from catalog/packages/*.json.
  *
  * Usage:
  *   node scripts/generate-registry.mjs
@@ -14,8 +14,8 @@ import { join, basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const packagesDir = join(__dirname, "../packages");
-const outputPath = join(__dirname, "../cli/src/generated/registry.json");
+const packagesDir = join(__dirname, "../catalog/packages");
+const outputPath = join(__dirname, "../apps/cli/src/generated/registry.json");
 
 const packageFiles = readdirSync(packagesDir)
   .filter((f) => f.endsWith(".json"))
@@ -95,9 +95,27 @@ for (const file of packageFiles) {
   };
 }
 
+// `updatedAt` tracks when the catalog last *changed*, not when this script last
+// ran. Stamping today's date unconditionally made `check:registry` — which
+// regenerates and diffs against git — fail on every day after the last commit,
+// regardless of whether any package actually changed.
+function resolveUpdatedAt(nextPackages) {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const previous = JSON.parse(readFileSync(outputPath, "utf8"));
+    const unchanged =
+      previous.version === 1 &&
+      JSON.stringify(previous.packages) === JSON.stringify(nextPackages);
+    if (unchanged && typeof previous.updatedAt === "string") return previous.updatedAt;
+  } catch {
+    // No readable previous registry: this is a first generation, so today is right.
+  }
+  return today;
+}
+
 const registry = {
   version: 1,
-  updatedAt: new Date().toISOString().slice(0, 10),
+  updatedAt: resolveUpdatedAt(packages),
   packages,
 };
 

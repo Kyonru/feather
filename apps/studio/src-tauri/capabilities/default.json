@@ -1,0 +1,18 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Feather Studio's main window. Deliberately narrower than Inspector's: Studio edits shaders, textures and particles, so it needs file dialogs and nothing that reaches a running game.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://kyonru.github.io/feather/*" }]
+    },
+    "dialog:default",
+    "fs:default",
+    "fs:allow-read-file",
+    "fs:allow-write-file"
+  ]
+}

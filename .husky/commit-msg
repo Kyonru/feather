@@ -5,7 +5,7 @@ message_file="$1"
 subject="$(sed -n '1p' "$message_file")"
 
 case "$subject" in
-  ci:*|cli:*|package:*|plugin:*|app:*|lua:*|tauri:*|feather:*|shadergraph:*|docs:*|vscode-extension:*|particles:*|mcp:*)
+  ci:*|cli:*|package:*|plugin:*|app:*|lua:*|tauri:*|feather:*|shadergraph:*|docs:*|vscode-extension:*|particles:*|mcp:*|studio:*|inspector:*|showcase:*|protocol:*|host:*|ui:*)
     exit 0
     ;;
 esac
@@ -23,10 +23,16 @@ Commit message must start with one of:
   tauri:
   feather:
   shadergraph:
-  particles:
   docs:
-  mcp:
   vscode-extension:
+  particles:
+  mcp:
+  studio:
+  inspector:
+  showcase:
+  protocol:
+  host:
+  ui:
 
 Examples:
   ci: update repo workflows

@@ -1,0 +1,14 @@
+{
+  "name": "@feather/runtime-lua",
+  "version": "4.0.0",
+  "private": true,
+  "description": "The Feather Lua runtime and built-in plugins, loaded into running LÖVE games",
+  "files": [
+    "feather",
+    "plugins",
+    "manifest.txt"
+  ],
+  "scripts": {
+    "bundle": "bash ./scripts/bundle.sh"
+  }
+}

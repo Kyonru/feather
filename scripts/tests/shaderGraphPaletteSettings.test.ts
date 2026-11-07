@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   DEFAULT_COLLAPSED_SHADER_GRAPH_NODE_CATEGORIES,
   normalizeShaderGraphNodeCategories,
-} from '../../src/constants/shader-graph.ts';
+} from '../../apps/studio/src/constants/shader-graph.ts';
 
 test('shader graph palette collapsed categories default to specialized sections', () => {
   assert.deepEqual(normalizeShaderGraphNodeCategories(undefined), DEFAULT_COLLAPSED_SHADER_GRAPH_NODE_CATEGORIES);

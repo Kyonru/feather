@@ -11,8 +11,8 @@ Use this skill when changing the VS Code extension, command palette actions, pro
 
 ## First pass
 
-- Start with `vscode-extension/src/extension.ts` for activation and command registration.
-- Follow CLI execution through `vscode-extension/src/cli.ts` and command helpers.
+- Start with `apps/vscode-extension/src/extension.ts` for activation wiring, then the workflow module under `apps/vscode-extension/src/workflows/`.
+- CLI argv comes from `apps/vscode-extension/src/plans.ts`; non-interactive commands run through `apps/vscode-extension/src/jobs/`.
 - For architecture, load [extension architecture](references/extension-architecture.md).
 - For commands, packaging, and tests, load [commands and packaging](references/commands-and-packaging.md).
 - If behavior mirrors the CLI, also use `feather-cli-builds`.
@@ -24,36 +24,38 @@ Use this skill when changing the VS Code extension, command palette actions, pro
 - Keep command IDs stable unless the task includes a migration.
 - Respect user settings for project directory, Love2D executable, default upload target/channel, watch mode, run targets, and vendor directory.
 - Refresh the project view when config or relevant project files change.
-- Show CLI output in VS Code terminals or output channels in a way users can act on.
+- Run non-interactive commands as managed jobs (output channel + progress + completion); keep terminals for `run`/`watch` only. Never refresh on a timer.
+- Read project state from the CLI's JSON output, never by parsing project files in the extension.
 - Keep build config editing aligned with `feather.build.json`.
 
 ## Common implementation map
 
-- Activation and commands: `vscode-extension/src/extension.ts`.
-- CLI wrapper: `vscode-extension/src/cli.ts`.
-- Command helper: `vscode-extension/src/command.ts`.
-- Project detection/status: `vscode-extension/src/project.ts`.
-- Activity panel: `vscode-extension/src/featherPanel.ts`.
-- Build config panel: `vscode-extension/src/buildConfigPanel.ts`.
-- Vendor support: `vscode-extension/src/vendor.ts`.
-- Package catalog support: `vscode-extension/src/catalog.ts`.
-- Prep/package scripts: `vscode-extension/scripts/prepare.mjs`, `generate-icon.mjs`.
+- Activation wiring only: `apps/vscode-extension/src/extension.ts`.
+- Commands, one module per workflow: `apps/vscode-extension/src/workflows/` (`run`, `setup`, `plugins`, `packages`, `buildRelease`).
+- Every CLI argv the extension builds: `apps/vscode-extension/src/plans.ts` (pure; contract-tested against the CLI).
+- Managed jobs (spawn without a shell, output channel, progress, cancel, completion): `apps/vscode-extension/src/jobs/`.
+- CLI resolution and run/watch terminals: `apps/vscode-extension/src/cli.ts`.
+- Project selection and CLI-sourced state (`doctor`, `plugin list`, `package list` JSON): `apps/vscode-extension/src/project/`.
+- Activity panel: `apps/vscode-extension/src/featherPanel.ts`.
+- Build config panel, model apart from rendering: `apps/vscode-extension/src/buildConfig/`.
+- Bundled catalog snapshots: `apps/vscode-extension/src/catalog.ts`.
+- Prep/package scripts: `apps/vscode-extension/scripts/prepare.mjs`, `generate-icon.mjs`.
 
 ## Verification
 
 - Add or update e2e/integration coverage for extension behavior changes; use extension integration tests for command workflows and packaging-sensitive behavior.
-- Build extension: `npm run extension:build`.
-- Run extension tests: `npm run extension:test`.
-- Run integration tests when command/workflow behavior changes: `npm run extension:test:integration`.
-- Package extension when packaging assets or icons change: `npm run extension:package`.
+- Build extension: `pnpm run extension:build`.
+- Run extension tests: `pnpm run extension:test`.
+- Run integration tests when command/workflow behavior changes: `pnpm run extension:test:integration`.
+- Package extension when packaging assets or icons change: `pnpm run extension:package`.
 
 ## Docs touchpoints
 
 - Update docs for user-facing extension commands, settings, project view behavior, packaging, or troubleshooting in the same change as the implementation.
 - Update `CHANGELOG.md` for extension commands, settings, packaging, CLI-bundle behavior, or extension e2e/integration coverage changes.
-- VS Code extension behavior belongs in `vscode-extension/README.md`; `docs/vscode-extension.md` points there.
+- VS Code extension behavior belongs in `apps/vscode-extension/README.md`; `apps/docs/vscode-extension.md` points there.
 - CLI behavior invoked by the extension should still be documented in the CLI docs when user-facing.
-- Prefer source-side extension docs in `vscode-extension/`, exposed through `docs/` with a symlink.
+- Prefer source-side extension docs in `apps/vscode-extension/`, exposed through `apps/docs/` with a symlink.
 
 ## Avoid
 

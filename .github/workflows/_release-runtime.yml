@@ -1,0 +1,120 @@
+name: "[reusable] Lua runtime release"
+
+# Publishes the Lua runtime to LuaRocks and attaches a zip to the GitHub release.
+# Called by release-runtime.yml, which fires on both `runtime-v*` (runtime alone)
+# and `v*` (full platform release).
+#
+# LuaRocks uploads are permanent and `fail_on_duplicate` is on, so a version
+# burned here cannot be reused. The guard job below skips publishing entirely
+# when packages/runtime-lua/feather is byte-identical to the previous runtime release, which
+# is what makes it safe for a platform tag to fire this workflow unconditionally.
+
+on:
+  workflow_call:
+    inputs:
+      force:
+        description: "Publish even when the runtime is unchanged"
+        type: boolean
+        default: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    name: Check whether the runtime actually changed
+    outputs:
+      should_publish: ${{ steps.check.outputs.should_publish }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version from tag
+        id: get_version
+        run: |
+          VERSION="$(bash scripts/release-tag-version.sh "$GITHUB_REF_NAME" --version)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Compare runtime against the previous runtime release
+        id: check
+        run: |
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "Forced publish requested."
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PREV="$(git tag --list 'runtime-v*' 'v*' --sort=-creatordate \
+            | grep -vxF "$GITHUB_REF_NAME" | head -n 1)"
+
+          if [ -z "$PREV" ]; then
+            echo "No previous runtime release found; publishing."
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --quiet "$PREV" HEAD -- packages/runtime-lua/feather; then
+            echo "packages/runtime-lua/feather is unchanged since $PREV — skipping LuaRocks publish."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "packages/runtime-lua/feather changed since $PREV — publishing."
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  luarocks-release:
+    runs-on: ubuntu-latest
+    name: LuaRocks upload
+    needs: guard
+    if: needs.guard.outputs.should_publish == 'true'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fail if changelog entry does not exist
+        run: grep -q "${{ github.ref_name }}" CHANGELOG.md
+
+      - name: Verify runtime version
+        run: |
+          RUNTIME_VERSION="$(sed -n 's/^local FEATHER_VERSION_NAME = "\([^"]*\)".*/\1/p' packages/runtime-lua/feather/init.lua | head -n 1)"
+          if [ "$RUNTIME_VERSION" != "${{ needs.guard.outputs.version }}" ]; then
+            echo "Tag version ${{ needs.guard.outputs.version }} does not match packages/runtime-lua/feather/init.lua version $RUNTIME_VERSION."
+            echo "Fix with: bash scripts/set-version.sh runtime ${{ needs.guard.outputs.version }}"
+            exit 1
+          fi
+
+      - name: LuaRocks Upload
+        uses: nvim-neorocks/luarocks-tag-release@v7
+        with:
+          version: ${{ needs.guard.outputs.version }}
+          license: Feather License
+          labels: |
+            love2d
+            löve
+            debug
+          copy_directories: |
+            packages/runtime-lua/feather
+          summary: Debug & Inspect Tool for LÖVE (love2d)
+          detailed_description: |
+            Feather is a debugger tool with a plugin system for Love2D projects.
+          template: packages/runtime-lua/feather-release.rockspec.template
+          fail_on_duplicate: true
+        env:
+          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+
+      - name: Zip feather folder
+        run: |
+          # Two levels up: the release step below looks for the zip at the repo root.
+          cd packages/runtime-lua
+          zip -r ../../feather-${{ needs.guard.outputs.version }}.zip feather/
+
+      - name: GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: |
+            feather-${{ needs.guard.outputs.version }}-1.rockspec
+            feather-${{ needs.guard.outputs.version }}-1.src.rock
+            feather-${{ needs.guard.outputs.version }}.zip
+          allowUpdates: true

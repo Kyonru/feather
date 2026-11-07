@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import { patchLoveJsPlayer, writeWebglPreviewFallback } from '../showcase-lovejs-utils.mjs';
-import { stripLovePreviewUploads } from '../../src/utils/love-preview-upload-bridge';
+import { stripLovePreviewUploads } from '../../apps/studio/src/utils/love-preview-upload-bridge';
 
 type TestWindow = Window & {
   __featherPreviewUploadCache?: Record<string, string>;
@@ -53,6 +53,19 @@ test('keeps node-preview texture uploads inline when requested', () => {
     assert.equal(payload.baseTexture.dataBase64, 'base-data');
     assert.equal(payload.textures[0].dataBase64, 'mask-data');
     assert.deepEqual(win.__featherPreviewUploadCache, undefined);
+  });
+});
+
+test('strips particle image bytes from repeated preview payloads and caches them for the preview frame', () => {
+  withWindow((win) => {
+    const payload = stripLovePreviewUploads({
+      composite: {
+        systems: [{ index: 1, textureFilename: 'smoke.png', textureAssetBase64: 'large-image-data' }],
+      },
+    });
+    const system = (payload.composite as { systems: Array<{ textureAssetBase64: string; textureAssetDataKey: string }> }).systems[0];
+    assert.equal(system.textureAssetBase64, '');
+    assert.equal(win.__featherPreviewUploadCache?.[system.textureAssetDataKey], 'large-image-data');
   });
 });
 

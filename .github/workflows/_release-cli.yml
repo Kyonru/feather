@@ -1,0 +1,100 @@
+name: "[reusable] CLI release"
+
+# Publishes @kyonru/feather to npm. Called by release.yml, whose filename is
+# retained for npm trusted-publisher compatibility and which fires on both
+# `cli-v*` (CLI alone) and `v*` (full platform release).
+
+on:
+  workflow_call:
+
+jobs:
+  npm-cli-release:
+    runs-on: ubuntu-latest
+    name: npm CLI publish
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install LÖVE
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y love xvfb
+
+      - name: Resolve version from tag
+        id: get_version
+        run: |
+          VERSION="$(bash scripts/release-tag-version.sh "$GITHUB_REF_NAME" --version)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify CLI package version
+        run: |
+          CLI_VERSION="$(node -p "require('./apps/cli/package.json').version")"
+          if [ "$CLI_VERSION" != "${{ steps.get_version.outputs.version }}" ]; then
+            echo "Tag version ${{ steps.get_version.outputs.version }} does not match cli/package.json version $CLI_VERSION."
+            echo "Fix with: bash scripts/set-version.sh cli ${{ steps.get_version.outputs.version }}"
+            exit 1
+          fi
+
+      - name: Fail if CLI package version already exists
+        run: |
+          if npm view "@kyonru/feather@${{ steps.get_version.outputs.version }}" version --registry https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "@kyonru/feather@${{ steps.get_version.outputs.version }} already exists on npm."
+            exit 1
+          fi
+
+      - name: Build CLI
+        run: pnpm run cli:build
+
+      - name: Run CLI e2e
+        run: pnpm run test:cli:e2e
+
+      - name: Run Lua e2e
+        run: pnpm run test:lua:e2e
+
+      - name: Verify npm package contents
+        run: pnpm --filter @kyonru/feather pack --dry-run
+
+      - name: Publish CLI to npm
+        run: pnpm --filter @kyonru/feather publish --access public --no-git-checks
+
+      # Standalone Bun binaries. These are the hermetic install path: no Node
+      # toolchain, one download, which is what a lean CI runner wants. They are
+      # attached to the CLI's own release so a `cli-v*` patch is pinnable on its
+      # own — publishing them only on platform tags would have made hermetic
+      # users wait for a full platform release to pin a CLI fix.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Build standalone binaries
+        run: |
+          pnpm --filter @kyonru/feather run bundle:lua
+          pnpm --filter @kyonru/feather run build:binary
+          VERSION="${{ steps.get_version.outputs.version }}"
+          mkdir -p release-assets
+          cp apps/cli/bin/feather "release-assets/feather-cli-darwin-arm64-${VERSION}.bin"
+          cp apps/cli/bin/feather-darwin-x64 "release-assets/feather-cli-darwin-x64-${VERSION}.bin"
+          cp apps/cli/bin/feather-linux-x64 "release-assets/feather-cli-linux-x64-${VERSION}.bin"
+          cp apps/cli/bin/feather-win-x64.exe "release-assets/feather-cli-windows-x64-${VERSION}.exe"
+
+      - name: Attach binaries to the release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: release-assets/*
+          allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true

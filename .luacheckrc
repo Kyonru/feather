@@ -14,8 +14,8 @@ globals = {
 
 exclude_files = {
     './lua_install/*',
-    './src-lua/feather/lib/*',
-    "./src-lua/demo/lib/*"
+    './packages/runtime-lua/feather/lib/*',
+    "./packages/runtime-lua/demo/lib/*"
 }
 
 ignore = {

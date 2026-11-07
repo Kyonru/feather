@@ -2,12 +2,23 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Feather VS Code Extension",
+      "name": "Feather VS Code Extension",
       "type": "extensionHost",
       "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}/vscode-extension"],
-      "outFiles": ["${workspaceFolder}/vscode-extension/out/**/*.js"],
-      "preLaunchTask": "npm: extension:build"
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension"],
+      "outFiles": ["${workspaceFolder}/apps/vscode-extension/out/**/*.js"],
+      "preLaunchTask": "extension:build"
+    },
+    {
+      "name": "Feather VS Code Extension (example game)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension",
+        "${workspaceFolder}/packages/runtime-lua/example/test_cli"
+      ],
+      "outFiles": ["${workspaceFolder}/apps/vscode-extension/out/**/*.js"],
+      "preLaunchTask": "extension:build"
     }
   ]
 }

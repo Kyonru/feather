@@ -2,7 +2,7 @@
 
 ## Build config
 
-Build settings live in `feather.build.json` and are loaded by `cli/src/lib/build/config.ts`.
+Build settings live in `feather.build.json` and are loaded by `apps/cli/src/lib/build/config.ts`.
 
 Core fields:
 

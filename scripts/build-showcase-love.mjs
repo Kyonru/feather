@@ -7,8 +7,9 @@ const root = process.cwd();
 const outDir = path.join(root, 'dist-showcase/showcase-lovejs');
 
 await mkdir(outDir, { recursive: true });
-await copyFile(path.join(root, 'dist-showcase/showcase.html'), path.join(root, 'dist-showcase/index.html'));
-await copyFile(path.join(root, 'dist-showcase/showcase.html'), path.join(root, 'dist-showcase/404.html'));
+// apps/showcase builds to index.html directly, so there is no longer a
+// showcase.html to rename. 404.html is still wanted for static hosting.
+await copyFile(path.join(root, 'dist-showcase/index.html'), path.join(root, 'dist-showcase/404.html'));
 await buildShowcaseLove({ root, outDir });
 await writeFile(
   path.join(outDir, 'README.md'),

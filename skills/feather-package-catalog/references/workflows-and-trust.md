@@ -40,10 +40,10 @@ Project installs write `feather.lock.json` in the user's game project. It record
 
 Use the package helpers instead of hand-writing entries from scratch:
 
-- `npm run package:add` for GitHub-hosted packages.
-- `npm run package:add-url` for direct file URL packages.
+- `pnpm run package:add` for GitHub-hosted packages.
+- `pnpm run package:add-url` for direct file URL packages.
 
-The wizard should produce `packages/<id>.json` and regenerate `cli/src/generated/registry.json`. Commit both when the diff is expected.
+The wizard should produce `catalog/packages/<id>.json` and regenerate `apps/cli/src/generated/registry.json`. Commit both when the diff is expected.
 
 Checklist:
 
@@ -52,9 +52,9 @@ Checklist:
 - Include a realistic `require` path and example so users can verify the install.
 - Use `verified` only when the source is reviewed, pinned, and checksum-covered; otherwise choose `known` or `experimental`.
 - Recompute checksums when file URLs, pinned refs, or target files change.
-- Verify with `npm run check:registry`, `npm run cli:build`, `npm run feather -- package info <id>`, and `npm run feather -- package install <id> --dir <temp-game>`.
+- Verify with `pnpm run check:registry`, `pnpm run cli:build`, `pnpm run feather -- package info <id>`, and `pnpm run feather -- package install <id> --dir <temp-game>`.
 - Add or update package e2e coverage for install, update, audit, trust, lockfile, or CLI flow changes.
-- Update `packages/README.md` and `CHANGELOG.md` for new or changed user-visible catalog entries.
+- Update `catalog/packages/README.md` and `CHANGELOG.md` for new or changed user-visible catalog entries.
 
 ## Safety expectations
 

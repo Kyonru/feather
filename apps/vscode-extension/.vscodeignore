@@ -1,0 +1,13 @@
+src/
+test/
+scripts/
+tsconfig.json
+*.map
+node_modules/**
+bundled-cli/**
+bundled-lua/**
+../**
+../../**
+*.vsix
+.vscode-test/**
+.DS_Store

@@ -60,7 +60,7 @@ The `dependency` must also be listed in `dependencies`; `require` is optional an
 
 ## Generated registry
 
-`scripts/generate-registry.mjs` composes `cli/src/generated/registry.json`.
+`scripts/generate-registry.mjs` composes `apps/cli/src/generated/registry.json`.
 
 Generation behavior:
 
@@ -70,7 +70,7 @@ Generation behavior:
 - Expands `subpackages` into top-level registry aliases with a `parent`.
 - Adds `version` and `updatedAt`.
 
-Do not edit `cli/src/generated/registry.json` directly.
+Do not edit `apps/cli/src/generated/registry.json` directly.
 
 ## Subpackages
 

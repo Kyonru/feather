@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   createShaderGraphGamePreviewController,
   type ShaderGraphGamePreviewCommand,
-} from '../../src/pages/shader-graph/gamePreviewControllerCore';
+} from '../../apps/studio/src/tools/shader-graph/gamePreviewControllerCore';
 
 function createHarness() {
   let now = 0;
@@ -51,6 +51,21 @@ test('dedupes repeated identical preview payloads', async () => {
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].command.action, 'preview-shader');
+});
+
+test('a restarted game receives the same preview again (C2)', async () => {
+  // A restart is a new session id. Deduping on the payload alone meant the
+  // new run never got the preview while Studio still showed it as live.
+  const { calls, controller, advance } = createHarness();
+  const first = controller.preview('session-a', { pixelSource: 'a' });
+  await advance(0);
+  await first;
+  const second = controller.preview('session-a-restarted', { pixelSource: 'a' });
+  await advance(500);
+  await second;
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].sessionId, 'session-a-restarted');
 });
 
 test('coalesces rapid changes to the latest preview payload', async () => {

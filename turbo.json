@@ -1,0 +1,108 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalDependencies": ["tsconfig.json", "pnpm-lock.yaml"],
+  "globalPassThroughEnv": ["PLAYWRIGHT_REUSE_SERVER"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "out/**", "lua/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["apps/inspector/src/**", "tsconfig.json"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "inputs": ["apps/inspector/src/**", "test/**"]
+    },
+
+    "//#typecheck:web": {
+      "inputs": [
+        "apps/inspector/src/**",
+        "apps/studio/src/**",
+        "packages/*/src/**",
+        "tsconfig.json"
+      ]
+    },
+    "//#typecheck:protocol": {
+      "inputs": ["packages/protocol/**"]
+    },
+    "//#typecheck:host": {
+      "inputs": ["packages/host/**", "packages/protocol/src/**"]
+    },
+    "//#typecheck:session-bridge": {
+      "inputs": ["packages/session-bridge/**", "packages/protocol/src/**"]
+    },
+    "//#typecheck:ui": {
+      "inputs": ["packages/ui/**", "packages/host/src/**", "packages/protocol/src/**"]
+    },
+    "//#typecheck:studio": {
+      "inputs": ["apps/studio/**", "packages/*/src/**"]
+    },
+    "//#typecheck:lua": {
+      "inputs": ["packages/runtime-lua/**", ".luacheckrc"]
+    },
+    "//#lint": {
+      "inputs": [
+        "apps/**/*.ts",
+        "apps/**/*.tsx",
+        "apps/**/*.cjs",
+        "packages/**/*.ts",
+        "packages/**/*.tsx",
+        "packages/**/*.cjs",
+        "eslint.config.js"
+      ]
+    },
+    "//#check:protocol": {
+      "inputs": [
+        "packages/protocol/src/messages.ts",
+        "apps/inspector/src/constants/feather-protocol.ts",
+        "apps/inspector/src/hooks/use-ws-connection.ts",
+        "packages/runtime-lua/feather/init.lua",
+        "packages/runtime-lua/feather/protocol_messages.lua"
+      ]
+    },
+    "//#test:unit": {
+      "inputs": ["scripts/**", "apps/studio/src/**", "apps/inspector/src/**", "packages/ui/src/**"]
+    },
+    "//#test:bridge": {
+      "inputs": ["packages/session-bridge/**"]
+    },
+    "//#test:lua:e2e": {
+      "inputs": ["packages/runtime-lua/**", "scripts/lua-e2e.mjs"]
+    },
+    "//#test:cli:e2e": {
+      "inputs": ["apps/cli/**", "packages/runtime-lua/**"]
+    },
+    "//#test:inspector:e2e": {
+      "inputs": ["apps/inspector/src/**", "apps/inspector/e2e/**", "packages/*/src/**", "apps/inspector/playwright.config.ts", "vite.config.ts"]
+    },
+    "//#test:studio:e2e": {
+      "inputs": ["apps/studio/**", "packages/*/src/**", "scripts/vite-lovejs-plugin.mjs", "scripts/showcase-lovejs-utils.mjs", "scripts/prepare-lovejs-dist.mjs"]
+    },
+    "//#test:showcase:e2e": {
+      "inputs": ["apps/studio/src/**", "apps/showcase/**", "packages/*/src/**", "scripts/vite-lovejs-plugin.mjs", "scripts/showcase-lovejs-utils.mjs", "scripts/prepare-lovejs-dist.mjs"]
+    },
+    "//#check:registry": {
+      "inputs": ["catalog/packages/*.json", "scripts/generate-registry.mjs"]
+    },
+    "//#check:paths": {
+      "inputs": [
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        "README.md",
+        "skills/**",
+        "package.json",
+        "pnpm-workspace.yaml",
+        "apps/*/package.json",
+        "packages/*/package.json",
+        "apps/docs/**",
+        "scripts/check-repo-paths.mjs"
+      ]
+    },
+    "//#check:plugin-catalog": {
+      "inputs": ["packages/runtime-lua/plugins/**", "scripts/generate-plugin-catalog.mjs"]
+    }
+  }
+}

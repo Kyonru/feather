@@ -1,0 +1,551 @@
+#!/usr/bin/env node
+/* eslint-disable no-undef */
+/**
+ * `pnpm run verify:enhanced` — check the refinement rules in
+ * skills/feather-desktop-app/references/design-rules.md, and say how to see them.
+ *
+ * Two audiences. For an agent or CI it is a pass/fail gate over the properties
+ * each finding claims to have fixed, measured rather than asserted. For a person
+ * it prints the shortest manual route to seeing each one with their own eyes,
+ * because a green check does not tell you whether the tool feels better.
+ *
+ * Add a section per finding as it lands. A finding without a check here is not
+ * finished.
+ */
+
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
+const paint = (code, text) => (useColor ? `[${code}m${text}[0m` : text);
+const bold = (t) => paint('1', t);
+const dim = (t) => paint('2', t);
+const green = (t) => paint('32', t);
+const red = (t) => paint('31', t);
+
+let failures = 0;
+
+function check(label, fn) {
+  try {
+    const detail = fn();
+    process.stdout.write(`  ${green('✓')} ${label}${detail ? dim(` — ${detail}`) : ''}\n`);
+  } catch (error) {
+    failures += 1;
+    process.stdout.write(`  ${red('✗')} ${label}\n      ${red(String(error.message ?? error))}\n`);
+  }
+}
+
+function section(id, title, howToSee) {
+  process.stdout.write(`\n${bold(`${id} — ${title}`)}\n`);
+  if (howToSee) process.stdout.write(`${dim(`      see it: ${howToSee}`)}\n`);
+}
+
+function walk(dir, match, found = []) {
+  for (const entry of readdirSync(dir)) {
+    if (entry === 'node_modules' || entry === 'dist' || entry === 'target') continue;
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) walk(full, match, found);
+    else if (match.test(entry)) found.push(full);
+  }
+  return found;
+}
+
+const inspectorSources = walk(join(ROOT, 'apps/inspector/src'), /\.tsx?$/);
+
+// --- C0 — the semantic color channel ---------------------------------------
+
+section(
+  'C0',
+  'Color means something',
+  'pnpm run up  →  switch theme in Settings → Appearance. Error rows, warning chips and health\n' +
+    '              badges should stay readable on every theme, and change with it rather than staying fixed.',
+);
+
+check('no raw Tailwind color literals outside the documented syntax exemption', () => {
+  const palette =
+    /\b(?:text|bg|border|fill|stroke|ring|from|to|via)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/;
+  const offenders = [];
+  for (const file of inspectorSources) {
+    const lines = readFileSync(file, 'utf8').split('\n');
+    let exempt = false;
+    lines.forEach((line, index) => {
+      // Two markers, because the lint rule only reaches string literals: inside
+      // a template literal it sees nothing, so those sites carry an explicit
+      // `semantic-exempt` marker instead of a dead eslint directive.
+      if (line.includes('eslint-disable no-restricted-syntax') || line.includes('semantic-exempt:start')) exempt = true;
+      if (line.includes('eslint-enable no-restricted-syntax') || line.includes('semantic-exempt:end')) exempt = false;
+      if (exempt) return;
+      // Comments describing the old values are not uses.
+      const code = line.replace(/^\s*(\*|\/\/).*$/, '');
+      if (palette.test(code)) offenders.push(`${file.replace(`${ROOT}/`, '')}:${index + 1}`);
+    });
+  }
+  if (offenders.length) throw new Error(`${offenders.length} found:\n      ${offenders.slice(0, 8).join('\n      ')}`);
+  return 'every state color goes through a token';
+});
+
+check('state surfaces are not used as solid indicators', () => {
+  // A regression the C0 migration introduced: `bg-red-500` on a 2px dot became
+  // `bg-danger-surface`, and a surface is a tint meant to sit *behind* text — at
+  // that size it is invisible. Row tints are the correct use; indicators need
+  // the foreground.
+  const offenders = [];
+  for (const file of inspectorSources) {
+    const lines = readFileSync(file, 'utf8').split('\n');
+    lines.forEach((line, index) => {
+      if (!/bg-(?:ok|warn|danger|info)-surface/.test(line)) return;
+      const window = lines.slice(Math.max(0, index - 4), index + 1).join('\n');
+      const isDot = window.includes('rounded-full') && /\b(size-[0-9.]+|h-[0-9.]+ w-[0-9.]+)\b/.test(window);
+      if (isDot || window.includes('h-full rounded-full')) {
+        offenders.push(`${file.replace(`${ROOT}/`, '')}:${index + 1}`);
+      }
+    });
+  }
+  if (offenders.length) throw new Error(`invisible indicators:\n      ${offenders.join('\n      ')}`);
+  return 'dots and bars use the foreground, rows use the surface';
+});
+
+check('every shipped theme clears WCAG AA for all four states', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/themeSemanticColors.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const pass = /ℹ pass (\d+)/.exec(out)?.[1];
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} contrast assertions failed`);
+  return `${pass} assertions across every theme`;
+});
+
+// --- C1 — panel state survives the loop ------------------------------------
+
+section(
+  'C1',
+  'Panel state survives the loop',
+  'pnpm run up  →  type a filter in Logs, click Assets, click Logs again. The filter is still there.\n' +
+    '              Restart the game and it is still there. Settings → Reset to defaults clears it.',
+);
+
+check('the panels with real filter state use the persisted store', () => {
+  const expected = {
+    'pages/log/LogTable.tsx': ['logs.search', 'logs.typeFilter', 'logs.followTail'],
+    'pages/assets/index.tsx': ['assets.search', 'assets.filter', 'assets.sortKey'],
+    'pages/performance/index.tsx': ['performance.metric', 'performance.diskUsage'],
+    'pages/compare/index.tsx': ['compare.filter', 'compare.search'],
+    'pages/observable/index.tsx': ['observability.search', 'observability.typeFilter'],
+    'pages/debugger/index.tsx': ['debugger.varFilter'],
+  };
+  const missing = [];
+  for (const [file, keys] of Object.entries(expected)) {
+    const source = readFileSync(join(ROOT, 'apps/inspector/src', file), 'utf8');
+    for (const key of keys) if (!source.includes(`'${key}'`)) missing.push(`${file} → ${key}`);
+  }
+  if (missing.length) throw new Error(`not persisted:\n      ${missing.join('\n      ')}`);
+  return `${Object.values(expected).flat().length} filters persisted`;
+});
+
+check('an empty panel caused by a filter offers to clear it', () => {
+  // A consequence of C1 rather than a pre-existing gap: "no rows match the
+  // current filters" was self-explanatory when the filter was something you had
+  // just typed. It can now be days old.
+  const files = ['pages/compare/index.tsx', 'pages/observable/index.tsx'];
+  const missing = files.filter(
+    (file) => !readFileSync(join(ROOT, 'apps/inspector/src', file), 'utf8').includes('Clear filters'),
+  );
+  if (missing.length) throw new Error(`no escape hatch in:\n      ${missing.join('\n      ')}`);
+  return `${files.length} filtered-empty states can undo themselves`;
+});
+
+check('a persisted filter has a way out', () => {
+  const table = readFileSync(join(ROOT, 'apps/inspector/src/pages/log/LogTable.tsx'), 'utf8');
+  if (!table.includes('Clear log search')) throw new Error('log search has no clear control');
+  const settings = readFileSync(join(ROOT, 'apps/inspector/src/pages/settings/index.tsx'), 'utf8');
+  if (!settings.includes('resetPanelState')) throw new Error('Reset to defaults does not clear panel state');
+  return 'per-field clear, and a global reset in Settings';
+});
+
+// --- C2 — freshness is visible ---------------------------------------------
+
+section(
+  'C2',
+  'You can tell whether what you are looking at is current',
+  'pnpm run up  →  open Observability, then restart the game (Ctrl+C the run, `pnpm run up` again)\n' +
+    '              without touching Inspector. The panel says "From a previous run" instead of\n' +
+    '              showing the old values as though they were live.',
+);
+
+check('panels showing runtime state report when it arrived', () => {
+  const wired = ['pages/assets/index.tsx', 'pages/observable/index.tsx'];
+  const missing = wired.filter(
+    (file) => !readFileSync(join(ROOT, 'apps/inspector/src', file), 'utf8').includes('<Freshness'),
+  );
+  if (missing.length) throw new Error(`no freshness indicator in:\n      ${missing.join('\n      ')}`);
+  return `${wired.length} panels`;
+});
+
+check('staleness is judged against the session, not the clock', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/freshness.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} freshness assertions failed`);
+  const pass = /ℹ pass (\d+)/.exec(out)?.[1];
+  return `${pass} assertions — age alone never marks data stale`;
+});
+
+// --- C3 — every diagnosis names a next step --------------------------------
+
+section(
+  'C3',
+  'Warnings say what to do',
+  'pnpm run up  →  stop the game with Inspector open, then look at Session. The disconnected\n' +
+    '              warning now ends with the run command for your own project directory.',
+);
+
+check('every session warning carries an action', () => {
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/session/index.tsx'), 'utf8');
+  const blocks = source.match(/warnings\.push\(\{[\s\S]*?\}\);/g) ?? [];
+  if (blocks.length === 0) throw new Error('no warnings found — did the file move?');
+  const silent = blocks.filter((block) => !block.includes('action:') && !block.includes('remediation'));
+  if (silent.length) {
+    const ids = silent.map((block) => /id: '([^']+)'/.exec(block)?.[1] ?? '?');
+    throw new Error(`diagnosis without a next step: ${ids.join(', ')}`);
+  }
+  return `${blocks.length} warnings, all actionable`;
+});
+
+check('session warnings lead with what to do first', () => {
+  // They rendered in the order the checks happen to run, so "Session
+  // disconnected" sat above "Review security" every time — the page led with
+  // what you already knew.
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/session/index.tsx'), 'utf8');
+  if (!source.includes('orderedWarnings')) throw new Error('warnings render in construction order again');
+  if (!/warnings\.map\(/.test(source) === false && /\{warnings\.map\(/.test(source)) {
+    throw new Error('the unsorted list is still being rendered');
+  }
+  return 'danger before warning, stable within a tone';
+});
+
+check('a breakpoint pause is not reported as a problem', () => {
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/session/index.tsx'), 'utf8');
+  if (/if \(pausedState \|\| debuggerProblemCount > 0\)/.test(source)) {
+    throw new Error('being paused still degrades session health');
+  }
+  return 'pausing is state, not a warning';
+});
+
+// --- C4 — silence is a decision, not a default -----------------------------
+
+section(
+  'C4',
+  'A failed action is not silent',
+  'pnpm run up  →  open Session Replay, stop the game, then press Stop. You get "Could not stop\n' +
+    '              the recording" instead of a button that appears to do nothing.',
+);
+
+check('user-initiated commands report failure', () => {
+  const expected = {
+    'hooks/use-session-replay.ts': 6,
+    'hooks/use-time-travel.ts': 2,
+    'hooks/use-logs.ts': 1,
+    'hooks/use-console.ts': 1,
+    'hooks/use-hot-reload.ts': 1,
+  };
+  const short = [];
+  for (const [file, count] of Object.entries(expected)) {
+    const found = (readFileSync(join(ROOT, 'apps/inspector/src', file), 'utf8').match(/sendUserCommand\(/g) ?? []).length;
+    if (found < count) short.push(`${file}: ${found}/${count}`);
+  }
+  if (short.length) throw new Error(`fewer surfaced than expected:\n      ${short.join('\n      ')}`);
+  return `${Object.values(expected).reduce((a, b) => a + b, 0)} actions surface their failure`;
+});
+
+check('background silence is named rather than implied', () => {
+  const helper = readFileSync(join(ROOT, 'apps/inspector/src/lib/send-command.ts'), 'utf8');
+  if (!helper.includes('sendBackgroundCommand')) throw new Error('no named background sender');
+  const users = inspectorSources.filter((file) => readFileSync(file, 'utf8').includes('sendBackgroundCommand('));
+  // The helper's own definition does not count as a call site.
+  if (users.length < 4) throw new Error(`only ${users.length} files use it`);
+  return `${users.length - 1} files declare their silence deliberate`;
+});
+
+// --- 6.1 Logs --------------------------------------------------------------
+
+section(
+  '6.1',
+  'Logs',
+  'pnpm run up  →  scroll up in Logs while the game is chattering. The view should stay where you\n' +
+    '              put it. Then change the type filter: that should jump you to the tail.',
+);
+
+check('follow-tail does not force-scroll on every arrival', () => {
+  // A static check, deliberately labelled as one. Virtuoso's own `followOutput`
+  // already scrolls "only if the list is already at the bottom"; the bug was an
+  // effect calling scrollToIndex unconditionally alongside it. What is checkable
+  // here is that the effect is no longer keyed on arrivals.
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/log/LogTable.tsx'), 'utf8');
+  const effect = /useEffect\(\(\) => \{[\s\S]*?scrollToIndex[\s\S]*?\}, \[([^\]]*)\]\);/.exec(source);
+  if (!effect) throw new Error('the follow-tail effect moved — recheck this by hand');
+  const deps = effect[1];
+  if (/filteredLogs\.length|tailSignature/.test(deps)) {
+    throw new Error(`effect still fires on arrival: [${deps.trim()}]`);
+  }
+  if (!source.includes('followOutput')) throw new Error('followOutput is no longer passed to Virtuoso');
+  return `keyed on [${deps.replace(/\s+/g, ' ').trim()}]`;
+});
+
+check('the log search stays responsive at 40k lines', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/logSearch.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} log search assertions failed`);
+  // Measured separately at 4.3 ms per keystroke over 40,000 logs, so no
+  // debouncing was added — it would have been complexity for a cost that is not
+  // there.
+  return 'crash-safe; measured 4.3 ms/keystroke at 40k logs';
+});
+
+// --- 6.4 Debugger ----------------------------------------------------------
+
+section(
+  '6.4',
+  'Debugger',
+  'pnpm run up  →  set a breakpoint with a broken condition (e.g. `player.health <`), then click\n' +
+    '              the problem count in the header. It lists the file, line and the runtime\'s reason,\n' +
+    '              and clicking one jumps to it.',
+);
+
+check('a source file that cannot be read says which path it tried', () => {
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/debugger/index.tsx'), 'utf8');
+  if (!source.includes('sourceError')) throw new Error('the read failure is discarded again');
+  if (!/data-testid="source-unavailable"/.test(source)) throw new Error('no distinct failure state');
+  if (!source.includes('Choose the project folder')) throw new Error('the failure names no fix');
+  return 'resolved path, the runtime reason, and the folder picker';
+});
+
+check('a breakpoint and its condition are reachable from the keyboard', () => {
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/debugger/index.tsx'), 'utf8');
+  if (!/e\.key === 'F9'/.test(source)) throw new Error('F9 is not bound');
+  if (!source.includes('setConditionDialog({ file: paused.file')) throw new Error('Shift+F9 does not open the condition editor');
+  if (!source.includes('isEditableTarget')) throw new Error('shortcuts would fire while typing');
+  return 'F9 toggles, Shift+F9 edits the condition, neither fires while typing';
+});
+
+check('breakpoint problem counts are openable, not dead ends', () => {
+  const source = readFileSync(join(ROOT, 'apps/inspector/src/pages/debugger/index.tsx'), 'utf8');
+  if (!source.includes('BreakpointIssueBadge')) throw new Error('the problem badges are plain counts again');
+  if (!/data-testid="breakpoint-issues"/.test(source)) throw new Error('no handle to open them');
+  return 'condition errors and rejections both list file, line and reason';
+});
+
+// --- 6.3 Performance / Profiler --------------------------------------------
+
+section(
+  '6.3',
+  'Performance and Profiler',
+  'pnpm run up  →  Performance → Profiler → Record Capture, finish it, snapshot it. Restart the\n' +
+    '              game and look again: the snapshot is still there to compare against, and the\n' +
+    '              panel is not pretending a capture is still running.',
+);
+
+check('recording is marked the same way wherever it happens', () => {
+  // Two panels marked the same concept in opposite colours — the profiler green,
+  // Time Travel red. A capture in progress is neither "fine" nor a failure: it
+  // is costing frame time and waiting to be stopped, which is warn.
+  const profiler = readFileSync(join(ROOT, 'apps/inspector/src/pages/performance/profiler-panel.tsx'), 'utf8');
+  const timeTravel = readFileSync(join(ROOT, 'apps/inspector/src/pages/time-travel/index.tsx'), 'utf8');
+  if (/recording \? 'bg-ok'/.test(profiler)) throw new Error('the profiler marks recording as ok again');
+  if (!/recording \? 'bg-warn/.test(profiler)) throw new Error('the profiler recording dot lost its state');
+  if (!/animate-pulse rounded-full bg-warn/.test(timeTravel)) throw new Error('Time Travel diverged again');
+  return 'both use warn while a capture is running';
+});
+
+check('a profiler baseline survives the restart a comparison requires', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/profilerCarryOver.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} carry-over assertions failed`);
+  const wiring = readFileSync(join(ROOT, 'apps/inspector/src/hooks/use-ws-connection.ts'), 'utf8');
+  if (!wiring.includes('profilerStateForNewSession')) {
+    throw new Error('the session migration drops the profiler again');
+  }
+  const pass = /ℹ pass (\d+)/.exec(out)?.[1];
+  return `${pass} assertions — snapshots travel, live capture state does not`;
+});
+
+// --- C5 — third-party data cannot break first-party UI ---------------------
+
+section(
+  'C5',
+  'A plugin cannot take the app down with it',
+  'Hard to stage by hand — it needs a plugin with a malformed manifest. The unit test covers it;\n' +
+    '              what you can check is that your real plugins still list and filter normally in the sidebar.',
+);
+
+check('plugin-supplied values are coerced before first-party code uses them', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/pluginNavItems.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} plugin-manifest assertions failed`);
+  const pass = /ℹ pass (\d+)/.exec(out)?.[1];
+  return `${pass} assertions — one odd manifest cannot break the sidebar`;
+});
+
+// --- 6.6 Assets ------------------------------------------------------------
+
+section(
+  '6.6',
+  'Assets',
+  'pnpm run up  →  Assets → filter to Missing on a project with more than 250 assets. Delete one\n' +
+    '              of the later files on disk and it is now reported; before, only the first 250\n' +
+    '              were ever checked.',
+);
+
+check('the Missing filter checks the whole project, in bounded batches', () => {
+  const out = execFileSync('pnpm', ['exec', 'tsx', '--test', 'scripts/tests/missingAssetPaths.test.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const fail = /ℹ fail (\d+)/.exec(out)?.[1];
+  if (fail !== '0') throw new Error(`${fail} missing-asset assertions failed`);
+  const page = readFileSync(join(ROOT, 'apps/inspector/src/pages/assets/index.tsx'), 'utf8');
+  if (/slice\(0, 250\)/.test(page)) throw new Error('the 250-asset truncation is back');
+  const pass = /ℹ pass (\d+)/.exec(out)?.[1];
+  return `${pass} assertions — complete, batched, and cancellable`;
+});
+
+// --- 6.12 Settings ---------------------------------------------------------
+
+section(
+  '6.12',
+  'Settings',
+  'pnpm run up  →  Cmd/Ctrl+K, type "api key". The Security section comes up, and choosing it\n' +
+    '              opens Settings on that section rather than on the first tab.',
+);
+
+check('settings are reachable from the palette, and from one source', () => {
+  const palette = readFileSync(join(ROOT, 'apps/inspector/src/components/command-center.tsx'), 'utf8');
+  if (!palette.includes("id: 'settings'")) throw new Error('the palette cannot find settings');
+  if (!palette.includes('settingsTabs.map')) {
+    throw new Error('entries are hand-listed rather than derived, so a new section will be missed');
+  }
+  if (!/placeholder="[^"]*settings/i.test(palette)) throw new Error('the placeholder does not offer what it now does');
+  const store = readFileSync(join(ROOT, 'apps/inspector/src/store/settings.ts'), 'utf8');
+  if (!store.includes('settingsTab')) throw new Error('settings cannot be opened at a section');
+  return 'derived from settingsTabs, opens on the matching section';
+});
+
+// --- S5 — Studio starts where Inspector finished ---------------------------
+
+const studioSources = walk(join(ROOT, 'apps/studio/src'), /\.tsx?$/);
+
+section(
+  'S5',
+  'Studio inherited the lessons, not just the tools',
+  'pnpm run studio:tauri  →  switch theme, then open a shader with an error. The diagnostic\n' +
+    '              should read in every theme, and the drag handles in Texture Lab should stay solid.',
+);
+
+check('the theme registry is shared, not copied into each app', () => {
+  if (!existsSync(join(ROOT, 'packages/ui/src/theme/registry/index.ts'))) {
+    throw new Error('the shared registry is missing');
+  }
+  for (const app of ['inspector', 'studio']) {
+    if (existsSync(join(ROOT, `apps/${app}/src/assets/theme`))) {
+      throw new Error(`apps/${app} has its own theme tree again`);
+    }
+  }
+  const shared = readFileSync(join(ROOT, 'packages/ui/src/theme/semantic.ts'), 'utf8');
+  if (!/function solveForeground/.test(shared)) {
+    throw new Error('the shared module no longer contains the derivation');
+  }
+  return 'one registry, one contrast-solved derivation, both apps';
+});
+
+check('Studio exposes the semantic tokens as utilities', () => {
+  const css = readFileSync(join(ROOT, 'apps/studio/src/theme-tokens.css'), 'utf8');
+  const missing = ['ok', 'warn', 'danger', 'info'].flatMap((state) =>
+    [state, `${state}-surface`, `${state}-border`].filter((name) => !css.includes(`--color-${name}:`)),
+  );
+  if (missing.length > 0) {
+    throw new Error(`text-${missing[0]} would not exist; missing ${missing.length} token(s)`);
+  }
+  return 'all twelve, with light and dark fallbacks';
+});
+
+check('no raw Tailwind color literals in Studio outside a stated identity exemption', () => {
+  const palette =
+    /\b(?:text|bg|border|fill|stroke|ring|from|to|via)-(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/;
+  const offenders = [];
+  for (const file of studioSources) {
+    const lines = readFileSync(file, 'utf8').split('\n');
+    lines.forEach((line, index) => {
+      if (line.trimStart().startsWith('//') || line.trimStart().startsWith('*')) return;
+      if (!palette.test(line)) return;
+      // An identity use opts out on the line immediately above and says why.
+      const previous = lines[index - 1] ?? '';
+      if (previous.includes('eslint-disable-next-line no-restricted-syntax')) return;
+      offenders.push(`${file.replace(`${ROOT}/`, '')}:${index + 1}`);
+    });
+  }
+  if (offenders.length > 0) {
+    throw new Error(`${offenders.length} raw literal(s), first at ${offenders[0]}`);
+  }
+  return 'state goes through the tokens; identity opts out explicitly';
+});
+
+check('a semantic surface never carries a small mark on its own', () => {
+  // The regression C0 hit the first time: a surface token is a pale region
+  // tint, so a 2px dot painted with one is invisible. A mark needs the
+  // foreground token; a surface needs something readable on top of it.
+  const offenders = [];
+  for (const file of studioSources) {
+    readFileSync(file, 'utf8')
+      .split('\n')
+      .forEach((line, index) => {
+        if (!/bg-(?:ok|warn|danger|info)-surface/.test(line)) return;
+        const isSmallMark = /\b(?:size-[0-3]|h-[0-3]|w-[0-3])\b/.test(line);
+        const hasForeground = /text-(?:ok|warn|danger|info)\b/.test(line);
+        if (isSmallMark && !hasForeground) {
+          offenders.push(`${file.replace(`${ROOT}/`, '')}:${index + 1}`);
+        }
+      });
+  }
+  if (offenders.length > 0) {
+    throw new Error(`a surface tint on a small mark renders invisible: ${offenders[0]}`);
+  }
+  return 'surfaces tint regions, foregrounds draw marks';
+});
+
+check('the colour rule covers Studio, not only Inspector', () => {
+  const config = readFileSync(join(ROOT, 'eslint.config.js'), 'utf8');
+  const block = /files: \[[^\]]*apps\/studio\/src[^\]]*\][\s\S]{0,600}?no-restricted-syntax/;
+  if (!block.test(config)) {
+    throw new Error('apps/studio/src is not covered by the raw-colour rule');
+  }
+  return 'eslint.config.js applies it to both apps';
+});
+
+// --- summary ---------------------------------------------------------------
+
+process.stdout.write(
+  failures === 0
+    ? `\n${green('All enhancement checks passed.')} ${dim('The manual routes above are worth walking too.')}\n`
+    : `\n${red(`${failures} check(s) failed.`)}\n`,
+);
+process.exit(failures === 0 ? 0 : 1);

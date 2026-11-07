@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const gamePath = join(root, 'src-lua');
+const gamePath = join(root, 'packages/runtime-lua');
 
 function findOnPath(name) {
   const result = spawnSync('which', [name], { encoding: 'utf8' });

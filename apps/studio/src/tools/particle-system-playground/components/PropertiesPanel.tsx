@@ -1,0 +1,286 @@
+import { Checkbox } from '@feather/ui/checkbox';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@feather/ui/select';
+import {
+  BLEND_MODES,
+  EMISSION_AREA_DISTRIBUTIONS,
+  type ParticleSystemPlaygroundSystem,
+} from '@studio/types/particle-system-playground';
+import { AccelerationEditor } from './AccelerationEditor';
+import { ColorGradientEditor } from './ColorGradientEditor';
+import { DirectionSpreadGizmo } from './DirectionSpreadGizmo';
+import { MotionPresets } from './MotionPresets';
+import { ParticleNumberInput } from './ParticleNumberInput';
+import { RangePairField } from './RangePairField';
+import { RotationSpinGizmo } from './RotationSpinGizmo';
+import { SizeCurveEditor } from './SizeCurveEditor';
+import { TextureOffsetGizmo } from './TextureOffsetGizmo';
+
+type Props = {
+  system: ParticleSystemPlaygroundSystem;
+  onChange: (key: string, value: string | number | boolean) => void;
+};
+
+type NumberFieldDef = {
+  type?: 'number';
+  key: string;
+  label: string;
+  min?: number;
+  max?: number;
+  step?: number;
+};
+
+type RangeFieldDef = {
+  type: 'range';
+  minKey: string;
+  maxKey: string;
+  label: string;
+  step?: number;
+};
+
+type FieldDef = NumberFieldDef | RangeFieldDef;
+
+const groups: Array<{ title: string; fields: FieldDef[] }> = [
+  {
+    title: 'Emission',
+    fields: [
+      { key: 'emissionRate', label: 'Rate', min: 0, step: 1 },
+      { key: 'emitterLifetime', label: 'Emitter Lifetime', min: -1, step: 0.1 },
+      {
+        type: 'range',
+        minKey: 'particleLifetimeMin',
+        maxKey: 'particleLifetimeMax',
+        label: 'Particle Life',
+        step: 0.01,
+      },
+      { key: 'emitAtStart', label: 'Default Burst', min: 0, step: 1 },
+      { key: 'kickStartSteps', label: 'Kick Steps', min: 0, step: 1 },
+      { key: 'kickStartDt', label: 'Kick Dt', min: 0, step: 0.001 },
+    ],
+  },
+  {
+    title: 'Direction And Speed',
+    fields: [
+      { key: 'direction', label: 'Direction', step: 0.01 },
+      { key: 'spread', label: 'Spread', min: 0, step: 0.01 },
+      { type: 'range', minKey: 'speedMin', maxKey: 'speedMax', label: 'Speed', step: 1 },
+    ],
+  },
+  {
+    title: 'Shape',
+    fields: [
+      { key: 'sizeVariation', label: 'Size Variation', min: 0, max: 1, step: 0.01 },
+      { key: 'offsetX', label: 'Texture Offset X', step: 1 },
+      { key: 'offsetY', label: 'Texture Offset Y', step: 1 },
+    ],
+  },
+  {
+    title: 'Rotation',
+    fields: [
+      { type: 'range', minKey: 'rotationMin', maxKey: 'rotationMax', label: 'Rotation', step: 0.01 },
+      { type: 'range', minKey: 'spinMin', maxKey: 'spinMax', label: 'Spin', step: 0.01 },
+      { key: 'spinVariation', label: 'Spin Variation', min: 0, max: 1, step: 0.01 },
+    ],
+  },
+  {
+    title: 'Emitter Offset',
+    fields: [
+      { key: 'emitterOffsetX', label: 'Emitter X', step: 1 },
+      { key: 'emitterOffsetY', label: 'Emitter Y', step: 1 },
+    ],
+  },
+];
+
+function valueFor(system: ParticleSystemPlaygroundSystem, key: string): string | number | boolean {
+  if (key === 'emitterOffsetX') return system.x;
+  if (key === 'emitterOffsetY') return system.y;
+  if (key === 'kickStartSteps') return system.kickStartSteps;
+  if (key === 'kickStartDt') return system.kickStartDt;
+  if (key === 'emitAtStart') return system.emitAtStart;
+  return system.properties[key as keyof typeof system.properties] ?? '';
+}
+
+function NumberField({
+  field,
+  system,
+  onChange,
+}: {
+  field: NumberFieldDef;
+  system: ParticleSystemPlaygroundSystem;
+  onChange: Props['onChange'];
+}) {
+  const inputId = `particle-${system.index}-${field.key}`;
+  return (
+    <div className="grid gap-1">
+      <Label htmlFor={inputId} className="text-[10px] text-muted-foreground font-semibold">{field.label}</Label>
+      <ParticleNumberInput
+        id={inputId}
+        className="h-8 text-xs"
+        min={field.min}
+        max={field.max}
+        step={field.step ?? 1}
+        value={Number(valueFor(system, field.key))}
+        onValueChange={(value) => onChange(field.key, value)}
+      />
+    </div>
+  );
+}
+
+export function PropertiesPanel({ system, onChange }: Props) {
+  return (
+    <div className="grid gap-5">
+      <div className="grid gap-3">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2 grid gap-1">
+            <Label htmlFor={`particle-${system.index}-title`} className="text-[10px] text-muted-foreground font-semibold">Title</Label>
+            <Input
+              id={`particle-${system.index}-title`}
+              className="h-8 text-xs"
+              value={system.title}
+              onChange={(event) => onChange('title', event.target.value)}
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label id={`particle-${system.index}-blend-label`} className="text-[10px] text-muted-foreground font-semibold">Blend</Label>
+            <Select value={system.blendMode} onValueChange={(value) => onChange('blendMode', value)}>
+              <SelectTrigger aria-labelledby={`particle-${system.index}-blend-label`} className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BLEND_MODES.map((mode) => (
+                  <SelectItem key={mode} value={mode}>
+                    {mode}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-end gap-2 pb-2">
+            <Checkbox
+              id={`emitter-enabled-${system.index}`}
+              checked={system.enabled}
+              onCheckedChange={(checked) => onChange('enabled', checked === true)}
+            />
+            <Label htmlFor={`emitter-enabled-${system.index}`} className="text-xs">
+              Enabled
+            </Label>
+          </div>
+          <div className="flex items-end gap-2 pb-2">
+            <Checkbox
+              id={`relative-rotation-${system.index}`}
+              checked={!!system.properties.relativeRotation}
+              onCheckedChange={(checked) => onChange('relativeRotation', checked === true)}
+            />
+            <Label htmlFor={`relative-rotation-${system.index}`} className="text-xs">
+              Relative rotation
+            </Label>
+          </div>
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-[10px] text-muted-foreground font-semibold">Sizes</Label>
+          <SizeCurveEditor
+            value={system.properties.sizes ?? '1'}
+            variation={system.properties.sizeVariation ?? 0}
+            onChange={(v) => onChange('sizes', v)}
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-[10px] text-muted-foreground font-semibold">Color Gradient</Label>
+          <ColorGradientEditor
+            value={system.properties.colors ?? '1, 1, 1, 1'}
+            onChange={(value) => onChange('colors', value)}
+          />
+        </div>
+      </div>
+
+      <MotionPresets system={system} onChange={onChange} />
+
+      {groups.map((group) => (
+        <details key={group.title} className="group rounded-md border border-border/60 px-2.5">
+          <summary className="cursor-pointer list-none py-2.5 text-xs font-semibold text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <span className="mr-2 inline-block transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+            {group.title}
+          </summary>
+          <div className="grid gap-3 pb-3">
+          {group.title === 'Direction And Speed' && <DirectionSpreadGizmo system={system} onChange={onChange} />}
+          {group.title === 'Shape' && <TextureOffsetGizmo system={system} onChange={onChange} />}
+          {group.title === 'Rotation' && <RotationSpinGizmo system={system} onChange={onChange} />}
+          <div className="grid grid-cols-2 gap-2">
+            {group.fields.map((field) =>
+              field.type === 'range' ? (
+                <RangePairField
+                  key={field.label}
+                  systemId={system.index}
+                  label={field.label}
+                  minKey={field.minKey}
+                  maxKey={field.maxKey}
+                  system={system}
+                  onChange={onChange}
+                  step={field.step}
+                />
+              ) : (
+                <NumberField key={field.key} field={field} system={system} onChange={onChange} />
+              ),
+            )}
+          </div>
+          </div>
+        </details>
+      ))}
+
+      <details className="group rounded-md border border-border/60 px-2.5">
+        <summary className="cursor-pointer list-none py-2.5 text-xs font-semibold text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <span className="mr-2 inline-block transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+          Acceleration And Damping
+        </summary>
+        <div className="pb-3"><AccelerationEditor system={system} onChange={onChange} /></div>
+      </details>
+
+      <details className="group rounded-md border border-border/60 px-2.5">
+        <summary className="cursor-pointer list-none py-2.5 text-xs font-semibold text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <span className="mr-2 inline-block transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+          Emission Area
+        </summary>
+        <div className="grid gap-3 pb-3">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-1">
+            <Label id={`particle-${system.index}-distribution-label`} className="text-[10px] text-muted-foreground font-semibold">Distribution</Label>
+            <Select
+              value={system.properties.emissionAreaDist ?? 'none'}
+              onValueChange={(value) => onChange('emissionAreaDist', value)}
+            >
+              <SelectTrigger aria-labelledby={`particle-${system.index}-distribution-label`} className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EMISSION_AREA_DISTRIBUTIONS.map((dist) => (
+                  <SelectItem key={dist} value={dist}>
+                    {dist}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {[
+            { key: 'emissionAreaDx', label: 'Width' },
+            { key: 'emissionAreaDy', label: 'Height' },
+            { key: 'emissionAreaAngle', label: 'Angle' },
+          ].map((field) => (
+            <NumberField key={field.key} field={field} system={system} onChange={onChange} />
+          ))}
+          <div className="flex items-end gap-2 pb-2">
+            <Checkbox
+              id="emission-area-relative"
+              checked={!!system.properties.emissionAreaRelative}
+              onCheckedChange={(checked) => onChange('emissionAreaRelative', checked === true)}
+            />
+            <Label htmlFor="emission-area-relative" className="text-xs">
+              Relative
+            </Label>
+          </div>
+        </div>
+        </div>
+      </details>
+    </div>
+  );
+}

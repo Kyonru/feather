@@ -3,11 +3,6 @@ name: Tauri E2E
 on:
   push:
     branches: [ main, next ]
-    paths:
-      - "src-tauri/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/tauri-e2e.yml"
   workflow_dispatch:
 
 permissions:
@@ -24,6 +19,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -33,4 +31,4 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Run Tauri E2E
-        run: npm run test:tauri:e2e
+        run: pnpm run test:tauri:e2e

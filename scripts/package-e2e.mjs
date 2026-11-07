@@ -18,10 +18,10 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const cliPath = join(root, 'cli/dist/index.js');
+const cliPath = join(root, 'apps/cli/dist/index.js');
 // Use the dist registry so the script and the CLI binary are always in sync.
 // Run `npm run cli:build` to update both after editing packages/*.json.
-const registryPath = join(root, 'cli/dist/generated/registry.json');
+const registryPath = join(root, 'apps/cli/dist/generated/registry.json');
 
 // ── Prerequisites ─────────────────────────────────────────────────────────────
 

@@ -1,9 +1,12 @@
 name: VS Code extension release
 
+# `ext-v*` only. The extension is a satellite: it vendors its own platform
+# snapshot into bundled-bin/, so it never needs to ship alongside a platform tag.
 on:
   push:
     tags:
-      - "*"
+      - "ext-v*"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,6 +17,8 @@ jobs:
       vsixFile: ${{ steps.package.outputs.vsixFile }}
     steps:
       - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
         with:
@@ -22,41 +27,42 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: Install icon rasterizer
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends librsvg2-bin
 
-      - name: Get version from tag
+      - name: Resolve version from tag
         id: get_version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="$(bash scripts/release-tag-version.sh "$GITHUB_REF_NAME" --version)"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Verify extension package version
         run: |
-          EXT_VERSION="$(node -p "require('./vscode-extension/package.json').version")"
+          EXT_VERSION="$(node -p "require('./apps/vscode-extension/package.json').version")"
           if [ "$EXT_VERSION" != "${{ steps.get_version.outputs.version }}" ]; then
             echo "Tag version ${{ steps.get_version.outputs.version }} does not match vscode-extension/package.json version $EXT_VERSION."
+            echo "Fix with: bash scripts/set-version.sh ext ${{ steps.get_version.outputs.version }}"
             exit 1
           fi
 
       - name: Test extension
-        run: npm run extension:test
+        run: pnpm run extension:test
 
       - name: Package extension
         id: package
         run: |
-          npm run extension:package
+          pnpm run extension:package
           VERSION="${{ steps.get_version.outputs.version }}"
-          VSIX_PATH="$(ls vscode-extension/*.vsix | head -n 1)"
+          VSIX_PATH="$(ls apps/vscode-extension/*.vsix | head -n 1)"
           VSIX_FILE="feather-cli-vscode-${VERSION}.vsix"
           mkdir -p release-assets
           cp "$VSIX_PATH" "release-assets/$VSIX_FILE"
-          cp cli/bin/feather "release-assets/feather-cli-darwin-arm64-${VERSION}.bin"
-          cp cli/bin/feather-darwin-x64 "release-assets/feather-cli-darwin-x64-${VERSION}.bin"
-          cp cli/bin/feather-linux-x64 "release-assets/feather-cli-linux-x64-${VERSION}.bin"
-          cp cli/bin/feather-win-x64.exe "release-assets/feather-cli-windows-x64-${VERSION}.exe"
+          # The four Bun-compiled CLI binaries (342 MB) are NOT uploaded here.
+          # prepare.mjs already places them inside the VSIX under bundled-bin/,
+          # so attaching them to every extension release stored them twice.
+          # Standalone binaries are published once, on the platform release.
           echo "vsixPath=release-assets/$VSIX_FILE" >> "$GITHUB_OUTPUT"
           echo "vsixFile=$VSIX_FILE" >> "$GITHUB_OUTPUT"
 

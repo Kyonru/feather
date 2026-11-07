@@ -19,7 +19,7 @@ If you are an automated coding agent, follow these extra rules:
 
 - Read the relevant files before editing. Use `rg` and focused file reads to understand the existing pattern.
 - Check `git status --short` before and after. Never revert unrelated changes; assume they belong to the user.
-- Do not modify `package-lock.json` unless dependencies actually changed.
+- Do not modify `pnpm-lock.yaml` unless dependencies actually changed.
 - Use `apply_patch` or normal editor-style edits. Avoid broad rewrites and formatting churn.
 - Run the narrowest useful tests first, then broader checks when the change crosses boundaries.
 - If a check cannot run because local tooling is missing, say so plainly and include the exact failure.
@@ -27,49 +27,242 @@ If you are an automated coding agent, follow these extra rules:
 
 ## Development Setup
 
-Install dependencies from the repo root:
+Feather is a pnpm + Turborepo monorepo. Install once from the repo root:
 
 ```sh
-npm install
+pnpm install
 ```
 
-Build the CLI before using local `npm run feather` commands:
+Node 22 or newer and Corepack/pnpm 11 are required. Desktop development also
+needs the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) and a
+Rust toolchain. The full verification gates additionally use LÖVE, Lua with
+luacheck, and Playwright's Chromium build:
 
 ```sh
-npm run cli:build
-npm run feather -- --help
+corepack enable
+pnpm install
+pnpm exec playwright install chromium
 ```
 
-Run the desktop app:
+Install LÖVE and Lua/luacheck with your platform package manager before running
+the Lua lane. Everything below runs from the **repo root** — you should rarely
+need to `cd` into an app.
+
+### Bring up a whole session
+
+Most debugging work needs Inspector *and* a game connected to it, which is two terminals and an
+ordering constraint — a game launched before Inspector's WebSocket server is listening never
+connects, and that looks like a bug rather than a race. One command does it:
 
 ```sh
-npm run tauri dev
+pnpm run up                     # pick an example interactively
+pnpm run up demo                # or name one
+pnpm run up test_cli --studio   # Inspector + Studio + a connected game
+pnpm run up --no-game           # just the apps
+pnpm run up --list              # what can I run?
 ```
 
-Serve docs:
+It builds the CLI, starts Inspector, **waits for Inspector's authentication challenge on port
+4004**, then launches the game through the CLI with `--session-name` set to the example. Ctrl+C
+stops everything.
+
+An existing Inspector or Studio is reused rather than started twice. `up` verifies Inspector's
+WebSocket protocol and Studio's application HTML before reuse; if another service owns either port,
+it stops with the port and the corrective action instead of launching a game against the wrong
+process. You can leave Inspector open and re-run `pnpm run up <other-example>` to swap games. A
+partial name works (`single` finds `session_replay/single_player`); an ambiguous one lists the
+matches.
+
+To stop every process tree owned by any active `pnpm run up` command from another terminal, run:
 
 ```sh
-./scripts/docs.sh
+pnpm run down
 ```
 
+`down` validates tracked process commands before stopping them. Inspector or Studio processes that
+`up` found already running are reused, not owned, and are deliberately left running.
+
+### Run one application
+
+The two desktop applications are separate products with separate release trains. Each has a web dev
+server and a Tauri shell:
+
 ```sh
-npm run docs
+pnpm run inspector:dev        # Inspector web UI      -> http://localhost:1420
+pnpm run inspector:tauri      # Inspector desktop app (Tauri)
+
+pnpm run studio:dev           # Studio web UI         -> http://localhost:1430
+pnpm run studio:tauri         # Studio desktop app (Tauri)
+
+pnpm run showcase:dev         # public showcase site
+pnpm run docs                 # documentation site
 ```
+
+The two dev servers use different ports on purpose, so you can run Inspector and Studio side by
+side and exercise the bridge between them.
+
+Do not run `*:dev` and `*:tauri` for the **same** app at once. The Tauri shell starts its own dev
+server on that app's port, so the second one fails with `Port 1420 is already in use` (or 1430 for
+Studio). Stop the standalone server first, or just use the Tauri command, which gives you both.
+
+`pnpm run dev` is still Inspector's web server, and `inspector:dev` is an alias for it.
+
+**Do not use a bare `pnpm run tauri ...` any more.** The Tauri CLI discovers a project by searching
+for a directory named `src-tauri`, and there are now two — so from the repo root it resolves to Studio,
+whatever you meant. The `inspector:*` and `studio:*` scripts pin the project directory, and CI does
+the same with an explicit `projectPath`. Use them instead.
+
+### Run the CLI
+
+The CLI is built before it runs, so use the wrapper rather than a stale `dist/`:
+
+```sh
+pnpm run feather --help
+pnpm run feather run packages/runtime-lua/example/test_cli
+pnpm run feather doctor packages/runtime-lua/example/test_cli
+```
+
+`pnpm run feather` rebuilds the Lua bundle and the CLI first, then forwards the rest to it.
+
+The root wrapper accepts both `pnpm run feather -- <args>` and
+`pnpm run feather <args>`, including when the first forwarded token is a flag.
+
+To skip the rebuild and iterate faster, run `pnpm run cli:build` once and then call
+`node apps/cli/dist/index.js <args>` directly.
+
+## Testing
+
+Two fast aggregate commands cover the normal edit loop, and both run through Turborepo, so an unchanged
+lane is a cache hit instead of a rerun:
+
+```sh
+pnpm run verify     # typecheck (all projects), lint, protocol + generated-file drift  (~5s warm)
+pnpm run test       # unit, bridge, CLI e2e, Lua e2e, and the three Playwright suites
+```
+
+`pnpm run verify` is the fast one — run it constantly. `pnpm run test` is what the pre-push hook
+runs, so a clean `pnpm run test` means your push will not be rejected.
+
+Before handing the whole product to a tester, run the broader readiness gate:
+
+```sh
+pnpm run test:ready      # verify + all standard lanes + packages + both Rust apps + extension + production builds
+pnpm run test:ready:gui  # the same gate, then the VS Code Extension Host integration suite
+```
+
+The GUI variant downloads/opens VS Code and therefore needs a desktop session.
+
+`pnpm run test` runs its lanes **one at a time** (`--concurrency=1`), which takes about three
+minutes. That is deliberate: three Playwright suites and the CLI e2e suite all spawn real browsers,
+dev servers and child processes, and running them at once made a different lane time out on
+roughly every run. If you want the parallel version for a quick local check, run
+`pnpm exec turbo run //#test:studio:e2e //#test:showcase:e2e` with the lanes you actually need.
+
+### Run one lane
+
+```sh
+pnpm run test:unit               # plain unit tests (scripts/tests)
+pnpm run test:bridge             # Inspector <-> Studio bridge contract
+pnpm run test:cli:e2e            # CLI end-to-end (builds the CLI first)
+pnpm run test:lua:e2e            # Lua runtime against real LÖVE
+pnpm run test:inspector:e2e      # Playwright, Inspector
+pnpm run test:studio:e2e         # Playwright, Studio
+pnpm run test:showcase:e2e       # Playwright, showcase
+pnpm run test:inspector:rust      # all Inspector Rust tests
+pnpm run test:studio:rust         # all Studio Rust tests
+pnpm run test:rust                # both Rust applications
+pnpm run test:tauri:e2e          # compatibility alias for test:rust
+pnpm run test:packages:e2e       # package-catalog install flows
+pnpm run extension:test          # VS Code extension
+pnpm run extension:test:integration # VS Code Extension Host (desktop required)
+```
+
+### Testing while a dev server is already running
+
+Playwright starts its own server and refuses the port if something already holds it — which it
+usually does, because you have `pnpm run studio:tauri` or `inspector:tauri` open in another terminal:
+
+```
+Error: http://127.0.0.1:1430 is already used, make sure that nothing is running on the port/url
+```
+
+Reuse the server you already have instead of killing it:
+
+```sh
+PLAYWRIGHT_REUSE_SERVER=1 pnpm run test              # the whole suite
+PLAYWRIGHT_REUSE_SERVER=1 pnpm run test:studio:e2e   # one lane
+```
+
+The tests then run against your live dev server, so they pick up whatever is on disk without a
+rebuild — which also makes this the fast way to iterate on a single failing test.
+
+### Run one file or one test
+
+```sh
+pnpm run cli:build
+node --test apps/cli/test/commands/run.test.mjs                  # one CLI file
+node --test --test-name-pattern "adb reverse" apps/cli/test/commands/run.test.mjs
+
+pnpm exec playwright test -c apps/studio/playwright.config.ts -g "texture lab"
+pnpm exec playwright test -c apps/inspector/playwright.config.ts --headed --debug
+```
+
+Playwright suites start their own dev server, so do not have `inspector:dev` or `studio:dev` running
+on the same port when you launch them.
+
+### Typecheck or lint one project
+
+```sh
+pnpm run typecheck            # every project, chained
+pnpm run typecheck:studio     # or :web (Inspector), :protocol, :host, :session-bridge, :ui, :lua
+pnpm run lint                 # eslint across apps/ and packages/
+pnpm exec eslint apps/studio/src/store/studio-preferences.ts   # one file
+```
+
+### Turborepo notes
+
+Task caching is keyed on declared `inputs` in `turbo.json`. If you add a task, or a task starts
+reading files it did not read before, **update its `inputs`** — an under-declared task reports a
+cache hit and silently skips work that would have failed. Force a lane to re-run with
+`pnpm exec turbo run //#lint --force`.
 
 ## Project Layout
 
-- `src/` contains the React desktop app.
-- `src-tauri/` contains the Tauri shell and WebSocket server.
-- `cli/` contains the Feather CLI, build/upload/release logic, package manager, and Ink workflows.
-- `cli/test/commands/` contains CLI end-to-end tests using Node's built-in test runner.
-- `src-lua/feather/` contains the embedded Lua runtime.
-- `src-lua/plugins/` contains built-in Lua plugins.
-- `src-lua/example/` contains runnable LÖVE examples.
-- `vscode-extension/` contains the VS Code extension.
-- `docs/` contains the Zensical documentation site.
-- `packages/` contains curated package registry entries.
+```txt
+apps/
+  inspector/          Inspector desktop app: React UI + Tauri shell and WebSocket server
+  studio/             Feather Studio: shader graph, particle playground, texture lab (+ its own Tauri shell)
+  showcase/           public web showcase
+  cli/                the Feather CLI: build/upload/release, package manager, Ink workflows
+  vscode-extension/   the VS Code extension
+  docs/               the Zensical documentation site
+packages/
+  protocol/           the wire contract shared by desktop and runtime (message names, envelope)
+  session-bridge/     the versioned, authenticated Inspector <-> Studio process bridge
+  host/               host abstraction so UI code runs under Tauri or the web
+  ui/                 shared UI components and hooks
+  runtime-lua/        the embedded Lua runtime, built-in plugins, and runnable LÖVE examples
+catalog/packages/     curated package registry entries
+scripts/              generators, release tooling, and cross-cutting checks
+```
 
-`docs/cli.md` is a symlink to `cli/README.md`, and `docs/vscode-extension.md` is a symlink to `vscode-extension/README.md`. Edit the source file directly when your editor or tool has trouble writing through symlinks.
+Inspector is served by the **root** `vite.config.ts` (its `root` points at `apps/inspector`), which
+is why it has no `package.json` of its own. Studio owns `apps/studio/package.json` and its own Vite
+config. Both are real Tauri applications with their own identity, version, and release train.
+
+Tests live beside what they cover: `apps/cli/test/commands/` for the CLI, `apps/*/e2e/` for
+Playwright, `packages/session-bridge/test/` for the bridge, and `scripts/tests/` for plain units.
+
+`apps/docs/cli.md` is a symlink to `apps/cli/README.md`, and `apps/docs/vscode-extension.md` is a
+symlink to `apps/vscode-extension/README.md`. Edit the source file directly when your editor has
+trouble writing through symlinks.
+
+Architecture and release trains are in [`apps/docs/architecture.md`](./apps/docs/architecture.md),
+with settled choices preserved in [`apps/docs/decisions.md`](./apps/docs/decisions.md). Inspector
+and Studio design rules live in
+[`skills/feather-desktop-app/references/design-rules.md`](./skills/feather-desktop-app/references/design-rules.md);
+particle runtime semantics live beside the plugin in
+[`packages/runtime-lua/plugins/particle-system-playground/README.md`](./packages/runtime-lua/plugins/particle-system-playground/README.md).
 
 ## CLI-Managed Examples
 
@@ -78,7 +271,7 @@ Most examples should be plain LÖVE projects. Do not add direct `require("feathe
 Prefer this shape:
 
 ```txt
-src-lua/example/my_example/
+packages/runtime-lua/example/my_example/
   main.lua
   conf.lua
   feather.config.lua
@@ -87,7 +280,7 @@ src-lua/example/my_example/
 Run it with:
 
 ```sh
-npm run feather -- run src-lua/example/my_example
+pnpm run feather -- run packages/runtime-lua/example/my_example
 ```
 
 Example game code may use guarded runtime APIs:
@@ -122,40 +315,40 @@ The CLI shim must preserve `pluginOptions` for any plugin, including IDs with da
 Run the CLI:
 
 ```sh
-npm run cli:build
-npm run feather -- doctor src-lua/example/test_cli
-npm run feather -- run src-lua/example/test_cli
+pnpm run cli:build
+pnpm run feather -- doctor packages/runtime-lua/example/test_cli
+pnpm run feather -- run packages/runtime-lua/example/test_cli
 ```
 
 Run a focused CLI test file:
 
 ```sh
-npm run cli:build
-node --test cli/test/commands/run.test.mjs
+pnpm run cli:build
+node --test apps/cli/test/commands/run.test.mjs
 ```
 
 Run Lua examples:
 
 ```sh
-npm run feather -- run src-lua/example/test_cli
-npm run feather -- run src-lua/example/session_replay/single_player
-npm run feather -- run src-lua/example/session_replay/multiplayer
-npm run feather -- run src-lua/example/session_replay/adapter
+pnpm run feather -- run packages/runtime-lua/example/test_cli
+pnpm run feather -- run packages/runtime-lua/example/session_replay/single_player
+pnpm run feather -- run packages/runtime-lua/example/session_replay/multiplayer
+pnpm run feather -- run packages/runtime-lua/example/session_replay/adapter
 ```
 
 Run Android development builds:
 
 ```sh
-npm run feather -- build vendor add android --dir src-lua/example/test_cli
-npm run feather -- build android --dir src-lua/example/test_cli --verbose
-npm run feather -- run src-lua/example/test_cli --target android --verbose
+pnpm run feather -- build vendor add android --dir packages/runtime-lua/example/test_cli
+pnpm run feather -- build android --dir packages/runtime-lua/example/test_cli --verbose
+pnpm run feather -- run packages/runtime-lua/example/test_cli --target android --verbose
 ```
 
 Use cache controls when testing build behavior:
 
 ```sh
-npm run feather -- build android --dir src-lua/example/test_cli --no-cache --verbose
-npm run feather -- build android --dir src-lua/example/test_cli --clean --verbose
+pnpm run feather -- build android --dir packages/runtime-lua/example/test_cli --no-cache --verbose
+pnpm run feather -- build android --dir packages/runtime-lua/example/test_cli --clean --verbose
 ```
 
 ## Golden Workflow Checklist
@@ -163,7 +356,7 @@ npm run feather -- build android --dir src-lua/example/test_cli --clean --verbos
 Use this smoke path when validating Feather for day-to-day LÖVE development:
 
 ```bash
-npm run feather -- run src-lua/example/test_cli --verbose --config src-lua/example/test_cli/feather.config.lua
+pnpm run feather -- run packages/runtime-lua/example/test_cli --verbose --config packages/runtime-lua/example/test_cli/feather.config.lua
 ```
 
 1. **Connect And Session Health**: the running game appears as the active session, stale **Connecting game** entries disappear, **Session** shows the runtime/config details, and suspend/resume keeps the socket available without leaving the app stuck.
@@ -176,40 +369,40 @@ This is the developer-preview acceptance bar: Feather should let an external LÖ
 
 ## Verification
 
-Run the checks that match your change. For broad changes, run more than one lane.
+Start with the two aggregates — see [Testing](#testing) for the full command list:
 
 ```sh
-npm run typecheck:web
-npm run typecheck:lua
-npm run lint
-npm run cli:build
-npm run test:cli:e2e
-npm run test:lua:e2e
-npm run test:app:e2e
-npm run test:tauri:e2e
-npm run extension:build
-npm run extension:test
+pnpm run verify   # typecheck, lint, protocol and generated-file drift
+pnpm run test     # every test lane the pre-push hook gates on
+```
+
+Two lanes are deliberately outside `pnpm run test` because they need toolchains that are not always
+present. Run them when your change touches them:
+
+```sh
+pnpm run test:tauri:e2e     # needs a Rust toolchain
+pnpm run extension:test     # needs the VS Code test harness
 ```
 
 Focused guidance:
 
-- React desktop changes: `npm run typecheck:web`, `npm run lint`, and Playwright if visible behavior changed.
-- CLI changes: `npm run cli:build` and the relevant `node --test cli/test/commands/*.test.mjs` file.
-- Lua runtime or plugin changes: `npm run typecheck:lua`, `npm run test:lua:e2e`, and any focused Lua e2e path if available.
+- Inspector UI changes: `pnpm run typecheck:web`, `pnpm run lint`, and `pnpm run test:inspector:e2e` if visible behavior changed.
+- Studio UI changes: `pnpm run typecheck:studio`, `pnpm run lint`, and `pnpm run test:studio:e2e`.
+- Shared package changes (`protocol`, `host`, `ui`, `session-bridge`): run `pnpm run verify` plus both app suites — these cross the application boundary.
+- CLI changes: `pnpm run cli:build` and the relevant `node --test apps/cli/test/commands/*.test.mjs` file.
+- Lua runtime or plugin changes: `pnpm run typecheck:lua`, `pnpm run test:lua:e2e`, and any focused Lua e2e path if available.
 - Build/upload/release safety changes: run targeted build, doctor, upload-safety, and release tests.
-- Tauri/WebSocket changes: `npm run test:tauri:e2e`.
-- VS Code extension changes: `npm run extension:build` and `npm run extension:test`.
-- Docs-only changes: read the edited Markdown and run `npm run docs` when practical.
+- Tauri/WebSocket changes: `pnpm run test:tauri:e2e`.
+- VS Code extension changes: `pnpm run extension:build` and `pnpm run extension:test`.
+- Docs-only changes: read the edited Markdown and run `pnpm run docs` when practical.
 
 If `love`, `luacheck`, Android SDK, Xcode, Fastlane, or other local tooling is missing, document that in the PR or final handoff. Do not pretend the check passed.
 
-The pre-push hook runs the heavier local test lanes before pushing:
+The pre-push hook runs the same lanes as `pnpm run test`, through Turborepo, so unchanged suites
+are cache hits rather than reruns:
 
 ```sh
-npm run test:cli:e2e
-npm run test:lua:e2e
-npm run test:app:e2e
-npm run test:showcase:e2e
+pnpm run test
 ```
 
 When you need to push from a machine that cannot run those tools, use `SKIP_PRE_PUSH_TESTS=1 git push` and call out the skipped checks.
@@ -218,23 +411,28 @@ When you need to push from a machine that cannot run those tools, use `SKIP_PRE_
 
 Some files are generated and must stay in sync:
 
-- `src-lua/manifest.txt`
-- `cli/src/generated/plugin-catalog.ts`
-- `cli/src/generated/registry.json`
-- version fields in `package.json`, `src-lua/feather/init.lua`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`
+- `packages/runtime-lua/manifest.txt`
+- `apps/cli/src/generated/plugin-catalog.ts`
+- `apps/cli/src/generated/registry.json`
+- `packages/runtime-lua/feather/protocol_messages.lua` (generated from `packages/protocol`)
+- each application's version trio — Inspector is `package.json` + `apps/inspector/src-tauri/{Cargo.toml,tauri.conf.json}`, Studio is `apps/studio/package.json` + `apps/studio/src-tauri/{Cargo.toml,tauri.conf.json}`
 
 Refresh them with:
 
 ```sh
 bash scripts/generate-manifest.sh
-npm run generate:plugin-catalog
-npm run generate:registry
-bash scripts/set-version.sh
+pnpm run generate:plugin-catalog
+pnpm run generate:registry
+pnpm run generate:protocol-lua
+bash scripts/set-version.sh <train>      # cli | runtime | desktop | ext | studio | platform
 ```
 
-`npm run check:plugin-catalog` and `npm run check:registry` intentionally fail when generated output differs from git. If the generated diff is expected, commit it.
+Each train versions independently — that is the point of the v4 split, so do not bump them together
+out of habit. `bash scripts/set-version.sh desktop` is Inspector; `studio` is Studio.
 
-Generated or local-only folders such as `vscode-extension/bundled-cli/`, `vscode-extension/bundled-bin/`, build outputs, caches, and replay/debug artifacts should not be committed.
+`pnpm run check:plugin-catalog`, `pnpm run check:registry`, and `pnpm run check:protocol` intentionally fail when generated output differs from git. If the generated diff is expected, commit it. All three run as part of `pnpm run verify`.
+
+Generated or local-only folders such as `apps/vscode-extension/bundled-cli/`, `apps/vscode-extension/bundled-bin/`, `apps/inspector/src-tauri/target/`, build outputs, caches, and replay/debug artifacts should not be committed.
 
 ## Lua Runtime Guidelines
 
@@ -248,10 +446,10 @@ Generated or local-only folders such as `vscode-extension/bundled-cli/`, `vscode
 
 ## Plugin Guidelines
 
-Built-in plugins live under `src-lua/plugins/<plugin-id>/` and should usually include:
+Built-in plugins live under `packages/runtime-lua/plugins/<plugin-id>/` and should usually include:
 
 ```txt
-src-lua/plugins/<plugin-id>/
+packages/runtime-lua/plugins/<plugin-id>/
   init.lua
   manifest.lua
   README.md
@@ -261,10 +459,10 @@ After adding or changing a built-in plugin:
 
 ```sh
 bash scripts/generate-manifest.sh
-npm run generate:plugin-catalog
-npm run cli:build
-npm run typecheck:lua
-npm run test:lua:e2e
+pnpm run generate:plugin-catalog
+pnpm run cli:build
+pnpm run typecheck:lua
+pnpm run test:lua:e2e
 ```
 
 Plugin contribution tips:
@@ -292,8 +490,67 @@ Plugin contribution tips:
 - Preserve config and generated Lua in a form users can understand and remove.
 - Follow skip-on-exists behavior for file installers. Use `--force` when overwriting is intentional.
 - Keep `doctor` useful. New setup requirements should have a doctor check and a clear remediation message.
-- When adding setup options, update `cli/README.md`, `docs/configuration.md`, and generated config templates.
+- When adding setup options, update `apps/cli/README.md`, `apps/docs/configuration.md`, and generated config templates.
 - Build and upload commands must run production safety checks before shipping user-facing artifacts.
+
+## Release Trains
+
+Feather v4 releases each artifact on its own train. There is no single repo-wide
+version — a CLI patch must not drag the desktop app, Lua runtime, or extension
+along with it. See [`apps/docs/architecture.md`](./apps/docs/architecture.md#release-trains-and-versioning)
+for the full model.
+
+| Tag | Ships | Publishes to |
+| --- | --- | --- |
+| `v<semver>` | Platform: runtime + CLI + desktop together | LuaRocks, npm, signed desktop binaries |
+| `cli-v<semver>` | CLI alone | npm |
+| `runtime-v<semver>` | Lua runtime alone | LuaRocks + GitHub release |
+| `desktop-v<semver>` | Desktop app alone | 4 signed binaries |
+| `ext-v<semver>` | VS Code extension alone | Marketplace + Open VSX |
+| `studio-v<semver>` | Feather Studio alone | Studio desktop binaries |
+
+Set a train's version before tagging. The script only touches the files owned by
+the train you name:
+
+```sh
+bash scripts/set-version.sh cli 4.0.1        # then: git tag cli-v4.0.1
+bash scripts/set-version.sh runtime 4.0.1    # then: git tag runtime-v4.0.1
+bash scripts/set-version.sh desktop 4.0.1    # then: git tag desktop-v4.0.1
+bash scripts/set-version.sh ext 4.0.1        # then: git tag ext-v4.0.1
+bash scripts/set-version.sh studio 0.2.0     # then: git tag studio-v0.2.0
+bash scripts/set-version.sh platform 4.1.0   # then: git tag v4.1.0
+```
+
+After committing the version change, use the repository release command instead
+of creating or pushing tags by hand. It checks a clean worktree, every version
+file owned by the train, local and remote tag collisions, and the exact tag
+vocabulary. The default is a non-mutating dry run; `--push` is required to ship:
+
+```sh
+pnpm run release:cli
+pnpm run release:desktop -- --push       # `release:inspector` is an alias
+pnpm run release:studio -- --push
+pnpm run release:runtime -- --push
+pnpm run release:extension -- --push
+pnpm run release:platform -- --push      # runtime + CLI + Inspector
+```
+
+Pass `--version <semver>` to assert an expected version. The command never bumps
+or commits versions; use `set-version.sh`, review the diff, and commit first.
+
+Notes:
+
+- Each release workflow verifies that its train's version matches the tag and
+  fails with the exact `set-version.sh` command to fix it.
+- The runtime workflow skips the LuaRocks publish when `packages/runtime-lua/feather` is
+  unchanged since the previous runtime release, so a platform tag never burns a
+  rock version for an unmodified runtime. Override with the `force` input on
+  workflow dispatch.
+- `bash scripts/release-tag-version.sh <tag>` parses a tag into its train and
+  version, and rejects tags outside this vocabulary.
+- Trains are expected to drift apart. Inspector displays both its own version
+  and the connected runtime's version; a difference is normal and is not a fault.
+  Compatibility is signalled by the negotiated wire protocol version.
 
 ## Build, Upload, And Release Safety
 
@@ -309,42 +566,42 @@ Production paths should be boringly strict.
 - The extension is a UI controller for the CLI. It should spawn the bundled CLI and avoid re-implementing CLI logic.
 - Keep extension commands mapped closely to CLI commands. If behavior does not exist in the CLI, add it there first.
 - Workspace-scoped settings should use `ConfigurationTarget.Workspace`, not `Global`, when they are project-specific.
-- Register new commands in both `vscode-extension/src/extension.ts` and `vscode-extension/package.json`.
-- Build/package flows should use the bundled CLI/binary prepared by `vscode-extension/scripts/prepare.mjs`.
+- Register new commands in both `apps/vscode-extension/src/extension.ts` and `apps/vscode-extension/package.json`.
+- Build/package flows should use the bundled CLI/binary prepared by `apps/vscode-extension/scripts/prepare.mjs`.
 - Do not commit generated extension bundles.
 
 ## Documentation Guidelines
 
-- User-facing CLI behavior belongs in `cli/README.md` and, when broader, in `docs/usage.md` or a dedicated page.
-- Runtime config belongs in `docs/configuration.md`.
-- Plugin behavior belongs in `src-lua/plugins/<plugin-id>/README.md`; major workflows may also need a `docs/<feature>.md` page and a `zensical.toml` nav entry.
-- VS Code extension behavior belongs in `vscode-extension/README.md`.
+- User-facing CLI behavior belongs in `apps/cli/README.md` and, when broader, in `apps/docs/usage.md` or a dedicated page.
+- Runtime config belongs in `apps/docs/configuration.md`.
+- Plugin behavior belongs in `packages/runtime-lua/plugins/<plugin-id>/README.md`; major workflows may also need a `apps/docs/<feature>.md` page and a `zensical.toml` nav entry.
+- VS Code extension behavior belongs in `apps/vscode-extension/README.md`.
 - Prefer copy-pasteable commands and small guarded Lua examples.
 - Be explicit about what Feather does not do. For example, Session Replay records inputs and developer-selected state; it does not serialize an entire game.
 
 ## Package Catalog Contributions
 
-Use helper scripts instead of hand-writing package entries whenever possible. They fetch metadata, pin source commits or URLs, calculate SHA-256 checksums, write `packages/<id>.json`, and regenerate `cli/src/generated/registry.json`.
+Use helper scripts instead of hand-writing package entries whenever possible. They fetch metadata, pin source commits or URLs, calculate SHA-256 checksums, write `catalog/packages/<id>.json`, and regenerate `apps/cli/src/generated/registry.json`.
 
 For GitHub-hosted packages:
 
 ```sh
-npm run package:add
+pnpm run package:add
 ```
 
 For direct file URLs:
 
 ```sh
-npm run package:add-url
+pnpm run package:add-url
 ```
 
 After the wizard finishes:
 
 ```sh
-npm run check:registry
-npm run cli:build
-npm run feather -- package info <package-id>
-npm run feather -- package install <package-id> --dir /tmp/feather-package-test
+pnpm run check:registry
+pnpm run cli:build
+pnpm run feather -- package info <package-id>
+pnpm run feather -- package install <package-id> --dir /tmp/feather-package-test
 ```
 
 Package contribution tips:
@@ -353,7 +610,7 @@ Package contribution tips:
 - Keep install targets narrow and predictable, usually under `lib/<package-id>/`.
 - Include a realistic `require` path and a small usage example.
 - Use `verified` only for packages reviewed and pinned with checksums. Use `known` for checksum-pinned sources that still need extra review.
-- Commit both `packages/<id>.json` and `cli/src/generated/registry.json`.
+- Commit both `catalog/packages/<id>.json` and `apps/cli/src/generated/registry.json`.
 
 ## Commit Messages
 
@@ -393,3 +650,48 @@ Include:
 - Any checks you could not run and why.
 - Known limitations or follow-up work.
 - AI assistance disclosure when applicable.
+
+## Engineering lessons from the v4 migration
+
+Each was learned by getting it wrong during v4.
+
+- **Verify a test by breaking the thing it tests.** Make the fix, watch it pass, revert, watch it
+  fail, restore. Several v4 tests passed against unfixed code; the particle export-equivalence test
+  was vacuous until it iterated all 26 easings and asserted the count.
+- **A migration can be complete by its own definition and leave a product that does not exist.**
+  Phase 05c moved 25,500 lines into Studio, every suite went green, and Studio rendered none of it.
+  Check the product, not only the move.
+- **An app's config is part of the migration.** The love.js Vite plugin was extracted for "Studio and
+  the showcase"; only the showcase wired it up, so Studio's previews rendered Studio inside its own
+  iframe. Check the build output, not just the dev server.
+- **A test that asserts current behaviour locks in the thing you are changing** (D43). Rewrite such
+  tests to assert the property you want.
+- **Extract the judgement and test that.** Where a browser test is hard, pull the decision into a pure
+  module and unit test it (`searchableText`, `isFromPreviousRun`, `profilerStateForNewSession`,
+  `pluginNavItems`, `core.lua`).
+- **Adding a field to a persisted store is a migration.** State written before the field rehydrates
+  without it; give every new persisted field a fallback at the point of use.
+- **Measure, do not reason, about allocation.** Two allocations were found only by benchmarking, one
+  of them the benchmark's own options table.
+- **The clamp change was a behaviour change.** Projects tuned against the unclamped preview look
+  different once preview and export agree. Say so when shipping a semantic fix.
+- **`git add -A` hides things.** It swept an untracked file into history and committed a 162 MB
+  corrupted document three times. Stage deliberately and check sizes after scripted edits.
+- **Slicing backwards yields the empty string, and `str.replace('', x)` inserts between every
+  character.** That is how a planning document became 2.5 million lines. Splice on indices.
+- **`V4-PARTICLES-GPU.md` is in history** (`bb8de80`, untracked again in `db7bedb`), and `bb8de80` is
+  already on `origin/v4`. Removing it now means rewriting published history.
+
+**Ports:** `4004` game WebSocket · `4005` Inspector MCP · `4006` CLI MCP HTTP · `4007` Studio
+creative MCP · `4008` Studio↔Inspector bridge · `1420` Inspector dev · `1430` Studio dev (D33).
+
+**Commands:**
+
+```sh
+pnpm run verify             # typecheck, lint, protocol, registry and catalog drift (~5s warm)
+pnpm run verify:enhanced    # C0–C5 and S5 guards
+pnpm run test               # every lane, serially, through turbo (also the pre-push gate)
+pnpm run test:tauri:e2e     # Inspector WebSocket server (Rust)
+pnpm run check:artifact-boundary   # after building both apps
+pnpm run studio:tauri       # Studio desktop
+```

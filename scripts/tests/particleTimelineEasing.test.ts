@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PARTICLE_TIMELINE_EASINGS } from '../../src/types/particle-system-playground.ts';
+import { PARTICLE_TIMELINE_EASINGS } from '../../apps/studio/src/types/particle-system-playground.ts';
 import {
   easeParticleTimelineValue,
   normalizeParticleTimelineEasing,
-} from '../../src/pages/particle-system-playground/easing.ts';
+} from '../../apps/studio/src/tools/particle-system-playground/easing.ts';
 
 test('particle timeline easing helper normalizes unknown values to linear', () => {
   assert.equal(normalizeParticleTimelineEasing('outBounce'), 'outBounce');

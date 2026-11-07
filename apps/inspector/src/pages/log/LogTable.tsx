@@ -1,0 +1,387 @@
+import { open } from '@tauri-apps/plugin-dialog';
+import { useEffect, useMemo, useRef } from 'react';
+import { usePanelState } from '@/store/panel-state';
+import type { ChangeEvent } from 'react';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
+import {
+  PauseIcon,
+  PlayIcon,
+  ScreenShareIcon,
+  ScreenShareOffIcon,
+  Trash2Icon,
+  UploadIcon,
+  ChevronsDownIcon,
+  DownloadIcon,
+  XIcon,
+} from 'lucide-react';
+import { Button } from '@feather/ui/button';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@feather/ui/dialog';
+import { Input } from '@feather/ui/input';
+import { Label } from '@feather/ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@feather/ui/tooltip';
+import { LogTypeBadge } from '@/components/log-type-badge';
+import type { Log } from '@/hooks/use-logs';
+import { matchesSearch } from './search';
+import { LogType } from '@/hooks/use-logs';
+import { cn } from '@/utils/styles';
+import { isWeb } from '@/utils/platform';
+import { useHost } from '@feather/host';
+import { serializeFeatherLogs } from './export';
+import { toast } from 'sonner';
+
+const ACCEPTED_LOG_FILE_TYPES = ['featherlog'] as const;
+type LogFilter = 'all' | 'output' | 'error' | 'fatal' | 'feather' | 'plugin';
+
+const FILTERS: Array<{ value: LogFilter; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'output', label: 'Output' },
+  { value: 'error', label: 'Errors' },
+  { value: 'fatal', label: 'Fatal' },
+  { value: 'feather', label: 'Feather' },
+  { value: 'plugin', label: 'Plugins' },
+];
+
+function isFeatherEvent(type: string) {
+  return type === LogType.FEATHER_FINISH || type === LogType.FEATHER_START;
+}
+
+function matchesTypeFilter(log: Log, filter: LogFilter) {
+  if (filter === 'all') return true;
+  if (filter === 'feather') return isFeatherEvent(log.type);
+  if (filter === 'plugin') return !['output', 'error', 'fatal'].includes(log.type) && !isFeatherEvent(log.type);
+  return log.type === filter;
+}
+
+function relativeTime(seconds: number) {
+  const diff = Math.max(0, Math.floor(Date.now() / 1000 - seconds));
+  if (diff < 5) return 'now';
+  if (diff < 60) return `${diff}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  return `${Math.floor(diff / 3600)}h`;
+}
+
+export function LogTable({
+  logs,
+  selectedId,
+  screenshotEnabled,
+  isPaused,
+  onSelect,
+  onClear,
+  onPlayPause,
+  onScreenshotChange,
+  onUpload,
+}: {
+  logs: Log[];
+  selectedId: string | null;
+  screenshotEnabled: boolean;
+  isPaused: boolean;
+  onSelect: (id: string) => void;
+  onClear: (visibleIds: string[]) => void;
+  onPlayPause: () => void;
+  onScreenshotChange: () => void;
+  onUpload: (pathname: string) => void;
+}) {
+  const host = useHost();
+  // These survive navigation and restarts. Logs is the default route and the
+  // most-visited panel in the app, so re-typing a filter after stepping away to
+  // check a number was the single most frequent cost this tool imposed.
+  const [search, setSearch] = usePanelState('logs.search', '');
+  const [typeFilter, setTypeFilter] = usePanelState<LogFilter>('logs.typeFilter', 'all');
+  const [followTail, setFollowTail] = usePanelState('logs.followTail', true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<VirtuosoHandle>(null);
+
+  const filteredLogs = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return logs.filter((log) => {
+      if (!matchesTypeFilter(log, typeFilter)) return false;
+      if (!needle) return true;
+      // Defensive on purpose. Logs arriving over the WebSocket are not validated
+      // against the schema — only the ones read from a file are — so a runtime
+      // that omits `str` must not take the whole panel down with it. Searching
+      // is also the worst possible place to be strict: it is what someone does
+      // when output already looks wrong.
+      return matchesSearch(log, needle);
+    });
+  }, [logs, search, typeFilter]);
+
+  const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const pathname = event.target.value;
+    if (pathname) onUpload(pathname);
+  };
+
+  // Jump to the tail when the *filter* changes, not when a log arrives.
+  //
+  // Arrivals are already handled by Virtuoso's `followOutput`, which by its own
+  // documentation "scrolls down only if the list is already at the bottom" —
+  // exactly the behaviour you want. This effect used to fire on every arrival
+  // too, and because it calls `scrollToIndex` unconditionally it overrode that:
+  // scroll up to read something while a game is chattering, and the next log
+  // line yanked you back to the bottom. Reading older output during a live
+  // session was close to impossible.
+  //
+  // Changing a filter is different — that is a deliberate act, and landing at
+  // the tail of the new result is what you want.
+  useEffect(() => {
+    if (!followTail || filteredLogs.length === 0) return;
+    listRef.current?.scrollToIndex({ index: filteredLogs.length - 1, align: 'end' });
+    // Keyed on the filter deliberately. Adding length or a tail signature back
+    // would restore the behaviour the comment above exists to explain.
+  }, [followTail, typeFilter, search]);
+
+  const onSelectFile = async () => {
+    if (isWeb()) {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    const file = await open({
+      multiple: false,
+      directory: false,
+      filters: [{ name: 'Log Files', extensions: [...ACCEPTED_LOG_FILE_TYPES] }],
+    });
+
+    if (typeof file === 'string') onUpload(file);
+  };
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 py-3 lg:px-6">
+      <div data-testid="logs-toolbar" className="grid gap-2 xl:flex xl:items-center">
+        <div data-testid="logs-toolbar-search" className="relative min-w-0 xl:min-w-48 xl:flex-1">
+          <Input
+            className="h-8 w-full pr-7 text-xs"
+            placeholder="Search logs..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          {/* The filter now outlives the visit, so it needs a way out that is as
+              quick as the way in. Without this, coming back to a filtered view
+              looks like missing logs rather than an active search. */}
+          {search !== '' && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label="Clear log search"
+              className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+            >
+              <XIcon className="size-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div data-testid="logs-toolbar-controls" className="flex min-w-0 flex-wrap items-center gap-2 xl:shrink-0">
+          <div className="flex min-w-0 flex-wrap gap-1">
+            {FILTERS.map((filter) => (
+              <Button
+                key={filter.value}
+                type="button"
+                size="sm"
+                variant={typeFilter === filter.value ? 'default' : 'outline'}
+                className="h-8 px-2 text-xs"
+                onClick={() => setTypeFilter(filter.value)}
+              >
+                {filter.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex shrink-0 flex-wrap items-center gap-1 sm:ml-auto xl:ml-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="secondary" size="icon" className="size-8" onClick={onPlayPause}>
+                  {isPaused ? (
+                    <PlayIcon className="size-4 text-ok" />
+                  ) : (
+                    <PauseIcon className="size-4 text-info" />
+                  )}
+                  <span className="sr-only">{isPaused ? 'Resume logs' : 'Pause logs'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isPaused ? 'Resume logs' : 'Pause logs'}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="size-8"
+                  disabled={filteredLogs.length === 0}
+                  onClick={async () => {
+                    try {
+                      const saved = await host.saveTextFile({
+                        defaultName: `feather-logs-filtered-${new Date().toISOString().replace(/[:.]/g, '-')}.featherlog`,
+                        extensions: ['featherlog'],
+                        filterName: 'Feather Logs',
+                        text: serializeFeatherLogs(filteredLogs),
+                      });
+                      if (saved) toast.success(`Exported ${filteredLogs.length} visible logs`);
+                    } catch (error) {
+                      toast.error(error instanceof Error ? error.message : 'Could not export visible logs');
+                    }
+                  }}
+                >
+                  <DownloadIcon className="size-4 text-info" />
+                  <span className="sr-only">Export visible logs</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export visible logs</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={followTail ? 'default' : 'secondary'}
+                  size="icon"
+                  className="size-8"
+                  onClick={() => setFollowTail((value) => !value)}
+                >
+                  <ChevronsDownIcon className="size-4" />
+                  <span className="sr-only">{followTail ? 'Disable follow tail' : 'Enable follow tail'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{followTail ? 'Following tail' : 'Follow tail'}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => onClear(filteredLogs.map((log) => log.id))}
+                >
+                  <Trash2Icon className="size-4 text-warn" />
+                  <span className="sr-only">Clear visible logs</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Clear visible logs</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="secondary" size="icon" className="size-8" onClick={onScreenshotChange}>
+                  {screenshotEnabled ? (
+                    <ScreenShareIcon className="size-4 text-ok" />
+                  ) : (
+                    <ScreenShareOffIcon className="size-4 text-danger" />
+                  )}
+                  <span className="sr-only">{screenshotEnabled ? 'Disable screenshots' : 'Enable screenshots'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{screenshotEnabled ? 'Disable screenshots' : 'Enable screenshots'}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              {isWeb() ? (
+                <Dialog>
+                  <TooltipTrigger asChild>
+                    <DialogTrigger asChild>
+                      <Button variant="secondary" size="icon" className="size-8">
+                        <UploadIcon className="size-4 text-warn" />
+                        <span className="sr-only">Upload logs</span>
+                      </Button>
+                    </DialogTrigger>
+                  </TooltipTrigger>
+                  <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle>Use Log File</DialogTitle>
+                      <DialogDescription>Enter a log file path to use instead of the live session logs.</DialogDescription>
+                    </DialogHeader>
+
+                    <Label htmlFor="log-file-path">Pathname</Label>
+                    <Input id="log-file-path" name="name" onChange={onFileChange} />
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Save</Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <TooltipTrigger asChild>
+                  <Button variant="secondary" size="icon" className="size-8" onClick={onSelectFile}>
+                    <UploadIcon className="size-4 text-warn" />
+                    <span className="sr-only">Use log file</span>
+                  </Button>
+                </TooltipTrigger>
+              )}
+              <TooltipContent>
+                <p>Use log file</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[7.5rem_minmax(0,1fr)_7rem] items-center gap-3 rounded-t-lg border border-b-0 bg-card px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <span>Type</span>
+        <span>Log</span>
+        <span className="text-right">Time</span>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-hidden rounded-b-lg border">
+        <Virtuoso
+          ref={listRef}
+          data-testid="logs-list"
+          className="h-full"
+          data={filteredLogs}
+          followOutput={followTail ? 'smooth' : false}
+          itemContent={(_, log) => {
+            const selected = selectedId === log.id;
+            const isProblem = log.type === 'error' || log.type === 'fatal';
+            const title = new Date((log.lastTime ?? log.time) * 1000).toLocaleString();
+            return (
+              <button
+                type="button"
+                className={cn(
+                  'grid w-full grid-cols-[7.5rem_minmax(0,1fr)_7rem] items-center gap-3 border-b px-3 py-2 text-left text-xs transition-colors',
+                  !selected && 'hover:bg-muted/60',
+                  isProblem && 'bg-danger-surface text-danger',
+                  selected && 'bg-primary/10 ring-1 ring-inset ring-primary/30',
+                )}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
+                  onSelect(log.id);
+                }}
+                onClick={() => onSelect(log.id)}
+              >
+                <LogTypeBadge type={log.type} className="h-7" />
+                <span className="flex min-w-0 items-center gap-2">
+                  {log.count > 1 && (
+                    <span className="shrink-0 rounded-full bg-muted-foreground/20 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                      {log.count}
+                    </span>
+                  )}
+                  <span className="truncate">{log.str}</span>
+                </span>
+                <span className="text-right text-[10px] tabular-nums text-muted-foreground" title={title}>
+                  {relativeTime(log.lastTime ?? log.time)}
+                </span>
+              </button>
+            );
+          }}
+        />
+      </div>
+    </div>
+  );
+}
