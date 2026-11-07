@@ -2,6 +2,22 @@ import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { strFromU8, unzipSync } from 'fflate';
 
+test('template controls are accessible and their edits survive a reload', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('studio-menu-trigger').click();
+  await page.getByTestId('studio-tool-shader-graph').click();
+  await expect(page.getByTestId('studio-tool-surface').getByText('Loading tool…')).toBeHidden();
+
+  const speed = page.getByRole('spinbutton', { name: 'Speed' });
+  await expect(speed).toHaveValue('0.18');
+  await speed.fill('0.35');
+  await expect(speed).toHaveValue('0.35');
+
+  await page.reload();
+  await expect(page.getByTestId('studio-tool-surface').getByText('Loading tool…')).toBeHidden();
+  await expect(page.getByRole('spinbutton', { name: 'Speed' })).toHaveValue('0.35');
+});
+
 test('Shader Graph exports generated GLSL separately from the editable graph', async ({ page }) => {
   await page.goto('/');
   await page.getByTestId('studio-menu-trigger').click();

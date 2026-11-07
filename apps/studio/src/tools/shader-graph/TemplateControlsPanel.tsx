@@ -158,6 +158,7 @@ export function TemplateControlsPanel() {
     if (port.type === 'float') {
       return (
         <ShaderNumberInput
+          aria-label={port.label}
           className="h-7 text-xs"
           {...inputProps}
           value={finiteValue(rawValue, finiteValue(port.defaultValue))}
