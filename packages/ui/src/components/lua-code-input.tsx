@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import SyntaxHighlighter from 'react-syntax-highlighter';
+import { FeatherSyntaxHighlighter as SyntaxHighlighter } from './syntax-highlighter';
 import { useUi } from '../context';
 import { cn } from '../lib/styles';
 

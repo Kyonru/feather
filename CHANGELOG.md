@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Studio now registers only the Lua and GLSL syntax highlighters it uses, reducing the Shader Graph Showcase chunk without changing syntax colors.
 - Studio now renders shared notifications, making successful imports and actionable storage errors visible across its tools.
 - Texture Lab now gives its generator filter and selected-generator control distinct accessible names.
 - Studio now describes Particle Playground's authenticated in-game preview alongside Shader Graph pairing.

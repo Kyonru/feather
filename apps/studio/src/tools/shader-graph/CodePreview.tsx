@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import SyntaxHighlighter from 'react-syntax-highlighter';
+import { FeatherSyntaxHighlighter as SyntaxHighlighter } from '@feather/ui/syntax-highlighter';
 import { Badge } from '@feather/ui/badge';
 import { Button } from '@feather/ui/button';
 import { ScrollArea } from '@feather/ui/scroll-area';

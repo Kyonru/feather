@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import SyntaxHighlighter from 'react-syntax-highlighter';
+import { FeatherSyntaxHighlighter as SyntaxHighlighter } from '@feather/ui/syntax-highlighter';
 import { useUi } from '@feather/ui';
 import { cn } from '@feather/ui';
 

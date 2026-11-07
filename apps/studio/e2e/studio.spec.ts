@@ -85,6 +85,18 @@ test('every tool is usable with no Inspector and no game', async ({ page }) => {
   expect(errors, `a tool threw:\n${errors.join('\n')}`).toEqual([]);
 });
 
+test('Shader Graph GLSL output remains highlighted after lazy loading the focused tool', async ({ page }) => {
+  await page.goto('/');
+  await chooseTool(page, 'shader-graph');
+  await page.getByRole('tab', { name: 'Output' }).click();
+
+  const panel = page.getByTestId('shader-right-panel-output');
+  const output = panel.locator('pre').first();
+  await expect(panel.getByText('GLSL Output')).toBeVisible();
+  await expect(output.locator('span').first()).toBeVisible();
+  await expect(output).toContainText('vec4');
+});
+
 test('the tools are styled, not unstyled markup', async ({ page }) => {
   // The tools reference design tokens 394 times. Studio mounted no ThemeProvider
   // and registered no Tailwind colour utilities, so every one of them resolved
