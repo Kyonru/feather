@@ -4,6 +4,8 @@ import { useUi } from '@feather/ui';
 import { cn } from '@feather/ui';
 
 type Props = {
+  id: string;
+  'aria-label': string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -18,7 +20,7 @@ const codeStyle: React.CSSProperties = {
   tabSize: 2,
 };
 
-export function ShaderCodeInput({ value, onChange, placeholder, className }: Props) {
+export function ShaderCodeInput({ id, 'aria-label': ariaLabel, value, onChange, placeholder, className }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const highlightTheme = useUi().useSyntaxTheme();
@@ -81,6 +83,8 @@ export function ShaderCodeInput({ value, onChange, placeholder, className }: Pro
         </SyntaxHighlighter>
       </div>
       <textarea
+        id={id}
+        aria-label={ariaLabel}
         ref={textareaRef}
         value={value}
         spellCheck={false}

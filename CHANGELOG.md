@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Studio UI coverage now authors a layered particle effect, previews its timeline, and verifies project and ZIP round-trips.
 - Texture Lab coverage now checks that generated preview names describe the selected generator and output size.
 - Shader Graph coverage now checks accessible template controls and persistence of their edits after reload.
 - Showcase workflow coverage now exercises the shared Studio shell, local-only state, browser exports, persistence, and compact-window layout.
@@ -34,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Particle shader presets now retain their filenames and source through project export, shader controls expose accessible names, and imported projects use the first available duplicate suffix.
 - Texture Lab generated previews now announce the selected generator and output dimensions to assistive technology.
 - Shader Graph template inputs now expose their visible parameter labels as accessible names.
 - Studio now registers only the Lua and GLSL syntax highlighters it uses, reducing the Shader Graph Showcase chunk without changing syntax colors.

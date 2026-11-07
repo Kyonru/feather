@@ -1001,21 +1001,34 @@ export function useLocalParticlePlayground(workspaceId?: string) {
     },
     setShader: (params: Record<string, unknown>) => {
       recordHistory(`system:${data.activeSystem}:shader`, false);
-      if (typeof params.shaderSource === 'string') {
-        setData((current) => {
-          if (!current.data) return current;
-          return {
-            ...current,
-            data: {
-              ...current.data,
-              systems: current.data.systems.map((item) =>
-                item.index === current.activeSystem ? updateLocalParticleSystem(item, 'shaderSource', String(params.shaderSource)) : item,
-              ),
-            },
-          };
-        });
-      }
-      toast.success('Shader applied to showcase preview');
+      const clearShader = params.clearShader === true;
+      const hasSource = typeof params.shaderSource === 'string';
+      const hasPath = typeof params.shaderPath === 'string';
+      if (!clearShader && !hasSource && !hasPath) return;
+
+      setData((current) => {
+        if (!current.data) return current;
+        return {
+          ...current,
+          data: {
+            ...current.data,
+            systems: current.data.systems.map((item) => {
+              if (item.index !== current.activeSystem) return item;
+              if (clearShader) return { ...item, shaderPath: '', shaderSource: '', shaderFilename: '' };
+              if (hasSource) {
+                return {
+                  ...item,
+                  shaderPath: '',
+                  shaderSource: String(params.shaderSource),
+                  shaderFilename: typeof params.filename === 'string' ? params.filename : item.shaderFilename,
+                };
+              }
+              return { ...item, shaderPath: String(params.shaderPath), shaderSource: '' };
+            }),
+          },
+        };
+      });
+      toast.success(clearShader ? 'Shader cleared' : hasPath ? 'Shader path applied' : 'Shader applied to preview');
     },
     exportCode: async () => {
       try {
@@ -1072,9 +1085,13 @@ export function useLocalParticlePlayground(workspaceId?: string) {
         return;
       }
       project = migrateParticleProject(project);
-      const nextName = project.name && !data.composites.includes(project.name)
-        ? project.name
-        : `${project.name || 'Imported Particles'} ${data.composites.length + 1}`;
+      const projectName = project.name || 'Imported Particles';
+      let nextName = projectName;
+      if (data.composites.includes(nextName)) {
+        let suffix = 2;
+        while (data.composites.includes(`${projectName} ${suffix}`)) suffix += 1;
+        nextName = `${projectName} ${suffix}`;
+      }
       clearHistory();
       setData({
         type: 'particle-system-playground',

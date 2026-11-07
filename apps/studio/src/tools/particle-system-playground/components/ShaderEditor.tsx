@@ -29,7 +29,7 @@ export function ShaderEditor({ shaderPath, shaderFilename, shaderSource, error, 
   return (
     <div className="grid gap-2">
       <div className="grid gap-1">
-        <Label className="text-[10px] text-muted-foreground font-semibold">Shader preset</Label>
+        <Label htmlFor="particle-shader-preset" className="text-[10px] text-muted-foreground font-semibold">Shader preset</Label>
         <Select
           onValueChange={(name) => {
             const preset = SHADER_PRESETS.find((item) => item.name === name);
@@ -39,7 +39,7 @@ export function ShaderEditor({ shaderPath, shaderFilename, shaderSource, error, 
             setPath('');
           }}
         >
-          <SelectTrigger className="h-8 text-xs">
+          <SelectTrigger id="particle-shader-preset" aria-label="Shader preset" className="h-8 text-xs">
             <SelectValue placeholder="Choose a particle shader preset" />
           </SelectTrigger>
           <SelectContent>
@@ -53,19 +53,23 @@ export function ShaderEditor({ shaderPath, shaderFilename, shaderSource, error, 
       </div>
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem]">
         <div className="grid gap-1">
-          <Label className="text-[10px] text-muted-foreground font-semibold">Shader path</Label>
-          <Input className="h-8 font-mono text-xs" value={path} onChange={(event) => setPath(event.target.value)} />
+          <Label htmlFor="particle-shader-path" className="text-[10px] text-muted-foreground font-semibold">Shader path</Label>
+          <Input id="particle-shader-path" className="h-8 font-mono text-xs" value={path} onChange={(event) => setPath(event.target.value)} />
         </div>
         <div className="grid gap-1">
-          <Label className="text-[10px] text-muted-foreground font-semibold">Export file</Label>
+          <Label htmlFor="particle-shader-filename" className="text-[10px] text-muted-foreground font-semibold">Export file</Label>
           <Input
+            id="particle-shader-filename"
             className="h-8 font-mono text-xs"
             value={filename}
             onChange={(event) => setFilename(event.target.value)}
           />
         </div>
       </div>
+      <Label htmlFor="particle-shader-source" className="text-[10px] text-muted-foreground font-semibold">Shader source</Label>
       <ShaderCodeInput
+        id="particle-shader-source"
+        aria-label="Shader source"
         className="min-h-48"
         placeholder="vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords) { return Texel(tex, texture_coords) * color; }"
         value={source}
