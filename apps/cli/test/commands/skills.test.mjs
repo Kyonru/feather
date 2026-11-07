@@ -123,6 +123,24 @@ test('skills install can target a single client directory', () => {
   assert.equal(existsSync(installedSkillPath(dir, 'feather-step-debugging', 'claude')), false);
 });
 
+test('skills install and remove support a custom project target', () => {
+  const dir = makeTmp();
+  const target = 'vendor/agent-skills';
+  const installed = parseJson(
+    runOk(['skills', 'install', 'feather-step-debugging', '--target', target, '--dir', dir, '--json']),
+  );
+  assert.equal(installed.targetDir, join(dir, target));
+  assert.equal(installed.targetDirs[0].client, 'custom');
+  assert.equal(existsSync(join(dir, target, 'feather-step-debugging', 'SKILL.md')), true);
+
+  const removed = parseJson(
+    runOk(['skills', 'remove', 'feather-step-debugging', '--target', target, '--dir', dir, '--json']),
+  );
+  assert.equal(removed.removed.length, 1);
+  assert.equal(removed.removed[0].client, 'custom');
+  assert.equal(existsSync(join(dir, target, 'feather-step-debugging')), false);
+});
+
 test('skills install global dry-run targets user-level client directories', () => {
   const payload = parseJson(
     runOk(['skills', 'install', 'feather-step-debugging', '--client', 'claude', '--global', '--dry-run', '--json']),

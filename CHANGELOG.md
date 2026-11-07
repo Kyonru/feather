@@ -17,12 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Feather Studio now uses a dedicated dark graphite icon with a cyan-violet mark across its favicon and packaged app icons.
 - The browser Showcase now mounts Studio's actual shell and tools, keeping navigation, authoring, storage, and exports consistent with desktop Studio.
 - Updated catalog pins for `feel` to v1.4.1 and `glyph` to v0.4.0, including their newly shipped modules, and added the checksum-pinned `gpuparticles` v0.2.0 runtime and GLSL sources.
 - `feather create` still uses the Oval-Tutu bootstrap by default, but now deeply cleans its sample game, placeholder product identity, funding metadata, workspace words, README, and stale usage examples while preserving its build workflows, legal attribution, and required build dependencies.
 
 ### Tests
 
+- Studio tool audits now cover Shader Graph palette search, node add/undo/redo, graph import/clear, plus all Texture Lab generators, color ramps, and alpha modes.
+- Plugin workflow coverage now verifies that the top-level `plugin --managed` override reaches list, install, update, and remove actions.
 - Studio UI coverage now authors a layered particle effect, previews its timeline, and verifies project and ZIP round-trips.
 - Texture Lab coverage now checks that generated preview names describe the selected generator and output size.
 - Shader Graph coverage now checks accessible template controls and persistence of their edits after reload.
@@ -32,9 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Particle runtime coverage now round-trips a project from a game-relative LÖVE texture path through project, Lua, and ZIP exports.
 - Shader Graph export coverage now checks bundle manifests and generated stage files.
 - Expanded CLI create coverage for Oval-Tutu cleanup boundaries, preserved build assets and attribution, TUA layout/configuration, generated-output targeting, editor recommendations, the optional bundled scaffold, and git recovery guidance.
+- CLI tests now cover create skip/conflict/security flags, init remote branch metadata, remove preservation and runtime overrides, doctor connection/runtime overrides, and replay adapter replacement.
 
 ### Fixed
 
+- Shader Graph history now ignores React Flow selection and measurement changes, so Undo reverses authored graph edits in one step.
+- The top-level `feather plugin --managed` option now applies to actions selected in the interactive plugin workflow.
 - Particle shader presets now retain their filenames and source through project export, shader controls expose accessible names, and imported projects use the first available duplicate suffix.
 - Texture Lab generated previews now announce the selected generator and output dimensions to assistive technology.
 - Shader Graph template inputs now expose their visible parameter labels as accessible names.

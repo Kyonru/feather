@@ -1,4 +1,4 @@
-import { assert, existsSync, join, makeTmp, outputOf, readFileSync, run, test, writeFileSync, writeGame } from './helpers.mjs';
+import { assert, existsSync, join, makeTmp, mkdirSync, outputOf, readFileSync, run, test, writeFileSync, writeGame } from './helpers.mjs';
 
 test('replay init: creates centralized adapter and enables session-replay plugin', () => {
   const dir = makeTmp();
@@ -51,4 +51,17 @@ test('replay init: supports custom path and no config update', () => {
   assert.equal(result.exitCode, 0, outputOf(result));
   assert.equal(existsSync(join(dir, 'tools', 'replay_adapter.lua')), true);
   assert.doesNotMatch(readFileSync(join(dir, 'feather.config.lua'), 'utf8'), /session-replay/);
+});
+
+test('replay init --force replaces an existing adapter', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const adapterPath = join(dir, 'dev', 'replay.lua');
+  mkdirSync(join(dir, 'dev'), { recursive: true });
+  writeFileSync(adapterPath, 'local custom = true\n');
+
+  const result = run(['replay', 'init', '--dir', dir, '--force']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  assert.match(readFileSync(adapterPath, 'utf8'), /replayRegister/);
+  assert.doesNotMatch(readFileSync(adapterPath, 'utf8'), /local custom = true/);
 });

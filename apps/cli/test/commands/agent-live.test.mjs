@@ -100,15 +100,29 @@ test('agent live cli: session status lists bridge sessions as JSON', async () =>
   }
 });
 
-test('agent live cli: logs export reads the only connected session', async () => {
+test('agent live cli: session status returns a requested snapshot section', async () => {
   const bridge = await startFakeBridge();
   try {
-    const result = await runAsync(['logs', 'export', '--json', '--desktop-url', bridge.url, '--token', TOKEN]);
+    const result = await runAsync(['session', 'status', 's1', '--section', 'logs', '--json', '--desktop-url', bridge.url, '--token', TOKEN]);
     assert.equal(result.exitCode, 0, outputOf(result));
     const parsed = JSON.parse(result.stdout);
     assert.equal(parsed.sessionId, 's1');
-    assert.equal(parsed.count, 2);
-    assert.equal(parsed.logs[1].message, 'paused at breakpoint');
+    assert.equal(parsed.section, 'logs');
+    assert.equal(parsed.data.length, 2);
+  } finally {
+    await bridge.close();
+  }
+});
+
+test('agent live cli: logs export reads the only connected session', async () => {
+  const bridge = await startFakeBridge();
+  try {
+    const result = await runAsync(['logs', 'export', '--json', '--limit', '1', '--desktop-url', bridge.url, '--token', TOKEN]);
+    assert.equal(result.exitCode, 0, outputOf(result));
+    const parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.sessionId, 's1');
+    assert.equal(parsed.count, 1);
+    assert.equal(parsed.logs[0].message, 'paused at breakpoint');
   } finally {
     await bridge.close();
   }
@@ -117,7 +131,7 @@ test('agent live cli: logs export reads the only connected session', async () =>
 test('agent live cli: replay list can refresh before reporting replays', async () => {
   const bridge = await startFakeBridge();
   try {
-    const result = await runAsync(['replay', 'list', '--refresh', '--json', '--desktop-url', bridge.url, '--token', TOKEN]);
+    const result = await runAsync(['replay', 'list', '--refresh', '--timeout-ms', '1234', '--json', '--desktop-url', bridge.url, '--token', TOKEN]);
     assert.equal(result.exitCode, 0, outputOf(result));
     const parsed = JSON.parse(result.stdout);
     assert.equal(parsed.sessionId, 's1');
@@ -126,6 +140,7 @@ test('agent live cli: replay list can refresh before reporting replays', async (
     assert.equal(parsed.replayCount, 1);
     assert.equal(parsed.replays[0].id, 'replay-2');
     assert.equal(bridge.commands[0].message.type, 'cmd:session_replay:list');
+    assert.equal(bridge.commands[0].waitFor.timeoutMs, 1234);
   } finally {
     await bridge.close();
   }

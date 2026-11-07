@@ -14,6 +14,7 @@ import {
   existsSync,
   join,
   makeTmp,
+  mkdirSync,
   outputOf,
   readFileSync,
   run,
@@ -21,6 +22,8 @@ import {
   writeFileSync,
   writeMinimalRuntime,
 } from './helpers.mjs';
+import { pluginWorkflowCommand } from '../../dist/commands/plugin/workflow.js';
+import { createProgram } from '../../dist/index.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -494,6 +497,90 @@ test('plugin list --managed cli overrides embedded config: shows include list no
   // Should show hot-reload (from include list), not console (filesystem only)
   assert.ok(result.stdout.includes('hot-reload'), result.stdout);
   assert.ok(!result.stdout.includes('console'), result.stdout);
+});
+
+test('plugin workflow --managed cli passes mode through list action', async () => {
+  const dir = makeTmp();
+  writeConfig(dir, 'auto', { include: ['console'] });
+  let output = '';
+  const originalWrite = process.stdout.write;
+  process.stdout.write = (chunk, ...args) => {
+    output += String(chunk);
+    const callback = args.find((arg) => typeof arg === 'function');
+    callback?.();
+    return true;
+  };
+  try {
+    await pluginWorkflowCommand({
+      dir,
+      managed: 'cli',
+      chooseWorkflow: async () => ({ action: 'list' }),
+    });
+  } finally {
+    process.stdout.write = originalWrite;
+  }
+  assert.match(output, /Included plugins \(1\)/);
+  assert.match(output, /console/);
+});
+
+test('plugin workflow --managed cli passes mode through install action', async () => {
+  const dir = makeTmp();
+  writeMinimalRuntime(dir);
+  writeConfig(dir, 'auto');
+  await pluginWorkflowCommand({
+    dir,
+    managed: 'cli',
+    localSrc: LOCAL_SRC,
+    chooseWorkflow: async () => ({ action: 'install', pluginIds: ['console'], source: 'local', branch: 'main' }),
+  });
+  assert.deepEqual(parseLuaArray(readFileSync(join(dir, 'feather.config.lua'), 'utf8'), 'include'), ['console']);
+  assert.equal(existsSync(join(dir, 'feather', 'plugins', 'console')), false);
+});
+
+test('plugin workflow --managed cli passes mode through update action', async () => {
+  const dir = makeTmp();
+  writeMinimalRuntime(dir);
+  writeConfig(dir, 'auto');
+  const pluginDir = join(dir, 'feather', 'plugins', 'console');
+  mkdirSync(pluginDir, { recursive: true });
+  writeFileSync(join(pluginDir, 'init.lua'), 'local damaged = true\n');
+  await pluginWorkflowCommand({
+    dir,
+    managed: 'cli',
+    localSrc: LOCAL_SRC,
+    chooseWorkflow: async () => ({ action: 'update', pluginIds: ['console'], source: 'local', branch: 'main' }),
+  });
+  assert.equal(readFileSync(join(pluginDir, 'init.lua'), 'utf8'), 'local damaged = true\n');
+});
+
+test('plugin workflow --managed cli passes mode through remove action', async () => {
+  const dir = makeTmp();
+  writeMinimalRuntime(dir);
+  writeConfig(dir, 'auto', { include: ['console'] });
+  const pluginDir = join(dir, 'feather', 'plugins', 'console');
+  mkdirSync(pluginDir, { recursive: true });
+  writeFileSync(join(pluginDir, 'init.lua'), 'return {}\n');
+  await pluginWorkflowCommand({
+    dir,
+    managed: 'cli',
+    chooseWorkflow: async () => ({ action: 'remove', pluginIds: ['console'] }),
+  });
+  assert.deepEqual(parseLuaArray(readFileSync(join(dir, 'feather.config.lua'), 'utf8'), 'include'), []);
+  assert.equal(existsSync(join(pluginDir, 'init.lua')), true);
+});
+
+test('plugin --managed CLI option reaches the interactive workflow handler', async () => {
+  let received;
+  const program = createProgram({
+    pluginWorkflow: async (options) => {
+      received = options;
+    },
+  });
+  program.exitOverride();
+  await program.parseAsync(['plugin', '--managed', 'cli'], { from: 'user' });
+  assert.equal(received.managed, 'cli');
+  assert.equal(received.branch, 'main');
+  assert.equal(received.installDir, 'feather');
 });
 
 // ---------------------------------------------------------------------------

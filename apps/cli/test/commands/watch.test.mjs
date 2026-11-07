@@ -3,9 +3,11 @@ import {
   envWithPath,
   existsSync,
   join,
+  mkdirSync,
   makeTmp,
   outputOf,
   readFileSync,
+  readStoredZipEntries,
   run,
   spawnCli,
   stopChild,
@@ -22,6 +24,7 @@ import {
   writeFileSync,
   writeGame,
 } from './helpers.mjs';
+import { realpathSync } from 'node:fs';
 
 test('watch: missing main.lua exits with error', () => {
   const dir = makeTmp();
@@ -44,6 +47,14 @@ test('watch: invalid debounce value exits with error', () => {
   const result = run(['watch', dir, '--target', 'android', '--debounce', '-1']);
   assert.equal(result.exitCode, 1);
   assert.ok(outputOf(result).includes('Debounce must be a non-negative integer'));
+});
+
+test('watch: invalid port exits with error before starting a watcher', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const result = run(['watch', dir, '--port', '65536']);
+  assert.equal(result.exitCode, 1);
+  assert.ok(outputOf(result).includes('Port must be a number between 1 and 65535'));
 });
 
 async function waitForRecordCount(recordPath, count, timeoutMs = 5000) {
@@ -82,6 +93,7 @@ previous.push({
     FEATHER_SESSION_NAME: process.env.FEATHER_SESSION_NAME,
   },
 });
+
 fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify(previous, null, 2));
 setInterval(() => {}, 1000);
 `,
@@ -103,6 +115,83 @@ setInterval(() => {}, 1000);
   assert.ok(records.length >= 2, 'desktop watch should launch once and relaunch after change');
   assert.ok(records[0].argv[0].includes('feather-'), 'default desktop watch should launch the Feather shim');
   assert.equal(records[0].env.FEATHER_GAME_PATH, dir);
+});
+
+test('watch desktop forwards debugger and plugin path options into the shim', async () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const customFeather = join(dir, 'custom-feather', 'feather');
+  const customPlugins = join(dir, 'custom-plugins');
+  mkdirSync(customFeather, { recursive: true });
+  mkdirSync(join(customPlugins, 'sample-plugin'), { recursive: true });
+  writeFileSync(join(customFeather, 'auto.lua'), '-- custom runtime\n');
+  writeFileSync(join(customPlugins, 'sample-plugin', 'manifest.lua'), 'return {}\n');
+  const recordPath = join(dir, 'shim-record.json');
+  const { binDir, commandPath } = writeFakeCommand(
+    dir,
+    'love',
+    `
+const fs = require('node:fs');
+const shim = process.argv[2];
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({
+  main: fs.readFileSync(require('node:path').join(shim, 'main.lua'), 'utf8'),
+  feather: fs.realpathSync(require('node:path').join(shim, 'feather')),
+  plugins: fs.existsSync(require('node:path').join(shim, 'plugins'))
+    ? fs.realpathSync(require('node:path').join(shim, 'plugins'))
+    : null,
+}));
+console.log('FAKE-LOVE-STARTED');
+setInterval(() => {}, 1000);
+`,
+  );
+
+  const runWatch = async (extraArgs) => {
+    const child = spawnCli(
+      ['watch', dir, '--love', commandPath, '--feather-path', customFeather, '--plugins-dir', customPlugins, '--debounce', '100', ...extraArgs],
+      { env: envWithPath(binDir) },
+    );
+    try {
+      await waitForOutput(child, /FAKE-LOVE-STARTED/);
+    } finally {
+      await stopChild(child);
+    }
+    return JSON.parse(readFileSync(recordPath, 'utf8'));
+  };
+
+  const record = await runWatch([]);
+  assert.equal(record.feather, realpathSync(customFeather));
+  assert.equal(record.plugins, realpathSync(customPlugins));
+  assert.ok(record.main.includes('"sample-plugin"'), '--plugins-dir supplies plugin discovery');
+
+  const noPluginsRecord = await runWatch(['--no-plugins']);
+  assert.equal(noPluginsRecord.plugins, null);
+  assert.equal(noPluginsRecord.main.includes('FEATHER_PLUGIN_LIST'), false, '--no-plugins suppresses plugin discovery');
+});
+
+test('watch --disable-debugger launches Love directly without a shim', async () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  const recordPath = join(dir, 'direct-watch-record.json');
+  const { binDir, commandPath } = writeFakeCommand(
+    dir,
+    'love',
+    `
+const fs = require('node:fs');
+fs.writeFileSync(${JSON.stringify(recordPath)}, JSON.stringify({ argv: process.argv.slice(2) }));
+console.log('FAKE-LOVE-STARTED');
+setInterval(() => {}, 1000);
+`,
+  );
+  const child = spawnCli(
+    ['watch', dir, '--love', commandPath, '--disable-debugger', '--debounce', '100'],
+    { env: envWithPath(binDir) },
+  );
+  try {
+    await waitForOutput(child, /FAKE-LOVE-STARTED/);
+  } finally {
+    await stopChild(child);
+  }
+  assert.deepEqual(JSON.parse(readFileSync(recordPath, 'utf8')).argv, [dir]);
 });
 
 test('watch --target steamos: builds SteamOS package and attempts Devkit notification', async () => {
@@ -203,6 +292,42 @@ test('watch --target android: runs initial build, starts watching, pushes game.l
     postPush.some((c) => c[0] === 'shell' && c.includes('monkey')),
     'launch after push',
   );
+});
+
+test('watch android honors build config, output directory, and verbose build output', async () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFakeLoveAndroid(dir);
+  const configPath = join(dir, 'watch-build.json');
+  writeFileSync(
+    configPath,
+    JSON.stringify({
+      name: 'Custom Watch',
+      version: '1.0.0',
+      productId: 'com.example.customwatch',
+      targets: { android: { loveAndroidDir: 'love-android' } },
+    }),
+  );
+  const { binDir } = writeFakeAdb(dir);
+  const outDir = 'builds/custom-watch';
+  const runtimeConfigPath = join(dir, 'watch-runtime-config.lua');
+  writeFileSync(runtimeConfigPath, 'return { sessionName = "Watch Runtime Config" }\n');
+  const child = spawnCli(
+    [
+      'watch', dir, '--target', 'android', '--build-config', configPath, '--out-dir', outDir,
+      '--runtime-config', runtimeConfigPath, '--verbose', '--no-adb-reverse', '--debounce', '100',
+    ],
+    { env: envWithPath(binDir) },
+  );
+  try {
+    await waitForOutput(child, /Watching/);
+  } finally {
+    await stopChild(child);
+  }
+
+  assert.equal(existsSync(join(dir, outDir, 'custom-watch-1.0.0-android.apk')), true);
+  const archive = readStoredZipEntries(join(dir, outDir, 'custom-watch-1.0.0.love'));
+  assert.match(archive.get('feather.config.lua').toString('utf8'), /sessionName\s*=\s*"Watch Runtime Config"/);
 });
 
 test('watch --target android --no-restart: pushes game.love without restarting app', async () => {

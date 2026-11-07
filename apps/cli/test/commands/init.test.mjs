@@ -152,6 +152,38 @@ test('init e2e: cli mode --json returns structured result without embedding runt
   }
 });
 
+test('init e2e: CLI mode preserves remote source and branch selection without fetching runtime files', () => {
+  const workspace = makeTmp();
+  const project = join(workspace, 'remote-metadata-game');
+
+  try {
+    writeE2eGame(project);
+
+    const result = run([
+      'init',
+      project,
+      '--mode',
+      'cli',
+      '--remote',
+      '--branch',
+      'release-test',
+      '--no-plugins',
+      '--yes',
+      '--json',
+    ]);
+    assert.equal(result.exitCode, 0, outputOf(result));
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.source, 'github:release-test');
+    assert.equal(payload.mode, 'cli');
+    assert.equal(existsSync(join(project, 'feather')), false);
+    assert.match(readFileSync(join(project, 'feather.config.lua'), 'utf8'), /-- source: github:release-test/);
+  } finally {
+    if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  }
+});
+
 test('init e2e: auto mode writes managed = "auto" as parseable Lua field', () => {
   const workspace = makeTmp();
   const project = join(workspace, 'auto-managed-game');
@@ -304,6 +336,51 @@ test('init e2e: auto mode remove keeps runtime with --keep-runtime', () => {
   } finally {
     if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
       rmSync(workspace, { recursive: true, force: true });
+    }
+  }
+});
+
+test('remove: --keep-main and --keep-manual preserve generated entrypoints', () => {
+  const project = makeTmp();
+  try {
+    writeE2eGame(project);
+    writeFileSync(
+      join(project, 'main.lua'),
+      '-- FEATHER-INIT-BEGIN require\nrequire("feather.auto")\n-- FEATHER-INIT-END require\n',
+    );
+    writeFileSync(join(project, 'feather.debugger.lua'), 'return "manual setup"\n');
+    mkdirSync(join(project, 'custom-runtime'), { recursive: true });
+    writeFileSync(join(project, 'custom-runtime', 'init.lua'), 'return {}\n');
+    writeFileSync(join(project, 'feather.config.lua'), 'return { managed = "manual" }\n');
+
+    const result = run(['remove', project, '--yes', '--keep-main', '--keep-manual']);
+    assert.equal(result.exitCode, 0, outputOf(result));
+    assert.match(readFileSync(join(project, 'main.lua'), 'utf8'), /FEATHER-INIT-BEGIN require/);
+    assert.equal(existsSync(join(project, 'feather.debugger.lua')), true);
+  } finally {
+    if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
+      rmSync(project, { recursive: true, force: true });
+    }
+  }
+});
+
+test('remove: --install-dir selects the runtime directory to remove', () => {
+  const project = makeTmp();
+  try {
+    writeE2eGame(project);
+    mkdirSync(join(project, 'custom-runtime'), { recursive: true });
+    writeFileSync(join(project, 'custom-runtime', 'init.lua'), 'return {}\n');
+    mkdirSync(join(project, 'feather'), { recursive: true });
+    writeFileSync(join(project, 'feather', 'init.lua'), 'return {}\n');
+    writeFileSync(join(project, 'feather.config.lua'), 'return { managed = "auto" }\n');
+
+    const result = run(['remove', project, '--yes', '--install-dir', 'custom-runtime']);
+    assert.equal(result.exitCode, 0, outputOf(result));
+    assert.equal(existsSync(join(project, 'custom-runtime')), false);
+    assert.equal(existsSync(join(project, 'feather', 'init.lua')), true);
+  } finally {
+    if (process.env.FEATHER_KEEP_E2E_TMP !== '1') {
+      rmSync(project, { recursive: true, force: true });
     }
   }
 });

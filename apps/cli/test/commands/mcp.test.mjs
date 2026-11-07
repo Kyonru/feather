@@ -910,7 +910,7 @@ test('mcp: HTTP transport requires bearer auth and accepts an authorized initial
   const bridge = await startFakeBridge();
   const port = await freePort();
   const child = spawnCli(
-    ['mcp', '--transport', 'http', '--port', String(port), '--desktop-url', bridge.url, '--studio-url', bridge.url, '--token', TOKEN, '--http-token', GATEWAY_TOKEN],
+    ['mcp', '--transport', 'http', '--host', '127.0.0.1', '--port', String(port), '--desktop-url', bridge.url, '--studio-url', bridge.url, '--token', TOKEN, '--http-token', GATEWAY_TOKEN],
     { env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' } },
   );
 
@@ -1101,7 +1101,7 @@ test('mcp: starts for Studio-only use, finds the published Studio token, and rep
 test('mcp: --allow-raw-commands exposes the raw command tool', async () => {
   const studio = await startFakeStudio();
   const { env, dir } = studioOnlyEnv(studio);
-  const child = spawnCli(['mcp', '--transport', 'stdio', '--studio-url', studio.url, '--allow-raw-commands'], { env });
+  const child = spawnCli(['mcp', '--transport', 'stdio', '--studio-url', studio.url, '--studio-token', STUDIO_TOKEN, '--allow-raw-commands'], { env });
   try {
     await initialize(child);
     sendRpc(child, { jsonrpc: '2.0', id: 2, method: 'tools/list' });

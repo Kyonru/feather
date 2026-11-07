@@ -396,6 +396,60 @@ test('create optional flags call plugin, package, and vendor setup paths', async
   assert.equal(vendorCall.opts.dir.endsWith(join('with-flags', 'game')), true);
 });
 
+test('create --skip flags omit optional plugin, package, and vendor setup', () => {
+  const workspace = makeTmp();
+  try {
+    const { binDir } = writeFakeCreateGit(workspace);
+
+    const result = run(
+      ['create', 'skipped-options', '--ref', 'v-test', '--yes', '--skip-plugins', '--skip-packages', '--skip-vendors'],
+      { cwd: workspace, env: envWithPath(binDir) },
+    );
+    assert.equal(result.exitCode, 0, outputOf(result));
+    const gameDir = join(workspace, 'skipped-options', 'game');
+    assert.equal(existsSync(join(gameDir, 'feather.lock.json')), false);
+    assert.equal(existsSync(join(gameDir, 'vendor')), false);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('create --allow-insecure-connection writes the explicit development override', () => {
+  const workspace = makeTmp();
+  try {
+    const { binDir } = writeFakeCreateGit(workspace);
+    const result = run(
+      ['create', 'insecure-dev', '--ref', 'v-test', '--yes', '--allow-insecure-connection'],
+      { cwd: workspace, env: envWithPath(binDir) },
+    );
+    assert.equal(result.exitCode, 0, outputOf(result));
+    assert.match(readFileSync(join(workspace, 'insecure-dev', 'game', 'feather.config.lua'), 'utf8'), /__DANGEROUS_INSECURE_CONNECTION__\s*=\s*true/);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('create rejects conflicting explicit and skip flags before creating a project', () => {
+  const workspace = makeTmp();
+  try {
+    const cases = [
+      [['--app-id', 'feather-app-test', '--allow-insecure-connection'], /either --app-id or --allow-insecure-connection/],
+      [['--plugins', 'console', '--skip-plugins'], /either --plugins or --skip-plugins/],
+      [['--packages', 'anim8', '--skip-packages'], /either --packages or --skip-packages/],
+      [['--vendor-targets', 'web', '--skip-vendors'], /either --vendor-targets or --skip-vendors/],
+    ];
+
+    for (const [flags, expected] of cases) {
+      const result = run(['create', 'conflict', '--yes', ...flags], { cwd: workspace });
+      assert.equal(result.exitCode, 1, outputOf(result));
+      assert.match(outputOf(result), expected);
+      assert.equal(existsSync(join(workspace, 'conflict')), false);
+    }
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
 test('create keeps project and prints recovery guidance when git identity is missing', () => {
   const workspace = makeTmp();
   const { binDir } = writeFakeCreateGit(workspace, { failCommit: true });

@@ -12,19 +12,21 @@ export async function pluginWorkflowCommand(opts: {
   installDir?: string;
   remote?: boolean;
   localSrc?: string;
+  managed?: string;
+  chooseWorkflow?: typeof choosePluginWorkflow;
 }): Promise<void> {
   const projectDir = resolvePluginProjectDir(opts.dir);
   const installDir = opts.installDir ?? 'feather';
   const installedIds = getInstalledPluginIds(projectDir, installDir);
 
-  const result = await choosePluginWorkflow({
+  const result = await (opts.chooseWorkflow ?? choosePluginWorkflow)({
     installedIds,
     defaultBranch: opts.branch ?? 'main',
   });
 
   if (result.action === 'cancel') return;
   if (result.action === 'list') {
-    await pluginListCommand(projectDir, installDir);
+    await pluginListCommand(projectDir, installDir, opts.managed);
     return;
   }
 
@@ -41,6 +43,7 @@ export async function pluginWorkflowCommand(opts: {
         installDir,
         remote: result.source === 'remote',
         localSrc: opts.localSrc,
+        managed: opts.managed,
       });
     }
     return;
@@ -54,12 +57,13 @@ export async function pluginWorkflowCommand(opts: {
         installDir,
         remote: result.source === 'remote',
         localSrc: opts.localSrc,
+        managed: opts.managed,
       });
     }
     return;
   }
 
   for (const id of result.pluginIds) {
-    await pluginRemoveCommand(id, { dir: projectDir, installDir, yes: true });
+    await pluginRemoveCommand(id, { dir: projectDir, installDir, yes: true, managed: opts.managed });
   }
 }

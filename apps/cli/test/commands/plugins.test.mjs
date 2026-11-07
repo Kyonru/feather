@@ -14,6 +14,7 @@ import {
   writeLocalPluginSource,
   writeMinimalRuntime,
 } from './helpers.mjs';
+import { pluginInstallCommand } from '../../dist/commands/plugin/install.js';
 
 test('plugin list: missing plugin directory is a clean empty state', () => {
   const dir = makeTmp();
@@ -30,6 +31,40 @@ test('plugin install: local source copies console manifest', () => {
   const manifest = readFileSync(join(dir, 'feather', 'plugins', 'console', 'manifest.lua'), 'utf8');
   assert.ok(manifest.includes('id = "console"'));
   assert.ok(outputOf(result).includes('Installed console'));
+});
+
+test('plugin install --remote uses the selected branch and install directory', async () => {
+  const dir = makeTmp();
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    if (String(url).endsWith('/manifest.txt')) {
+      return new globalThis.Response('plugin:console:init.lua\nplugin:console:manifest.lua\n');
+    }
+    if (String(url).endsWith('/plugins/console/init.lua')) return new globalThis.Response('return {}\n');
+    if (String(url).endsWith('/plugins/console/manifest.lua')) {
+      return new globalThis.Response('return { id = "console", name = "Console" }\n');
+    }
+    return new globalThis.Response('missing', { status: 404 });
+  };
+  try {
+    await pluginInstallCommand('console', {
+      dir,
+      managed: 'auto',
+      remote: true,
+      branch: 'audit-branch',
+      installDir: 'vendor/feather',
+      json: true,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(existsSync(join(dir, 'vendor', 'feather', 'plugins', 'console', 'init.lua')), true);
+  assert.equal(existsSync(join(dir, 'feather', 'plugins', 'console', 'init.lua')), false);
+  assert.equal(calls.length, 3);
+  assert.equal(calls.every((url) => url.includes('/audit-branch/')), true, calls.join('\n'));
 });
 
 test('plugin install: accepts multiple ids and resolves parent project from nested game dir', () => {

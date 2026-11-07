@@ -115,6 +115,7 @@ type ShaderGraphStore = {
 
 const HISTORY_LIMIT = 100;
 const DEFAULT_WORKSPACE_ID = 'default';
+const TRANSIENT_NODE_KEYS = new Set(['selected', 'dragging', 'resizing', 'measured', 'positionAbsolute', 'width', 'height']);
 let storeIdCounter = Date.now();
 
 function nextStoreGraphId(prefix: string): string {
@@ -130,30 +131,47 @@ function snapshot(state: Pick<ShaderGraphStore, 'nodes' | 'edges' | 'subgraphs'>
   return { nodes: state.nodes, edges: state.edges, subgraphs: state.subgraphs };
 }
 
-function sameGraphItem(a: object, b: object): boolean {
-  if (a === b) return true;
+function sameGraphValue(a: unknown, b: unknown, isNode = false): boolean {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((item, index) => sameGraphValue(item, b[index]));
+  }
+  if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return false;
+
   const aRecord = a as Record<string, unknown>;
   const bRecord = b as Record<string, unknown>;
-  const keys = Object.keys(aRecord);
-  if (keys.length !== Object.keys(bRecord).length) return false;
-  return keys.every((key) => {
-    if (key === 'position') {
-      const aPosition = aRecord.position as { x?: number; y?: number } | undefined;
-      const bPosition = bRecord.position as { x?: number; y?: number } | undefined;
-      return aPosition === bPosition || (aPosition?.x === bPosition?.x && aPosition?.y === bPosition?.y);
-    }
-    return Object.is(aRecord[key], bRecord[key]);
-  });
+  // React Flow selection and measurement metadata are UI state, not authored
+  // graph edits. Recording them makes Undo walk through render-only changes.
+  const keys = Object.keys(aRecord).filter((key) => !isNode || !TRANSIENT_NODE_KEYS.has(key));
+  const otherKeys = Object.keys(bRecord).filter((key) => !isNode || !TRANSIENT_NODE_KEYS.has(key));
+  return keys.length === otherKeys.length && keys.every((key) =>
+    Object.hasOwn(bRecord, key) && sameGraphValue(aRecord[key], bRecord[key]),
+  );
 }
 
-function sameGraphItems(a: object[], b: object[]): boolean {
-  return a === b || (a.length === b.length && a.every((item, index) => sameGraphItem(item, b[index])));
+function sameGraphItems(a: object[], b: object[], areNodes = false): boolean {
+  return a === b || (a.length === b.length && a.every((item, index) => sameGraphValue(item, b[index], areNodes)));
+}
+
+function sameSubgraphs(a: ShaderSubgraph[], b: ShaderSubgraph[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+
+  return a.every((subgraph, index) => {
+    const other = b[index];
+    if (!other) return false;
+    const { nodes: subgraphNodes, edges: subgraphEdges, ...subgraphMetadata } = subgraph;
+    const { nodes: otherNodes, edges: otherEdges, ...otherMetadata } = other;
+    return sameGraphValue(subgraphMetadata, otherMetadata)
+      && sameGraphItems(subgraphNodes, otherNodes, true)
+      && sameGraphItems(subgraphEdges, otherEdges);
+  });
 }
 
 function sameGraph(a: GraphSnapshot, b: GraphSnapshot): boolean {
   if (a.nodes === b.nodes && a.edges === b.edges && a.subgraphs === b.subgraphs) return true;
-  if (!sameGraphItems(a.nodes, b.nodes) || !sameGraphItems(a.edges, b.edges)) return false;
-  return a.subgraphs === b.subgraphs || JSON.stringify(a.subgraphs) === JSON.stringify(b.subgraphs);
+  if (!sameGraphItems(a.nodes, b.nodes, true) || !sameGraphItems(a.edges, b.edges)) return false;
+  return sameSubgraphs(a.subgraphs, b.subgraphs);
 }
 
 function emptyShaderGraphWorkspace(): ShaderGraphWorkspaceSnapshot {

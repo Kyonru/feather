@@ -78,6 +78,29 @@ test('doctor --json remains decoration-free and reports missing plugin directory
   assert.equal(labels.get('Plugin directory').detail, 'not installed');
 });
 
+test('doctor: host, port, and install-dir overrides are reflected in diagnostics', () => {
+  const dir = makeTmp();
+  writeGame(dir);
+  writeFileSync(
+    join(dir, 'feather.config.lua'),
+    'return { managed = "auto", host = "0.0.0.0", appId = "feather-app-test-1234567890" }\n',
+  );
+  mkdirSync(join(dir, 'custom-runtime'), { recursive: true });
+  writeFileSync(join(dir, 'custom-runtime', 'init.lua'), 'FEATHER_VERSION_NAME = "test"\nreturn {}\n');
+  writeFileSync(join(dir, 'custom-runtime', 'auto.lua'), 'return {}\n');
+  mkdirSync(join(dir, 'custom-runtime', 'lib'), { recursive: true });
+  writeFileSync(join(dir, 'custom-runtime', 'lib', 'ws.lua'), 'return {}\n');
+  writeFileSync(join(dir, 'custom-runtime', 'plugin_manager.lua'), 'return {}\n');
+
+  const result = run(['doctor', dir, '--json', '--host', '127.0.0.1', '--port', '1', '--install-dir', 'custom-runtime']);
+  assert.equal(result.exitCode, 0, outputOf(result));
+  const report = JSON.parse(result.stdout);
+  const labels = new Map(report.checks.map((check) => [check.label, check]));
+  assert.equal(labels.get('Embedded Feather runtime').detail, join(dir, 'custom-runtime'));
+  assert.equal(labels.get('Feather desktop (127.0.0.1:1)').detail, 'not reachable');
+  assert.equal(labels.get('Network host exposure').detail, '127.0.0.1');
+});
+
 test('doctor --json treats included plugins as bundled in cli mode', () => {
   const dir = makeTmp();
   writeGame(dir);

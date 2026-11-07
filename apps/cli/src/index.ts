@@ -67,8 +67,9 @@ function parsePositiveInteger(value: string): number {
   return parsed;
 }
 
-export function createProgram(): Command {
+export function createProgram(dependencies: { pluginWorkflow?: typeof pluginWorkflowCommand } = {}): Command {
   const program = new Command();
+  const runPluginWorkflow = dependencies.pluginWorkflow ?? pluginWorkflowCommand;
 
   program
     .name('feather')
@@ -778,12 +779,13 @@ export function createProgram(): Command {
     .option('--managed <mode>', 'Override managed mode detection (cli, auto, manual)')
     .action((opts) =>
       runCliAction(() =>
-        pluginWorkflowCommand({
+        runPluginWorkflow({
           dir: opts.dir as string | undefined,
           branch: opts.branch as string,
           installDir: opts.installDir as string,
           remote: opts.remote as boolean | undefined,
           localSrc: opts.localSrc as string | undefined,
+          managed: opts.managed as string | undefined,
         }),
       ),
     );

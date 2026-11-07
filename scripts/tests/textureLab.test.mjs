@@ -27,6 +27,7 @@ import {
   isTextureLabSdfGenerator,
   renderTextureLabImageMaskPixels,
 } from '../../apps/studio/src/tools/texture-lab/generator.ts';
+import { TEXTURE_LAB_ALPHA_MODES, TEXTURE_LAB_COLOR_RAMPS } from '../../apps/studio/src/types/texture-lab.ts';
 
 function checksum(pixels) {
   let hash = 2166136261;
@@ -58,6 +59,18 @@ test('texture lab output is deterministic for a recipe', () => {
   assert.equal(first.height, 64);
   assert.equal(first.pixels.length, 64 * 64 * 4);
   assert.equal(checksum(first.pixels), checksum(second.pixels));
+});
+
+test('every registered Texture Lab generator renders a finite RGBA image', () => {
+  for (const { id } of TEXTURE_LAB_GENERATORS) {
+    const recipe = defaultTextureLabRecipeForGenerator(id);
+    const result = renderTextureLabPixels(recipe);
+    assert.equal(result.width, recipe.width, `${id} width`);
+    assert.equal(result.height, recipe.height, `${id} height`);
+    assert.equal(result.pixels.length, recipe.width * recipe.height * 4, `${id} pixel count`);
+    assert.ok(result.pixels.some((value) => value !== 0), `${id} output is not empty`);
+    assert.ok(Array.from(result.pixels).every(Number.isFinite), `${id} output contains finite channel values`);
+  }
 });
 
 test('texture lab supports tiny presets and custom rectangular dimensions', () => {
@@ -157,6 +170,38 @@ test('solid color ramp uses the selected color', () => {
   const center = rgbaAt(result, 16, 16);
   assert.deepEqual(center.slice(0, 3), [51, 102, 153]);
   assert.ok(center[3] > 200);
+});
+
+test('every color ramp and alpha mode produces a distinct rendered channel result', () => {
+  const rampResults = TEXTURE_LAB_COLOR_RAMPS.map((colorRamp) =>
+    checksum(
+      renderTextureLabPixels({
+        ...defaultTextureLabRecipeForGenerator('cloud-noise'),
+        size: 16,
+        width: 16,
+        height: 16,
+        seed: 17,
+        alphaMode: 'opaque',
+        colorRamp,
+        solidColor: colorRamp === 'solid' ? '#19a1c7' : '#ffffff',
+      }).pixels,
+    ),
+  );
+  assert.equal(new Set(rampResults).size, TEXTURE_LAB_COLOR_RAMPS.length);
+
+  const alphaResults = TEXTURE_LAB_ALPHA_MODES.map((alphaMode) =>
+    checksum(
+      renderTextureLabPixels({
+        ...defaultTextureLabRecipeForGenerator('soft-circle'),
+        size: 16,
+        width: 16,
+        height: 16,
+        colorRamp: 'fire',
+        alphaMode,
+      }).pixels,
+    ),
+  );
+  assert.equal(new Set(alphaResults).size, TEXTURE_LAB_ALPHA_MODES.length);
 });
 
 test('texture lab filenames include generator size and seed', () => {
