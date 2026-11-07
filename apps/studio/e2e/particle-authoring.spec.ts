@@ -9,7 +9,7 @@ async function openParticles(page: import('@playwright/test').Page) {
   await expect(page.getByTestId('particle-workbench-header')).toBeVisible();
 }
 
-test('author, preview, save, import, and package a layered particle effect', async ({ page }) => {
+test('author, preview, save, import, and package a layered particle effect', async ({ page }, testInfo) => {
   await openParticles(page);
 
   await page.getByTitle('New composite').click();
@@ -36,7 +36,7 @@ test('author, preview, save, import, and package a layered particle effect', asy
   await page.getByRole('button', { name: 'Play timeline' }).click();
   await expect.poll(() => page.getByTestId('particle-timeline-playhead').inputValue().then(Number)).toBeGreaterThan(0);
 
-  await page.screenshot({ path: '/private/tmp/particle-playground-aurora-impact.png', fullPage: false });
+  await page.screenshot({ path: testInfo.outputPath('particle-playground-aurora-impact.png'), fullPage: false });
 
   await page.getByRole('button', { name: 'Project' }).click();
   const projectDownloadPromise = page.waitForEvent('download');
