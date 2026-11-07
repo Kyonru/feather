@@ -47,7 +47,7 @@ Keep lifecycle calls isolated with `pcall` where current code does so. Plugin cr
 
 ## Bundling
 
-Runtime files are copied into `apps/cli/lua` for packaged CLI usage. When adding runtime files:
+Runtime files are copied into the CLI's generated Lua bundle for packaged usage. When adding runtime files:
 
 - Update manifests or bundle scripts if the file is not picked up automatically.
 - Run `pnpm --filter @kyonru/feather run bundle:lua`.

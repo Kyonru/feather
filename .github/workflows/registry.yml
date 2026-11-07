@@ -9,7 +9,7 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
 
@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.21.1
           cache: 'pnpm'
 
       - name: Install Love2D
@@ -61,7 +61,7 @@ jobs:
           # Set up a worktree pointing at the packages branch.
           # If the branch doesn't exist yet, create it as an orphan.
           if git ls-remote --exit-code origin packages > /dev/null 2>&1; then
-            git worktree add /tmp/registry-branch refs/heads/packages
+            git worktree add -b packages /tmp/registry-branch origin/packages
           else
             git worktree add --orphan -b packages /tmp/registry-branch
           fi

@@ -432,7 +432,7 @@ out of habit. `bash scripts/set-version.sh desktop` is Inspector; `studio` is St
 
 `pnpm run check:plugin-catalog`, `pnpm run check:registry`, and `pnpm run check:protocol` intentionally fail when generated output differs from git. If the generated diff is expected, commit it. All three run as part of `pnpm run verify`.
 
-Generated or local-only folders such as `apps/vscode-extension/bundled-cli/`, `apps/vscode-extension/bundled-bin/`, `apps/inspector/src-tauri/target/`, build outputs, caches, and replay/debug artifacts should not be committed.
+Generated or local-only extension bundles, Rust build targets, build outputs, caches, and replay/debug artifacts should not be committed.
 
 ## Lua Runtime Guidelines
 

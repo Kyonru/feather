@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Registry publishing now uses Node 22 for pnpm 11 and creates its worktree from `origin/packages`; catalog updates can reach the registry branch.
+- Browser E2E jobs use Ubuntu 24.04, which is supported by the repository's Playwright version.
 - Shader Graph history now ignores React Flow selection and measurement changes, so Undo reverses authored graph edits in one step.
 - The top-level `feather plugin --managed` option now applies to actions selected in the interactive plugin workflow.
 - Particle shader presets now retain their filenames and source through project export, shader controls expose accessible names, and imported projects use the first available duplicate suffix.

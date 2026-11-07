@@ -43,8 +43,8 @@ Business rules such as production safety, package trust, build config resolution
 
 CLI resolution follows this pattern:
 
-- Local development uses `apps/vscode-extension/bundled-bin/feather-dev.mjs` when present.
-- Packaged builds use the platform-specific bundled binary in `bundled-bin`.
+- Local development uses the workspace launcher created by the extension preparation script.
+- Packaged builds use the platform-specific CLI binary bundled with the extension.
 - Managed jobs and state queries use `spawn(..., { shell: false })` with stdin closed; run/watch terminals start the CLI as the terminal process (`shellPath`), so nothing is shell-quoted.
 
 Do not duplicate CLI behavior in the extension just to avoid invoking the CLI. Add CLI support first, then call it from VS Code.

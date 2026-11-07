@@ -12,7 +12,7 @@ permissions:
 jobs:
   app-e2e:
     name: React app end-to-end
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
