@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Texture Lab coverage now checks that generated preview names describe the selected generator and output size.
 - Showcase workflow coverage now exercises the shared Studio shell, local-only state, browser exports, persistence, and compact-window layout.
 - Shader Graph export coverage now follows the Studio export menu and verifies editable graph downloads alongside GLSL and bundle artifacts.
 - Particle ZIP coverage now verifies generated Lua texture paths resolve to archived image files.
@@ -32,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Texture Lab generated previews now announce the selected generator and output dimensions to assistive technology.
 - Studio now registers only the Lua and GLSL syntax highlighters it uses, reducing the Shader Graph Showcase chunk without changing syntax colors.
 - Studio now renders shared notifications, making successful imports and actionable storage errors visible across its tools.
 - Texture Lab now gives its generator filter and selected-generator control distinct accessible names.

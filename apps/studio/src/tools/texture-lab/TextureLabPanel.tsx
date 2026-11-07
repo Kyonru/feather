@@ -2715,7 +2715,7 @@ export function TextureLabPanel({
               <div className={cn('grid min-h-[24rem] place-items-center rounded-sm p-4', previewGroundClassName(previewGround))}>
                 <img
                   data-testid="texture-lab-preview"
-                  alt="Generated texture preview"
+                  alt={`${textureLabGeneratorLabel(recipe)} texture preview, ${textureDimensionText} pixels`}
                   src={editorDataUrl}
                   style={{ aspectRatio: textureAspectRatio }}
                   className={cn(
