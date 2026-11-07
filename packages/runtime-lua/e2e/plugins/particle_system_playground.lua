@@ -1671,6 +1671,76 @@ return PluginE2EHelper.createSmokeSuite("particle-system-playground", {
     assertEqual(imported.data.systems[1].shaderFilename, "saved-particle-shader.glsl", "particle project import restores shader metadata")
     assertEqual(imported.data.systems[1].properties.spinMin, -0.1, "particle project import restores particle properties")
 
+    -- Game-owned composites can point at assets inside an existing LÖVE game.
+    -- Saving that project from the running game must embed the bytes so Studio
+    -- can reopen it independently, while ZIP/code export keeps the game-relative
+    -- path that the target game's filesystem resolves.
+    local externalAssetDirectory = "particle-playground-external-test"
+    local externalTexturePath = externalAssetDirectory .. "/project-texture.png"
+    love.filesystem.createDirectory(externalAssetDirectory)
+    local externalImageData = love.image.newImageData(2, 2)
+    externalImageData:setPixel(0, 0, 1, 0, 0, 1)
+    externalImageData:setPixel(1, 0, 0, 1, 0, 1)
+    externalImageData:setPixel(0, 1, 0, 0, 1, 1)
+    externalImageData:setPixel(1, 1, 1, 1, 1, 1)
+    local externalTextureFileData = externalImageData:encode("png")
+    local externalWriteOk = love.filesystem.write(externalTexturePath, externalTextureFileData)
+    assertTruthy(externalWriteOk, "external LÖVE fixture texture writes into the game filesystem")
+    local externalImage = love.graphics.newImage(externalTexturePath)
+    local externalParticleSystem = love.graphics.newParticleSystem(externalImage, 64)
+    plugin:addComposite("External LÖVE Project", function()
+      return {
+        x = 40,
+        y = 60,
+        [1] = {
+          system = externalParticleSystem,
+          texturePath = externalTexturePath,
+          textureFilename = "project-texture.png",
+          title = "External Texture",
+        },
+      }
+    end)
+    plugin:handleActionRequest({
+      params = { action = "select-composite", composite = "External LÖVE Project" },
+    })
+    local externalProjectResult = plugin:handleActionRequest({
+      params = { action = "export-project", composite = "External LÖVE Project" },
+    })
+    local externalProject = externalProjectResult and externalProjectResult.project
+    assertTruthy(externalProject, "external LÖVE project exports an editable project")
+    local externalProjectSystem = externalProject.composite.systems[1]
+    assertEqual(externalProjectSystem.texturePath, externalTexturePath, "external project retains its game-relative texture path")
+    assertTruthy(
+      type(externalProjectSystem.textureAssetBase64) == "string" and #externalProjectSystem.textureAssetBase64 > 0,
+      "external project embeds texture bytes from the game filesystem"
+    )
+    local externalImport = plugin:handleActionRequest({
+      params = { action = "import-project", project = externalProject },
+    })
+    assertTruthy(externalImport and externalImport.composite, "Studio-style project import restores external game assets")
+    local externalCodeResult = plugin:handleActionRequest({
+      params = { action = "export-code", composite = externalImport.composite },
+    })
+    assertTruthy(
+      contains(externalCodeResult.exportCode, "LG.newImage(" .. string.format("%q", externalTexturePath) .. ")"),
+      "exported Lua loads the external texture at its game-relative path"
+    )
+    local externalZipResult = plugin:handleActionRequest({
+      params = { action = "export-zip", composite = externalImport.composite },
+    })
+    local externalArchiveHasTexture = false
+    for _, file in ipairs(externalZipResult.zipAssets.files or {}) do
+      if file.name == externalTexturePath and file.encoding == "base64" then
+        externalArchiveHasTexture = true
+      end
+    end
+    assertTruthy(externalArchiveHasTexture, "particle ZIP includes the external texture at the referenced game path")
+    plugin:removeComposite("External LÖVE Project")
+    plugin:removeComposite(externalImport.composite)
+    externalImageData:release()
+    love.filesystem.remove(externalTexturePath)
+    love.filesystem.remove(externalAssetDirectory)
+
     local legacyV2Project = {
       type = "feather.particle-system-playground",
       version = 2,

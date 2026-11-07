@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Showcase workflow coverage now exercises the shared Studio shell, local-only state, browser exports, persistence, and compact-window layout.
 - Shader Graph export coverage now follows the Studio export menu and verifies editable graph downloads alongside GLSL and bundle artifacts.
 - Particle ZIP coverage now verifies generated Lua texture paths resolve to archived image files.
+- Particle runtime coverage now round-trips a project from a game-relative LÖVE texture path through project, Lua, and ZIP exports.
 - Shader Graph export coverage now checks bundle manifests and generated stage files.
 - Expanded CLI create coverage for Oval-Tutu cleanup boundaries, preserved build assets and attribution, TUA layout/configuration, generated-output targeting, editor recommendations, the optional bundled scaffold, and git recovery guidance.
 
